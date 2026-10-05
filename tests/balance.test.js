@@ -261,3 +261,23 @@ console.log('all checks passed');
   assert.strictEqual(O.home.house, 2); assert.deepStrictEqual(O.home.items, ['teddy']);
   console.log('v1.4 checks passed');
 }
+
+// ---- v1.6: wardrobe ----
+{
+  const G = DG.newGame(); DG.startDay(G);   // day 1, spring
+  assert.strictEqual(DG.styleCharm(G), 0);
+  const c0 = DG.charm(G);
+  G.money = 5000;
+  assert(DG.buyClothes(G, 'blazer')); assert.strictEqual(G.wardrobe.wear.outfit, 'blazer'); assert.strictEqual(G.money, 3800);
+  assert(!DG.buyClothes(G, 'blazer'), 'cannot buy twice');
+  assert.strictEqual(DG.styleCharm(G), 3); assert.strictEqual(DG.charm(G), c0 + 3);
+  assert(DG.buyClothes(G, 'clip'));                     // spring piece: 1 + 1 seasonal
+  assert.strictEqual(DG.styleCharm(G), 3 + 2);
+  assert(DG.claimableGoals(G).includes('style'));
+  assert(DG.wearClothes(G, 'worktop')); assert.strictEqual(DG.styleCharm(G), 2);
+  assert(!DG.wearClothes(G, 'gown'), 'cannot wear what she does not own');
+  const look = DG.mieLook(G);
+  assert.strictEqual(look.acc, 'clip'); assert.strictEqual(look.measure, false); assert.strictEqual(look.hair, '#3b2418');
+  const old = DG.newGame(); delete old.wardrobe; DG.ensureDefaults(old); assert.strictEqual(old.wardrobe.wear.glasses, 'rdark');
+  console.log('v1.6 checks passed');
+}

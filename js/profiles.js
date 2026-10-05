@@ -68,7 +68,7 @@
     exportCode(G) { return 'MIE1:' + b64e(JSON.stringify(G)); },
     parseCode(code) {
       const c = String(code || '').trim().replace(/\s+/g, '');
-      if (!c.startsWith('MIE1:')) throw new Error('That does not look like a save code from Mie\'s Atelier. It should start with MIE1:');
+      if (!c.startsWith('MIE1:')) throw new Error('That does not look like a save code from Life of Mie. It should start with MIE1:');
       let G;
       try { G = JSON.parse(b64d(c.slice(5))); } catch (e) { throw new Error('The save code is incomplete or damaged. Copy the whole code and try again.'); }
       if (!G || G.version !== 1 || typeof G.day !== 'number') throw new Error('The save code is not a valid game.');

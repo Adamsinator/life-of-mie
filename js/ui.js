@@ -3,7 +3,7 @@
   const DG = window.DG;
   const { byId, clamp, round1, pick } = DG;
   let G = null;
-  const UI = { view: 'shop', tab: 'fabric', upTab: 'equipment', menuTab: 'settings', overlay: null, sew: null, raf: 0, confirm: null, dexter: null, exportCode: '', importErr: '' };
+  const UI = { homeTab: 'family', view: 'shop', tab: 'fabric', upTab: 'equipment', menuTab: 'settings', overlay: null, sew: null, raf: 0, confirm: null, dexter: null, exportCode: '', importErr: '' };
 
   const kr = n => `${Math.round(n).toLocaleString('da-DK')} kr`;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -82,7 +82,7 @@
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
-      <div class="brand"><span class="brand-script">Mie's</span><span class="brand-word">Atelier</span></div>
+      <div class="brand"><span class="brand-script">Life of</span><span class="brand-word">Mie</span></div>
       <div class="hud">
         <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
         <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} <span class="sname">${se.name}</span></b></div>
@@ -126,7 +126,7 @@
     return `<div class="scene-wrap">${DG.renderShop(G)}</div>
     <div class="shop-grid">
       <section class="panel mie-panel">
-        <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
+        <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
         ${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
@@ -282,7 +282,7 @@
   function viewWorkshop() {
     const c = G.active;
     if (!c) {
-      return `<div class="empty panel">${DG.renderAvatar(DG.MIE_LOOK, 'neutral', 110)}<h2>No order on the table</h2>
+      return `<div class="empty panel">${DG.renderAvatar(DG.mieLook(G), 'neutral', 110)}<h2>No order on the table</h2>
         <p class="muted">Accept a customer's order in the shop, or sew a dress for the ready-to-wear rack.</p>
         <div class="actions center"><button class="btn primary" data-act="view" data-arg="shop">Back to the shop</button>
         <button class="btn" data-act="rackorder" ${G.rack.length >= DG.rackCapacity(G) ? 'disabled' : ''}>✂️ Sew for the rack</button></div></div>`;
@@ -402,8 +402,8 @@
   // ---------------- overlays ----------------
   function ovIntro() {
     return `<div class="overlay"><div class="sheet intro">
-      <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'ecstatic', 120)}<div>
-        <h1><span class="brand-script">Mie's</span> Atelier</h1>
+      <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 120)}<div>
+        <h1><span class="brand-script">Life of</span> Mie</h1>
         <p>Mie has just opened a tiny dress shop on a cobbled street in Copenhagen. She has a sewing machine, a dress form, 400 kr in the bank and big dreams.</p></div></div>
       <ol class="howto">
         <li><b>Meet customers.</b> Each one has wishes: quality, workwear, creativity, exclusivity, elegance or comfort, plus favourite colours, must-haves and a budget.</li>
@@ -533,7 +533,7 @@
 
   function ovGameOver() {
     return `<div class="overlay"><div class="sheet center">
-      ${DG.renderAvatar(DG.MIE_LOOK, 'sad', 120)}
+      ${DG.renderAvatar(DG.mieLook(G), 'sad', 120)}
       <h2>The bank has closed the atelier</h2>
       <p>Mie ran out of money on day ${G.day} after making ${G.stats.served} dresses. Her best one scored ${G.stats.best}%.</p>
       <button class="btn primary big" data-act="newgame">Start over</button>
@@ -766,7 +766,9 @@
       return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">❤️ +${it.joy} now, and a slower daily drop</span></div></div>
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
-    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>
+    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
+    if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}${wardrobeHtml()}`;
+    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
         <h2>Mie's home</h2>
@@ -792,6 +794,28 @@
         <h2>Toys for Elizabeth</h2><div class="grid upg">${items('elizabeth')}</div>
         <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
       </section>
+    </div>`;
+  }
+
+  function wardrobeHtml() {
+    const wear = G.wardrobe.wear, se = DG.season(G).id;
+    const card = w => {
+      const own = G.wardrobe.owned.includes(w.id), on = wear[w.slot] === w.id;
+      const preview = DG.renderAvatar(DG.mieLook({ wardrobe: { wear: Object.assign({}, wear, { [w.slot]: w.id }) } }), on ? 'ecstatic' : 'happy', 64);
+      const bonus = w.season ? ` · +1 in ${byId(DG.SEASONS, w.season).name.toLowerCase()}${w.season === se ? ' ✓' : ''}` : '';
+      return `<article class="card wear ${on ? 'owned' : ''}"><div class="card-top">${preview}<div class="card-title"><b>${w.name}</b><span class="muted small">✨ +${w.charm} style${bonus}</span></div></div>
+        <p class="small">${w.desc}</p>
+        ${on ? '<div class="lock done">Wearing it ✓</div>' : own ? `<button class="btn" data-act="wear" data-arg="${w.id}">Put it on</button>`
+          : `<button class="btn primary" data-act="buywear" data-arg="${w.id}" ${G.money < w.cost ? 'disabled' : ''}>Buy: ${kr(w.cost)}</button>`}</article>`;
+    };
+    return `<div class="shop-grid">
+      <section class="panel wardrobe-me">
+        <h2>Mie's wardrobe</h2>
+        <div class="mirror">${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 150)}</div>
+        <p>What Mie wears is the best advert for the atelier. Worn clothes add <b>style charm</b>: right now ✨ ${DG.styleCharm(G)}, part of the shop's total charm of ${DG.charm(G)}.</p>
+        <p class="muted small">Charm raises satisfaction on every dress, customer budgets and rack sales. Seasonal pieces give +1 extra in their season. Buying something new also makes Mie a little happier.</p>
+      </section>
+      <section class="panel">${DG.WARDROBE_SLOTS.map(([slot, label]) => `<h2>${label}</h2><div class="grid upg">${DG.WARDROBE.filter(w => w.slot === slot).map(card).join('')}</div>`).join('')}</section>
     </div>`;
   }
 
@@ -849,6 +873,8 @@
       title: 'A pottery corner?', text: 'With some savings Mie could start making pottery too. Buy the pottery studio under Upgrades → Expansion.' },
     { id: 'pottery', when: () => UI.view === 'studio' && DG.upgradeLevel(G, 'pottery') && !ov(), target: '.pot-stage',
       title: 'The pottery corner', text: 'Pick shape, clay, glaze and decoration. Then knead, throw on the wheel and paint if you like. The kiln fires pots overnight.' },
+    { id: 'wardrobe', when: () => UI.view === 'home' && !ov() && G.money > 600 && UI.homeTab !== 'wardrobe', target: '[data-act=hometab][data-arg=wardrobe]',
+      title: 'Something new to wear?', text: 'Mie\'s wardrobe: new clothes make her the best advert for the atelier and add style charm.' },
     { id: 'tax', when: () => UI.view === 'shop' && !ov() && G.money > 4000 && !DG.upgradeLevel(G, 'accountant'), target: '[data-act=view][data-arg=upgrades]',
       title: 'SKAT is taking a bite', text: 'A busy shop pays tax on good days. An accountant (Upgrades → Equipment) lowers it.' },
     { id: 'move', when: () => UI.view === 'home' && !ov() && DG.nextHouse(G) && G.money >= DG.nextHouse(G).cost, target: '[data-act=movehouse]',
@@ -866,7 +892,7 @@
     return null;
   }
   function coachHtml(t) {
-    return `<aside class="coach" role="status">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 48)}<div class="coach-txt"><b>${t.title}</b><span>${t.text}</span></div>
+    return `<aside class="coach" role="status">${DG.renderAvatar(DG.mieLook(G), 'happy', 48)}<div class="coach-txt"><b>${t.title}</b><span>${t.text}</span></div>
       <div class="coach-act"><button class="btn small primary" data-act="tipok" data-arg="${t.id}">Got it</button><button class="btn small ghost" data-act="tipsoff">No more tips</button></div></aside>`;
   }
 
@@ -879,6 +905,7 @@
       ['👗 Ready-to-wear rack', 'Sew without an order to use leftover fabric. Rack dresses sell to walk-ins in the evening; charm and a bigger shop window help. You can mark them down.'],
       ['🏺 Pottery', 'Buy the studio under Upgrades → Expansion. Knead (fewer cracks), throw on the wheel (holding keeps the pressure in the green), optionally paint, and the kiln fires overnight. Pots sell from the shelf and add charm.'],
       ['🏡 Home and family', 'The family starts in a small flat in Nørrebro and can move up in five steps to a Strandvejsvilla in Klampenborg; each home raises the lowest family happiness can fall to. Family happiness drops every night. Above 75 Mie works better, below 30 worse. Play with Elizabeth and pet Dexter daily, buy toys, go on outings (some only in summer or winter) and keep Dexter fed.'],
+      ['👗 Mie\'s wardrobe', 'Home → Mie\'s wardrobe has outfits, accessories and round glasses for Mie. What she wears shows everywhere and adds style charm to the shop; seasonal pieces give +1 extra in their season.'],
       ['🧮 SKAT and the accountant', 'Each evening SKAT takes 40% of the day\'s profit above 2.000 kr. An accountant (Upgrades → Equipment) raises the tax-free amount and lowers the rate to 32% and then 25%.'],
       ['⭐ Upgrades', 'Equipment improves work, expansions add pottery and an upstairs floor, decor adds charm, staff help every day for a wage, and marketing brings more or richer customers tomorrow.'],
       ['🏆 Goals', '18 milestones with cash rewards. Collect them on the Goals screen.'],
@@ -929,8 +956,8 @@
 
   function welcomeScreen() {
     return `<div class="welcome"><div class="panel center">
-      ${DG.renderAvatar(DG.MIE_LOOK, 'ecstatic', 120)}
-      <h1><span class="brand-script">Mie's</span> Atelier</h1>
+      ${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 120)}
+      <h1><span class="brand-script">Life of</span> Mie</h1>
       <p>Welcome! You play as Mie, a dressmaker with her own little shop in Copenhagen. Keep the name or type your own. Each player gets their own shop, saved on this device.</p>
       <label class="lbl" for="firstname">Your name</label>
       <input id="firstname" class="text-in" maxlength="24" value="Mie" autocomplete="off">
@@ -1234,6 +1261,13 @@
         if (DG.buyHomeItem(G, arg)) { G.today.spent += it.cost; sfx('coin'); toast(`${it.icon} ${it.name} for ${it.who === 'dexter' ? 'Dexter' : 'Elizabeth'}!`); }
         break;
       }
+      case 'hometab': UI.homeTab = arg; break;
+      case 'buywear': {
+        const w = byId(DG.WARDROBE, arg);
+        if (DG.buyClothes(G, arg)) { G.today.spent += w.cost; sfx('coin'); toast(`👗 Mie is wearing her new ${w.name.toLowerCase()}!`); }
+        break;
+      }
+      case 'wear': if (DG.wearClothes(G, arg)) sfx('click'); break;
       case 'movehouse': {
         const nx = DG.moveHouse(G);
         if (nx) { G.today.spent += nx.cost; sfx('fanfare'); toast(`🏡 The family moved to: ${nx.name}!`); window.scrollTo(0, 0); }

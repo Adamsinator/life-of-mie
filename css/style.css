@@ -330,7 +330,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; user-select:
 @media (max-width: 560px) {
   .hud { gap: 12px; }
   .repbar { width: 60px; }
-  .brand-word { display: none; }
+  .brand-word { font-size: .78rem; } .brand-script { font-size: 1.15rem; }
   .res-top, .res-grid { grid-template-columns: 1fr; }
   .res-dress { max-width: 200px; margin: 0 auto; }
   .abar { grid-template-columns: 108px 1fr 30px; }
@@ -483,3 +483,8 @@ body.has-coach .view { padding-bottom: 200px; }
 .house.past, .house.later { opacity: .6; }
 .house .btn { justify-self: start; margin-top: 4px; }
 .house-step { font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- wardrobe (v1.6) ---------- */
+.home-tabs { max-width: 1180px; margin: 0 auto 16px; }
+.mirror { display: grid; place-items: center; padding: 14px; margin: 12px 0; border-radius: 50% 50% 16px 16px; background: radial-gradient(ellipse at 50% 35%, var(--card), var(--paper)); border: 4px solid var(--gold); max-width: 240px; margin-inline: auto; }
+.card.wear .avatar { flex: none; }

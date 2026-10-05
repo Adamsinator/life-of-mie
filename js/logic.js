@@ -74,8 +74,49 @@
       G.home.house = it.includes('summerhouse') ? 3 : it.includes('garden') ? 2 : it.includes('kitchen') ? 1 : 0;
       G.home.items = it.filter(id => !['kitchen', 'garden', 'summerhouse'].includes(id));
     }
-    G.upgrades.accountant = G.upgrades.accountant || 0;             // ids of tutorial tips this player has seen
+    G.upgrades.accountant = G.upgrades.accountant || 0;
+    G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };             // ids of tutorial tips this player has seen
     return G;
+  };
+
+  // ---------- Mie's wardrobe ----------
+  DG.styleCharm = function (G) {
+    if (!G.wardrobe || !G.day) return 0;
+    const se = DG.season(G).id;
+    return Object.values(G.wardrobe.wear).reduce((a, id) => {
+      const w = byId(DG.WARDROBE, id);
+      return a + (w ? w.charm + (w.season === se ? 1 : 0) : 0);
+    }, 0);
+  };
+  DG.buyClothes = function (G, id) {
+    const w = byId(DG.WARDROBE, id);
+    if (!w || G.wardrobe.owned.includes(id) || G.money < w.cost) return false;
+    G.money -= w.cost;
+    G.wardrobe.owned.push(id);
+    G.wardrobe.wear[w.slot] = id;   // put it on straight away
+    G.home.happy = clamp(G.home.happy + 3, 0, 100);
+    DG.updateGoals(G);
+    return true;
+  };
+  DG.wearClothes = function (G, id) {
+    const w = byId(DG.WARDROBE, id);
+    if (!w || !G.wardrobe.owned.includes(id)) return false;
+    G.wardrobe.wear[w.slot] = id;
+    DG.updateGoals(G);
+    return true;
+  };
+  // Mie's portrait look, dressed in what she is wearing (G optional)
+  DG.mieLook = function (G) {
+    const look = Object.assign({}, DG.MIE_LOOK);
+    if (!G || !G.wardrobe) return look;
+    const wear = G.wardrobe.wear;
+    const o = byId(DG.WARDROBE, wear.outfit), a = byId(DG.WARDROBE, wear.acc), gl = byId(DG.WARDROBE, wear.glasses);
+    if (o) { look.top = o.top; look.kind = o.kind; }
+    look.measure = wear.acc === 'measure';
+    look.acc = a && !['measure', 'noacc'].includes(a.id) ? a.id : null;
+    look.accColor = a && a.color;
+    if (gl) look.glassColor = gl.color;
+    return look;
   };
 
   // ---------- Mie's home ----------
@@ -151,7 +192,7 @@
     const d = G.decor;
     const items = d.owned.reduce((a, id) => a + (byId(DG.DECOR, id) || { charm: 0 }).charm, 0);
     const pots = Math.min(3, (G.shelf || []).length);   // pottery on display
-    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm + pots;
+    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm + pots + DG.styleCharm(G);
   };
   DG.wages = G => DG.STAFF.reduce((a, st) => a + (G.staff[st.id] ? st.wage : 0), 0);
   DG.rackCapacity = G => 2 + DG.upgradeLevel(G, 'display') + 2 * DG.upgradeLevel(G, 'floor');

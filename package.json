@@ -1,8 +1,8 @@
 {
-  "name": "dress-game",
+  "name": "life-of-mie",
   "version": "1.0.0",
   "private": true,
-  "description": "Mie's Atelier: a dress-making shop game for the browser, made for iPad.",
+  "description": "Life of Mie: a dress-making shop and family life game for the browser, made for iPad.",
   "scripts": {
     "test": "node tests/balance.test.js",
     "sim": "node tests/sim.js 40 60",

@@ -225,6 +225,30 @@
     { id: 'strandvej', name: 'Strandvejsvilla in Klampenborg',  cost: 180000, joy: 40, floor: 50, view: 'sea',
       desc: 'The dream: a white villa on Strandvejen with a view over Øresund.' },
   ];
+  // Mie's wardrobe: what she wears shows everywhere and adds style charm to the shop (worn items only).
+  // slot: outfit | acc | glasses.  season: +1 extra charm when worn in that season.
+  DG.WARDROBE = [
+    { id: 'worktop',  slot: 'outfit', name: 'Teal work top',        cost: 0,    charm: 0, top: '#2f6f73', kind: 'tee',     desc: 'Comfy, practical, covered in threads.' },
+    { id: 'breton',   slot: 'outfit', name: 'Breton stripes',       cost: 180,  charm: 1, top: '#1e2b47', kind: 'stripes', desc: 'Very French. Very chic.' },
+    { id: 'knit',     slot: 'outfit', name: 'Chunky knit sweater',  cost: 350,  charm: 1, top: '#d6a22a', kind: 'knit',    season: 'winter', desc: 'Hygge you can wear. Extra charming in winter.' },
+    { id: 'sundress', slot: 'outfit', name: 'Linen summer dress',   cost: 450,  charm: 1, top: '#9db69a', kind: 'dress',   season: 'summer', desc: 'Light and breezy. Extra charming in summer.' },
+    { id: 'blouse',   slot: 'outfit', name: 'Silk blouse with bow', cost: 650,  charm: 2, top: '#f1b9c2', kind: 'blouse',  desc: 'Soft pink silk, sewn by Mie herself.' },
+    { id: 'trench',   slot: 'outfit', name: 'Trench coat',          cost: 900,  charm: 2, top: '#c9a87a', kind: 'blazer',  season: 'autumn', desc: 'For Copenhagen drizzle. Extra charming in autumn.' },
+    { id: 'blazer',   slot: 'outfit', name: 'Tailored blazer',      cost: 1200, charm: 3, top: '#232326', kind: 'blazer',  desc: 'Means business. Bankers suddenly take her calls.' },
+    { id: 'gown',     slot: 'outfit', name: 'Velvet evening gown',  cost: 3000, charm: 4, top: '#6b2a5e', kind: 'gown',    desc: 'For gala nights. Customers ask who made it.' },
+    { id: 'measure',  slot: 'acc', name: 'Tape measure',            cost: 0,    charm: 0, desc: 'Never leaves home without it.' },
+    { id: 'noacc',    slot: 'acc', name: 'No accessory',            cost: 0,    charm: 0, desc: 'Simple and clean.' },
+    { id: 'clip',     slot: 'acc', name: 'Flower hair clip',        cost: 90,   charm: 1, color: '#d6577b', season: 'spring', desc: 'A little spring in her hair. Extra charming in spring.' },
+    { id: 'scarf',    slot: 'acc', name: 'Silk scarf',              cost: 150,  charm: 1, color: '#c44d6c', desc: 'Tied the Parisian way.' },
+    { id: 'beret',    slot: 'acc', name: 'Red beret',               cost: 250,  charm: 1, color: '#bf2630', desc: 'Artistic and a little bit cheeky.' },
+    { id: 'pearls',   slot: 'acc', name: 'Pearl necklace',          cost: 800,  charm: 2, color: '#f6f1e6', desc: 'A classic. Grandma would approve.' },
+    { id: 'rdark',    slot: 'glasses', name: 'Round, dark brown',   cost: 0,    charm: 0, color: '#3a2a22', desc: 'Her trusty round glasses.' },
+    { id: 'rtort',    slot: 'glasses', name: 'Round, tortoiseshell', cost: 300, charm: 1, color: '#8a5a2b', desc: 'Warm and bookish.' },
+    { id: 'rred',     slot: 'glasses', name: 'Round, cherry red',   cost: 350,  charm: 1, color: '#bf2630', desc: 'A pop of colour.' },
+    { id: 'rgold',    slot: 'glasses', name: 'Round, thin gold',    cost: 450,  charm: 1, color: '#c99a2e', desc: 'Light and elegant.' },
+  ];
+  DG.WARDROBE_SLOTS = [['outfit', 'Outfits'], ['acc', 'Accessories'], ['glasses', 'Glasses']];
+
   DG.CAT_FOOD = { name: 'Cat food (7 days)', icon: '🐟', cost: 70, days: 7 };
   // once per day each; outings share one daily slot
   DG.ACTIVITIES = [
@@ -272,6 +296,7 @@
     { id: 'artist',   title: 'Potter and painter',  desc: 'Fire a hand-painted pot.',                        target: 1,    reward: 250,  prog: G => G.stats.painted },
     { id: 'move1',    title: 'Room to grow',        desc: 'Move out of the small flat in Nørrebro.',         target: 1,    reward: 500,  prog: G => G.home.house },
     { id: 'dream',    title: 'Strandvejsvilla!',    desc: 'Move into the villa on Strandvejen.',             target: 5,    reward: 5000, prog: G => G.home.house },
+    { id: 'style',    title: 'Style icon',          desc: 'Wear an outfit worth 5 style charm.',             target: 5,    reward: 400,  prog: G => DG.styleCharm(G) },
     { id: 'bride',    title: 'Say yes to the dress',desc: "Make a bride's dress that scores 85% or more.",   target: 85,   reward: 1500, prog: G => G.stats.brideBest },
   ];
 

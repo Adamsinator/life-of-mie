@@ -298,12 +298,43 @@
     const eyes = mood === 'ecstatic'
       ? '<path d="M40 46 Q43 43 46 46 M54 46 Q57 43 60 46" stroke="#2b2b2b" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
       : '<circle cx="43" cy="46" r="2" fill="#2b2b2b"/><circle cx="57" cy="46" r="2" fill="#2b2b2b"/>';
-    const glasses = look.glasses ? '<g fill="none" stroke="#3a2a22" stroke-width="1.3"><circle cx="43" cy="46" r="5.5"/><circle cx="57" cy="46" r="5.5"/><path d="M48.5 46 H51.5"/></g>' : '';
+    const glasses = look.glasses ? `<g fill="none" stroke="${look.glassColor || '#3a2a22'}" stroke-width="${look.glassColor && look.glassColor !== '#3a2a22' ? 1.6 : 1.3}"><circle cx="43" cy="46" r="5.5"/><circle cx="57" cy="46" r="5.5"/><path d="M48.5 46 H51.5"/></g>` : '';
     const shirt = look.shirt ? `<path d="M41 75 L50 86 L59 75 L55 72 L50 79 L45 72 Z" fill="#fff" stroke="${darken(look.top, 0.35)}" stroke-width=".8"/><path d="M50 86 V100" stroke="${darken(look.top, 0.35)}" stroke-width="1"/><circle cx="50" cy="91" r="1" fill="${darken(look.top, 0.4)}"/><circle cx="50" cy="97" r="1" fill="${darken(look.top, 0.4)}"/>` : '';
     const beard = look.beard ? `<path d="M34 50 Q36 68 50 68 Q64 68 66 50 Q62 60 50 60 Q38 60 34 50Z" fill="${hair}"/>` : '';
     const ear = look.earrings ? '<circle cx="33" cy="54" r="2" fill="#e9c35a"/><circle cx="67" cy="54" r="2" fill="#e9c35a"/>' : '';
+    // outfit details drawn over the plain top
+    const t = look.top, td = darken(t, 0.25);
+    let outfit = `<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${t}"/>`;
+    let overNeck = '';
+    switch (look.kind) {
+      case 'stripes':
+        outfit += [80, 86, 92, 98].map(y => `<path d="M${16 + (100 - y) * 0.2} ${y} Q50 ${y - 3} ${84 - (100 - y) * 0.2} ${y}" stroke="#f7f5ef" stroke-width="2.4" fill="none"/>`).join('');
+        break;
+      case 'knit':
+        overNeck = `<rect x="41" y="68" width="18" height="9" rx="4" fill="${td}"/><path d="M44 69 v7 M48 69 v8 M52 69 v8 M56 69 v7" stroke="${darken(t, 0.4)}" stroke-width=".7"/>`;
+        outfit += [26, 34, 42, 58, 66, 74].map(x => `<path d="M${x} 90 v8" stroke="${td}" stroke-width="1.2"/>`).join('');
+        break;
+      case 'dress':
+        overNeck = `<path d="M43 74 L50 86 L57 74 Z" fill="${darken(look.skin, 0.12)}"/><path d="M38 76 L36 70 M62 76 L64 70" stroke="${t}" stroke-width="3"/>`;
+        break;
+      case 'blouse':
+        overNeck = `<path d="M50 77 q-8 -6 -9 2 q2 5 9 -2Z M50 77 q8 -6 9 2 q-2 5 -9 -2Z" fill="${td}"/><path d="M50 77 l-4 12 M50 77 l4 12" stroke="${td}" stroke-width="2"/><circle cx="50" cy="77" r="2" fill="${darken(t, 0.4)}"/>`;
+        break;
+      case 'blazer':
+        overNeck = `<path d="M42 75 L50 92 L58 75 Z" fill="#fbfaf6"/><path d="M42 75 L48 93 L36 100 L30 100 Q32 82 42 75Z M58 75 L52 93 L64 100 L70 100 Q68 82 58 75Z" fill="${td}"/>`;
+        break;
+      case 'gown':
+        outfit = `<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${darken(look.skin, 0.06)}"/><path d="M20 100 Q24 86 50 85 Q76 86 80 100 Z" fill="${t}"/><path d="M24 92 Q50 84 76 92" stroke="${lighten(t, 0.25)}" stroke-width="1" fill="none"/>`;
+        break;
+      default: break;
+    }
+    let acc = '';
+    if (look.acc === 'scarf') acc = `<path d="M41 71 Q50 78 59 71 L60 76 Q50 83 40 76 Z" fill="${look.accColor}"/><path d="M55 77 l5 11 l-5 -2 l-3 2 Z" fill="${look.accColor}"/>`;
+    if (look.acc === 'pearls') acc = Array.from({ length: 9 }, (_, i) => { const a = Math.PI * (0.15 + 0.7 * i / 8); return `<circle cx="${(50 - Math.cos(a) * 10).toFixed(1)}" cy="${(73 + Math.sin(a) * 7).toFixed(1)}" r="1.5" fill="#f6f1e6" stroke="#cfc6b8" stroke-width=".4"/>`; }).join('');
+    const hat = look.acc === 'beret' ? `<ellipse cx="54" cy="26" rx="17" ry="6.5" transform="rotate(-12 54 26)" fill="${look.accColor}"/><circle cx="56" cy="19" r="1.6" fill="${look.accColor}"/>` : '';
+    const clip = look.acc === 'clip' ? `<g transform="translate(35 32)">${[0, 1, 2, 3, 4].map(k => `<circle cx="${(Math.cos(k * 1.2566) * 2.6).toFixed(1)}" cy="${(Math.sin(k * 1.2566) * 2.6).toFixed(1)}" r="2" fill="${look.accColor}"/>`).join('')}<circle r="1.3" fill="#f0c443"/></g>` : '';
     const extra = look.measure ? '<path d="M24 100 Q30 78 44 74 L48 82 Q36 86 32 100 Z" fill="#f2d54b"/><path d="M30 92 l3 1 M33 86 l3 1.4 M37 81 l3 1.6" stroke="#5a4a12" stroke-width=".8"/>' : '';
-    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${look.top}"/><rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/><ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${shirt}${beard}${mouth}${glasses}${ear}${extra}</svg>`;
+    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}${outfit}<rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/>${overNeck}${acc}<ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${hat}${clip}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${shirt}${beard}${mouth}${glasses}${ear}${extra}</svg>`;
   };
 
   // ---------------- shop interior ----------------
@@ -385,7 +416,7 @@
       });
     }
     // counter with Mie and the register
-    out.push(DG.renderAvatar(inScene(DG.MIE_LOOK), 'happy', 44).replace('<svg', '<svg x="348" y="80"'));
+    out.push(DG.renderAvatar(inScene(DG.mieLook(G)), 'happy', 44).replace('<svg', '<svg x="348" y="80"'));
     out.push('<rect x="338" y="118" width="62" height="36" rx="2" fill="#7a5236"/><rect x="338" y="114" width="62" height="6" rx="2" fill="#9a6b47"/><rect x="384" y="102" width="14" height="12" rx="2" fill="#2f1d2b"/><rect x="386" y="104" width="10" height="4" fill="#9db69a"/>');
     if (owned('espresso')) out.push('<rect x="342" y="100" width="14" height="14" rx="2" fill="#b9bcc2"/><rect x="345" y="96" width="8" height="5" rx="1" fill="#2f1d2b"/><rect x="346" y="108" width="5" height="5" fill="#fff"/><path d="M349 106 q2 -3 0 -6" stroke="#ccc" stroke-width=".8" fill="none"/>');
     // staff
@@ -563,7 +594,7 @@
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
     out.push(DG.renderAvatar(DG.FAMILY.adam.look, 'happy', 46).replace('<svg', '<svg x="244" y="82"'));
-    out.push(DG.renderAvatar(Object.assign({}, DG.MIE_LOOK, { bg: 'transparent', measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 46).replace('<svg', '<svg x="194" y="82"'));
+    out.push(DG.renderAvatar(Object.assign({}, DG.mieLook(G), { bg: 'transparent', measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 46).replace('<svg', '<svg x="194" y="82"'));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
     out.push(DG.renderAvatar(DG.FAMILY.elizabeth.look, eMood, 34).replace('<svg', `<svg x="${has('tricycle') ? 132 : 150}" y="150"`));
     // toys

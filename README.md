@@ -1,6 +1,6 @@
-# Mie's Atelier 🧵👗
+# Life of Mie 🧵👗🏡
 
-A browser game made mainly for iPad. Mie runs a small dress atelier in Copenhagen. Customers come in with wishes, she buys fabric at the market, and you design and sew the dress. Then you see how happy the customer is.
+A browser game made mainly for iPad. Mie runs a small dress atelier, **Mie's Atelier**, in Copenhagen. Customers come in with wishes, she buys fabric at the market, and you design and sew the dress. Then you see how happy the customer is.
 
 No build step and no dependencies. It is plain HTML, CSS and JavaScript.
 
@@ -9,11 +9,11 @@ No build step and no dependencies. It is plain HTML, CSS and JavaScript.
 - **Locally:** open `index.html` in a browser, or run `npm start` and go to http://localhost:5173.
 - **On iPad via GitHub Pages:**
   1. Settings → Pages → *Deploy from a branch*, then pick `main` and the `/ (root)` folder.
-  2. The game appears at https://adamsinator.github.io/dress-game/.
+  2. The game appears at https://adamsinator.github.io/life-of-mie/.
   3. Open it in Safari and choose *Share → Add to Home Screen*. It then opens full screen like an app.
 
   GitHub Pages needs a **public** repository, or a paid GitHub plan for a private one.
-- **Single file:** `npm run build` writes `dist/mies-atelier.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
+- **Single file:** `npm run build` writes `dist/life-of-mie.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
 
 ## Getting started
 
@@ -108,6 +108,15 @@ The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, th
   | 5 | **Strandvejsvilla in Klampenborg**, with a view over Øresund | 180.000 kr | 50 |
 - **Cat food** lasts 7 days. A hungry Dexter says "Mjav!".
 - Each evening brings a little story from home.
+
+## Mie's wardrobe
+
+Home → **Mie's wardrobe** sells clothes for Mie herself:
+- **Outfits:** Breton stripes, a chunky knit, a linen summer dress, a silk blouse, a trench coat, a tailored blazer and a velvet evening gown.
+- **Accessories:** a flower hair clip, a silk scarf, a red beret and a pearl necklace.
+- **Glasses:** round frames in tortoiseshell, cherry red or thin gold.
+
+What she wears shows everywhere: in the shop, at home and in the tips. Each piece she is wearing adds **style charm**, which counts towards the shop's charm. Seasonal pieces give +1 extra in their season (knit in winter, summer dress in summer, trench in autumn, hair clip in spring). Buying something new makes Mie a little happier too.
 
 ## Upstairs floor and goals
 
