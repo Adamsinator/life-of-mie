@@ -1534,6 +1534,11 @@
 
   // ---------------- boot ----------------
   applySettings();
+  // play offline too (only where the game is served as files, not in the single-file build)
+  try {
+    if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href) && !document.getElementById('single-file'))
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+  } catch (e) { /* ignore */ }
   // ask the browser not to clear this site's storage (Safari otherwise may after weeks without a visit)
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   G = DG.Profiles.active() ? load() : null;

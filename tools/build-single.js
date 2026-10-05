@@ -9,7 +9,7 @@ const fragment = process.argv.includes('--fragment');
 const fonts = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap';
 const css = read('css/style.css');
 const js = ['js/i18n.js', 'js/lang-da.js', 'js/data.js', 'js/logic.js', 'js/render.js', 'js/audio.js', 'js/profiles.js', 'js/minigames.js', 'js/ui.js'].map(read).join('\n');
-const body = `<div id="app"></div>\n<script>\n${js}\n</script>`;
+const body = `<i id="single-file" hidden></i>\n<div id="app"></div>\n<script>\n${js}\n</script>`;
 const b64 = f => fs.readFileSync(path.join(root, f)).toString('base64');
 const icons = `<link rel="icon" href="data:image/svg+xml;base64,${b64('icons/icon.svg')}">\n<link rel="apple-touch-icon" href="data:image/png;base64,${b64('icons/apple-touch-icon.png')}">`;
 const head = `<title>Life of Mie</title>\n${icons}\n<link rel="stylesheet" href="${fonts}">\n<style>\n${css}\n</style>`;

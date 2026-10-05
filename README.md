@@ -52,6 +52,7 @@ Updates of the game must never cost anyone their progress:
 - Brush strokes use every Apple Pencil/finger sample (120 per second), are smoothed, and get thicker with Pencil pressure or thinner with a quick finger flick. While the Pencil is in use, a resting palm does not paint. Strokes are saved as their centre line (`x y r,...`), and their outline is drawn when shown.
 - Cutting and ironing sweep the whole distance between samples, so fast swipes never skip. The potter's wheel grows the pot with a transform each frame, with no redraws.
 - No double-tap zoom, text selection, long-press menus or rubber-band scrolling outside text fields.
+- **Offline:** a service worker (`sw.js`) keeps a copy of the game for when there is no connection. It is network first, so online you always get the newest version from GitHub Pages, and it never touches saves. Fonts are bundled in `fonts/` (SIL Open Font License).
 
 ## Settings
 

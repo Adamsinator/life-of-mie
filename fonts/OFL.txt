@@ -1,0 +1,4 @@
+Fredoka (Copyright 2016 The Fredoka Project Authors), Nunito (Copyright 2014 The Nunito Project Authors)
+and Pacifico (Copyright 2018 The Pacifico Project Authors) are licensed under the SIL Open Font License,
+Version 1.1. The full license text is available at https://openfontlicense.org/open-font-license-official-text/
+The files here are the Latin subsets served by Google Fonts.

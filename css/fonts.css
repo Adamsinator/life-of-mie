@@ -1,0 +1,4 @@
+/* Fonts shipped with the game (SIL Open Font License, see fonts/OFL.txt), so it looks right offline. Latin subset. */
+@font-face { font-family: 'Fredoka'; font-style: normal; font-weight: 300 700; font-display: swap; src: url(../fonts/fredoka.woff2) format('woff2'); }
+@font-face { font-family: 'Nunito'; font-style: normal; font-weight: 200 1000; font-display: swap; src: url(../fonts/nunito.woff2) format('woff2'); }
+@font-face { font-family: 'Pacifico'; font-style: normal; font-weight: 400; font-display: swap; src: url(../fonts/pacifico.woff2) format('woff2'); }
