@@ -16,7 +16,10 @@
   Object.assign(DG, { byId, clamp, round1, pick, randInt });
 
   // Balance knobs: how strongly dress parts shift stats, and how harshly misses are punished.
-  DG.BAL = { delta: 0.6, fitExp: 2.5 };
+  // Balance knobs. Cozy, not kids-easy: there is no failure, but four and five stars are earned.
+  //   ramp: wishes grow with reputation (+ramp at rep 100) and with each visit of a regular (+visitStep, up to +visitMax)
+  //   craftW: weight of the sewing mini-games in satisfaction; bonusCap: most that charm, fitting, season etc. can add
+  DG.BAL = { delta: 0.6, fitExp: 3.5, ramp: 0.6, visitStep: 0.3, visitMax: 1, craftW: 0.22, bonusCap: 6 };
 
   DG.colorHex = id => (byId(DG.COLORS, id) || DG.COLORS[0]).hex;
   DG.upgradeLevel = (G, id) => (G.upgrades && G.upgrades[id]) || 0;
@@ -363,7 +366,9 @@
     budget = Math.round(budget / 10) * 10;
 
     const targets = {};
-    for (const k in arche.t) targets[k] = clamp(Math.round((arche.t[k] + (Math.random() - 0.5)) * 2) / 2, 3, 10);
+    // seasoned shops get more demanding customers, and regulars expect a little more each visit
+    const lift = 1 + DG.BAL.ramp * clamp(G.rep, 0, 100) / 100, extra = Math.min(DG.BAL.visitMax, DG.BAL.visitStep * (base.visits || 0));
+    for (const k in arche.t) targets[k] = clamp(Math.round((arche.t[k] * lift + extra + (Math.random() - 0.5)) * 2) / 2, 3, 9.5);
     const reqs = arche.reqs.filter(([, p]) => Math.random() < p).map(([id]) => id);
 
     const c = Object.assign(base, {
@@ -429,7 +434,7 @@
     const r = DG.skatRule(G), x = Math.max(0, profit - r.free);
     return Math.round(Math.min(x, r.topFrom) * r.low + Math.max(0, x - r.topFrom) * r.top);
   };
-  DG.HELP_FLOOR = 2000;   // the family never lets the shop run dry: below 500 kr they top it up to 2.000 kr
+  DG.HELP_FLOOR = 1500;   // the family never lets the shop run dry: below 375 kr they top it up to 1.500 kr
   DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
@@ -596,16 +601,20 @@
     const sf = G.day > 0 ? DG.seasonFabric(G, design.main) : null;
     const seasonAdj = sf === 'in' ? 3 : sf === 'out' ? -4 : 0;
 
-    let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0)
-      + 0.25 * DG.charm(G) + seasonAdj + DG.homeMood(G).sat + (cust.back && G.staff.assistant ? 3 : 0);
+    // the bonuses (fitting room, loyalty, charm, in-season fabric, a happy home, Lise's tea) help, but only so far
+    const mood = DG.homeMood(G).sat;
+    const bonus = Math.min(DG.BAL.bonusCap, 3 * fitting + (cust.loyal ? 2 : 0) + 0.25 * DG.charm(G) + Math.max(0, seasonAdj) + Math.max(0, mood) + (cust.back && G.staff.assistant ? 3 : 0));
+    const cw = DG.BAL.craftW;
+    let S = 100 * ((0.75 - cw) * A + 0.15 * C + 0.10 * St + cw * craft) - 15 * failed.length + bonus + Math.min(0, seasonAdj) + Math.min(0, mood);
     S = Math.round(clamp(S, 0, 100));
 
-    const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
+    // full payment from four stars; tips only for something special
+    const base = S >= 80 ? 1 : S >= 45 ? 0.5 + 0.5 * (S - 45) / 35 : 0.5;
     const pay = Math.round(cust.budget * base);
-    const tip = S >= 85 ? Math.round(cust.budget * (S - 85) / 100 * (1 + 0.5 * fitting)) : 0;
-    // a less successful dress costs only a little reputation: nobody is punished hard here
-    const repDelta = round1(S >= 70 ? (S - 70) / 12 : Math.max(-0.6, (S - 70) / 40));
-    const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
+    const tip = S >= 88 ? Math.round(cust.budget * (S - 88) / 100 * 1.5 * (1 + 0.5 * fitting)) : 0;
+    // a less successful dress costs a little reputation (at most 1.2), never more
+    const repDelta = round1(S >= 70 ? (S - 70) / 12 : Math.max(-1.2, (S - 70) / 20));
+    const stars = S >= 92 ? 5 : S >= 80 ? 4 : S >= 65 ? 3 : S >= 45 ? 2 : 1;
 
     return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj, moodAdj: DG.homeMood(G).sat };
   };

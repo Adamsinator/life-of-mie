@@ -316,7 +316,7 @@ console.log('all checks passed');
   // a weak dress costs at most a little reputation
   const cust = DG.genCustomer(H);
   const bad = DG.evaluate(cust, DG.newDesign(H), H, 0);
-  assert(bad.repDelta >= -0.6, `repDelta ${bad.repDelta}`);
+  assert(bad.repDelta >= -1.2, `repDelta ${bad.repDelta}`);
   // every day is written in the ledger
   assert.strictEqual(H.ledger.length, 1); assert.strictEqual(H.ledger[0].day, 1);
   // an old save that had ended is opened again, with money to carry on
@@ -338,6 +338,6 @@ console.log('all checks passed');
       tot += DG.evaluate(c, d, G, 0.8).S; n++;
     }
   }
-  assert(tot / n > 75 && tot / n < 97, `idea quality ${tot / n}`);
+  assert(tot / n > 60 && tot / n < 80, `idea quality ${tot / n}`);   // a starting sketch, around three stars
   console.log(`v1.8 idea checks passed (avg ${Math.round(tot / n)}%)`);
 }

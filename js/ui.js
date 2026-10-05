@@ -97,7 +97,7 @@
   const dayOfSeason = () => (Math.max(0, G.day - 1) % DG.SEASON_LENGTH) + 1;
   // n of 5 stars (halves show as a partly filled star)
   const starsHtml = n => `<span class="stars5" aria-label="${Math.round(n * 2) / 2} of 5 stars"><i style="width:${clamp(Math.round(n * 2) / 2, 0, 5) * 20}%">★★★★★</i>☆☆☆☆☆</span>`;
-  const moodWord = S => S >= 90 ? 'Over the moon' : S >= 75 ? 'Delighted' : S >= 60 ? 'Happy' : S >= 40 ? 'Pleased enough' : 'A polite smile';
+  const moodWord = S => S >= 92 ? 'Over the moon' : S >= 80 ? 'Delighted' : S >= 65 ? 'Happy' : S >= 45 ? 'Pleased enough' : 'A polite smile';
 
   // ---------------- top bar ----------------
   function topbar() {
@@ -487,7 +487,7 @@
     const mood = ['sad', 'sad', 'neutral', 'happy', 'happy', 'ecstatic'][ev.stars];
     const colorWord = id => cust.liked.includes(id) ? 'a favourite' : cust.disliked.includes(id) ? 'disliked' : 'neutral';
     const profit = ev.pay + ev.tip - ev.cost;
-    const after = ev.S >= 85 ? `${esc(cust.name)} is going to tell all her friends about Mie's.` : ev.S >= 60 ? `${esc(cust.name)} will be back.` : `${esc(cust.name)} might pop by again another day.`;
+    const after = ev.S >= 88 ? `${esc(cust.name)} is going to tell all her friends about Mie's.` : ev.S >= 65 ? `${esc(cust.name)} will be back.` : `${esc(cust.name)} might pop by again another day.`;
     return `<div class="overlay"><div class="sheet result">
       <div class="res-top">
         <div class="res-dress">${DG.renderDress(design, 'res')}</div>

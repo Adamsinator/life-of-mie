@@ -85,14 +85,24 @@ Reputation unlocks new kinds of customers, ending with wedding guests, influence
 
 There is no way to lose and nothing runs on a clock:
 
-- **No game over.** If the purse drops below 500 kr in the evening, Mie's mum and dad top it up to 2.000 kr (`DG.HELP_FLOOR`). Saves that had ended in an earlier version open again.
+- **No game over.** If the purse drops below 375 kr in the evening, Mie's mum and dad top it up to 1.500 kr (`DG.HELP_FLOOR`). Saves that had ended in an earlier version open again.
 - **Nobody is turned away.** Customers still waiting at closing time come back the next morning (up to 3), with no reputation lost. With Lise the assistant they return in a sunny mood (+3 satisfaction). Declining an order is free.
-- **Gentle reputation.** A weak dress costs at most 0.6 reputation, and every customer may return.
+- **Gentle reputation.** A weak dress costs at most 1.2 reputation, and every customer may return.
 - **Fewer numbers.** The top bar shows the season and day, the purse, and reputation as 1–5 stars. Results and evenings use stars and words, with the numbers one tap away. All money details are in **Home → Accounts** (the last 60 days are kept in `G.ledger`).
 - Mini-game timers are relaxed (cut 20 s, iron 12 s, knead 7 s).
-- **Helping hands.** In the workshop, *✨ Mie's idea* sketches an affordable design that leans on what the customer loves (usually about four stars, so there is still room to make it shine; tap again for another). *Buy what's missing and sew* does both in one tap, and the button stays under the dress on a landscape iPad. The stat bars show no decimals, just the bar and the wish mark.
+- **Helping hands.** In the workshop, *✨ Mie's idea* sketches an affordable design that leans on what the customer loves (a starting sketch of about three stars; making it shine is up to you; tap again for another). *Buy what's missing and sew* does both in one tap, and the button stays under the dress on a landscape iPad. The stat bars show no decimals, just the bar and the wish mark.
 - **Small comforts.** After a dress, *Next customer* goes straight to whoever is waiting. Finished goals are collected right from the shop banner. A mis-tap at the market can be undone the same day.
 - **Sound and light.** A slow music box with a wandering melody and a soft room reverb. An ambience layer (its own volume under Settings) plays birds in spring and summer, wind in autumn, a crackling fire in winter, and rain on rainy days; when the day's work is done it goes quiet, and the shop fades into evening light with lamps glowing.
+
+### Cozy, not easy
+
+Nothing can be lost, but four and five stars are earned (`DG.BAL`):
+
+- Customers expect more as the shop's reputation grows (wishes ×1.6 at reputation 100), and regulars a little more with each visit.
+- Sewing counts for 22% of satisfaction, so the mini-games matter; bonuses from charm, the fitting room, in-season fabric, a happy home and Lise's tea add at most 6.
+- Stars: ★5 from 92%, ★4 from 80%, ★3 from 65%. Full payment from 80%, tips from 88%.
+
+Calibration (best of N random designs, by stitching skill): a careless pick (N=4) lands around 67–71%, a careful design with average sewing around 88%, careful design with neat sewing around 95%. Mie's idea is about 70%. In the bot simulations careless players average 75–80% and see their first bride around day 32 (careful ones about day 17), and the Strandvejsvilla comes around day 110.
 
 ## Prices
 
