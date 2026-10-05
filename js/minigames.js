@@ -250,6 +250,38 @@
     return () => stop();
   };
 
+  // ---------------- haggling: tap when the needle is in the green, three offers ----------------
+  DG.MiniGames.haggle = function (host, opts, done) {
+    const face = opts.face || '';
+    host.innerHTML = `${head('Haggle with the stallholder 🤝', 'Tap “Offer!” while the needle is in the green. Three offers.')}
+      <div class="haggle"><div class="haggle-face">${face}</div><div class="haggle-say" id="hsay">“Well, what are you offering?”</div></div>
+      <div class="track"><div class="zone" id="hzone"></div><div class="needle" id="hneedle"></div></div>
+      <div class="sdots" id="hdots"><i></i><i></i><i></i></div>
+      <button class="btn primary huge" id="hoffer">Offer! 🤝</button>`;
+    const zone = host.querySelector('#hzone'), needle = host.querySelector('#hneedle'), say = host.querySelector('#hsay'), dots = host.querySelectorAll('#hdots i');
+    let round = 0, hits = 0, center = 0.5, width = 0.2, t0 = now(), raf = 0, speed = 1.6, pause = false;
+    const place = () => { center = 0.2 + Math.random() * 0.6; width = 0.22 - round * 0.04; zone.style.left = `${(center - width / 2) * 100}%`; zone.style.width = `${width * 100}%`; };
+    place();
+    const pos = () => (Math.sin((now() - t0) / 1000 * speed * Math.PI) + 1) / 2;
+    const loop = () => { if (!pause) needle.style.left = `${pos() * 100}%`; raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    const lines = { hit: ['“Hm. Fine, for you.”', '“You drive a hard bargain!”', '“Ha! All right, all right.”'], miss: ['“Ha! Nice try.”', '“That price? Never.”', '“My children have to eat too, you know.”'] };
+    const offer = e => {
+      if (e) e.preventDefault();
+      if (pause || round >= 3) return;
+      const p = pos(), ok = Math.abs(p - center) <= width / 2;
+      if (ok) hits++;
+      dots[round].className = ok ? 'ok' : 'miss';
+      say.textContent = lines[ok ? 'hit' : 'miss'][round];
+      sfx(ok ? 'coin' : 'bad');
+      round++; pause = true; speed += 0.45;
+      setTimeout(() => { pause = false; t0 = now(); if (round < 3) place(); else { cancelAnimationFrame(raf); done(hits); } }, 750);
+    };
+    const btn = host.querySelector('#hoffer');
+    btn.addEventListener('pointerdown', offer);
+    return () => { cancelAnimationFrame(raf); btn.removeEventListener('pointerdown', offer); };
+  };
+
   // ---------------- brush: a smoothed stroke whose width follows pressure or speed ----------------
   const f1 = x => (Math.round(x * 10) / 10).toString();
   // Turns raw pointer samples into a brush stroke: light smoothing, width from Pencil pressure

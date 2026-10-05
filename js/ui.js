@@ -213,6 +213,7 @@
     return `<div class="market">
       <section class="panel">
         ${UI.lastBuy && UI.lastBuy.day === G.day ? `<button class="btn small ghost undo-buy" data-act="undobuy">↶ Undo: ${UI.lastBuy.qty}${UI.lastBuy.kind === 'fabric' ? ' m' : '×'} ${UI.lastBuy.name}</button>` : ''}
+        ${G.today && !G.today.haggleDone ? '<button class="btn haggle-btn" data-act="haggle">🤝 Haggle with the stallholder</button>' : G.today && G.today.haggle ? `<span class="tag haggled">🤝 −${Math.round(G.today.haggle * 100)}% today</span>` : ''}
         <div class="sec-head"><h2>Fabric stalls</h2><span class="muted">Price per metre today${h ? ` · haggling −${8 * h}%` : ''}. Prices move every morning.</span></div>
         <div class="grid">${DG.FABRICS.map(fabricCard).join('')}</div>
       </section>
@@ -690,6 +691,7 @@
       case 'thrown': return ovThrown(o);
       case 'wedge': return ovPotStep('wedge');
       case 'paint': return ovPotStep('paint');
+      case 'haggle': return '<div class="overlay"><div class="sheet sew mg-sheet"><div id="mg" class="mg"></div></div></div>';
       default: return '';
     }
   }
@@ -1190,6 +1192,15 @@
       UI.mgCleanup = DG.MiniGames[ph](host, { color: DG.colorHex(G.design.mainColor), design: G.design }, r => sewPhaseDone(ph, r));
     } else if (o.type === 'wedge') {
       UI.mgCleanup = DG.MiniGames.wedge(host, { color: byId(DG.CLAYS, G.pot.clay).hex }, r => { UI.potRun.wedge = r; startWheel(); });
+    } else if (o.type === 'haggle') {
+      const face = DG.renderAvatar({ skin: '#dca47c', hair: '#7b4a2a', style: 2, top: '#c98f6b', bg: '#f3ead6', glasses: false, earrings: true }, 'neutral', 84);
+      UI.mgCleanup = DG.MiniGames.haggle(host, { face }, hits => {
+        G.today.haggle = [0, 0.04, 0.08, 0.12][hits];
+        G.today.haggleDone = true;
+        UI.overlay = null;
+        toast(hits ? `Haggled: −${[0, 4, 8, 12][hits]}% at the stalls today!` : 'No luck today. Same prices as always.');
+        save(); render();
+      });
     } else if (o.type === 'paint') {
       UI.mgCleanup = DG.MiniGames.paint(host, { pot: G.pot }, strokes => completePot(UI.potRun.score, strokes));
     }
@@ -1370,6 +1381,7 @@
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
       case 'albumtab': UI.albumTab = arg; break;
+      case 'haggle': if (G.today && !G.today.haggleDone) UI.overlay = { type: 'haggle' }; break;
       case 'twirl': UI.twirl = true; clearTimeout(UI.twirlT); UI.twirlT = setTimeout(() => { UI.twirl = false; render(); }, 1300); sfx('good'); break;
       case 'tapfamily': {
         // a little moment with the family: hugs and giggles, a bit of happiness the first time each day

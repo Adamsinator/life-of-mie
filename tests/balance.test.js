@@ -418,3 +418,13 @@ console.log('all checks passed');
   assert(E.mail.some(m => /turns 4 today/.test(m.text)), 'birthday letter');
   console.log('v1.9 event and family checks passed');
 }
+{
+  // haggling lowers today's prices only
+  const G = DG.newGame(); DG.startDay(G);
+  const p0 = DG.fabricPrice(G, 'cotton');
+  G.today.haggle = 0.12;
+  assert(DG.fabricPrice(G, 'cotton') < p0 && Math.abs(DG.fabricPrice(G, 'cotton') - p0 * 0.88) <= 1);
+  DG.endDay(G); DG.startDay(G);
+  assert.strictEqual(G.today.haggle, undefined);
+  console.log('v1.9 haggle checks passed');
+}

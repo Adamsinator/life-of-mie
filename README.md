@@ -91,6 +91,7 @@ There is no way to lose and nothing runs on a clock:
 - **Fewer numbers.** The top bar shows the season and day, the purse, and reputation as 1–5 stars. Results and evenings use stars and words, with the numbers one tap away. All money details are in **Home → Accounts** (the last 60 days are kept in `G.ledger`).
 - Mini-game timers are relaxed (cut 20 s, iron 12 s, knead 7 s).
 - **Helping hands.** In the workshop, *✨ Mie's idea* sketches an affordable design that leans on what the customer loves (a starting sketch of about three stars; making it shine is up to you; tap again for another). *Buy what's missing and sew* does both in one tap, and the button stays under the dress on a landscape iPad. The stat bars show no decimals, just the bar and the wish mark.
+- **Haggling.** Once a day at the market, haggle with the stallholder: tap *Offer!* while the needle is in the green, three times, for up to 12% off today's prices.
 - **Small comforts.** After a dress, *Next customer* goes straight to whoever is waiting. Finished goals are collected right from the shop banner. A mis-tap at the market can be undone the same day.
 - **Sound and light.** A slow music box with a wandering melody and a soft room reverb. An ambience layer (its own volume under Settings) plays birds in spring and summer, wind in autumn, a crackling fire in winter, and rain on rainy days; when the day's work is done it goes quiet, and the shop fades into evening light with lamps glowing.
 

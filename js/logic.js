@@ -278,7 +278,8 @@
     return true;
   };
 
-  DG.discount = G => 1 - 0.08 * DG.upgradeLevel(G, 'haggle');
+  // the haggling upgrade, and whatever was won by haggling at the stalls today
+  DG.discount = G => (1 - 0.08 * DG.upgradeLevel(G, 'haggle')) * (1 - ((G.today && G.today.haggle) || 0));
 
   DG.fabricPrice = function (G, id) {
     const f = byId(DG.FABRICS, id);
