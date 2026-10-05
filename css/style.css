@@ -631,3 +631,8 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .res-dress.wearing svg { transform-origin: 50% 96%; animation: twirl 1.4s ease-in-out 1, sway 3.6s ease-in-out 1.4s infinite; }
 @keyframes twirl { 0% { transform: scaleX(1); } 25% { transform: scaleX(.15); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(.15); } 100% { transform: scaleX(1); } }
 @keyframes sway { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(1.6deg); } 70% { transform: rotate(-1.6deg); } }
+/* things in the scenes you can tap */
+.shop-scene .tap { cursor: pointer; }
+.shop-scene .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes hop { 40% { transform: translateY(-6px) scale(1.04, .97); } 70% { transform: translateY(0) scale(.98, 1.03); } }
+.hearts-pop { animation: up 1.2s ease-out forwards; }

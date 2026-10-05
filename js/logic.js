@@ -325,6 +325,7 @@
       parts.push(`Hi! I'm ${c.name}, ${/^[aeiou]/i.test(c.job) ? 'an' : 'a'} ${c.job}.`);
     }
     if (!c.storyLines) parts.push(pick(arche.lines));
+    c.introN = parts.length;   // what she says in her own words; the rest is shown as wishes
     const ws = Object.entries(c.weights).sort((a, b) => b[1] - a[1]);
     ws.forEach(([k, w]) => {
       const adj = DG.ATTR_META[k].adj;

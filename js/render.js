@@ -406,6 +406,18 @@
     return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-0.8" y="0" width="1.6" height="34" fill="#8c7357"/><ellipse cx="0" cy="34" rx="6" ry="1.6" fill="#8c7357"/><path d="M-5 2 L5 2 L4 10 L9 26 Q0 28 -9 26 L-4 10Z" fill="${hex}" stroke="${darken(hex, 0.35)}" stroke-width=".6"/></g>`;
   }
 
+  // Winnie the Pooh: a round honey-coloured bear in a little red shirt, with his honey pot
+  DG.poohSVG = (x, y, s = 1) => `<g class="pooh" transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="14" rx="11" ry="12" fill="#e9a93a"/><ellipse cx="0" cy="17" rx="7" ry="8" fill="#f6cf74"/>
+    <path d="M-10 6 Q0 1 10 6 L11 13 Q0 16 -11 13 Z" fill="#d23b3b"/>
+    <ellipse cx="-11" cy="10" rx="3.4" ry="5" fill="#e9a93a" transform="rotate(25 -11 10)"/><ellipse cx="11" cy="10" rx="3.4" ry="5" fill="#e9a93a" transform="rotate(-25 11 10)"/>
+    <ellipse cx="-6" cy="25" rx="4.4" ry="3.2" fill="#e9a93a"/><ellipse cx="6" cy="25" rx="4.4" ry="3.2" fill="#e9a93a"/>
+    <circle cx="0" cy="-4" r="9.5" fill="#e9a93a"/><circle cx="-7.5" cy="-11" r="3.4" fill="#e9a93a"/><circle cx="7.5" cy="-11" r="3.4" fill="#e9a93a"/><circle cx="-7.5" cy="-11" r="1.7" fill="#c98a24"/><circle cx="7.5" cy="-11" r="1.7" fill="#c98a24"/>
+    <ellipse cx="0" cy="-1" rx="5" ry="3.6" fill="#f6cf74"/><ellipse cx="0" cy="-2.6" rx="1.8" ry="1.2" fill="#3b2a1f"/><path d="M-2 0.6 Q0 2.2 2 0.6" stroke="#3b2a1f" stroke-width=".8" fill="none" stroke-linecap="round"/>
+    <circle cx="-3.4" cy="-6" r="1.1" fill="#3b2a1f"/><circle cx="3.4" cy="-6" r="1.1" fill="#3b2a1f"/>
+    <g transform="translate(15 18)"><path d="M-5 -6 Q-6 6 0 6 Q6 6 5 -6 Z" fill="#c98a4a"/><ellipse cx="0" cy="-6" rx="5.4" ry="1.8" fill="#a8703a"/><path d="M-4 -6 q1 4 2 1 q1 3 2 0" fill="#f2b632"/><rect x="-4.2" y="-2" width="8.4" height="3.4" fill="#f7efd8"/><text x="0" y=".6" font-size="2.6" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="900" fill="#7a4a1f">HUNNY</text></g>
+  </g>`;
+
   // ---------------- whole people ----------------
   // A person for the scenes: the portrait head on a slim body with long legs (about 4.5 heads tall,
   // storybook proportions), arms, a dress or trousers and shoes. Placed by the centre x and the feet.
@@ -524,9 +536,9 @@
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
-    G.queue.slice(0, 5).forEach((c, i) => out.push(opts.tall
+    G.queue.slice(0, 5).forEach((c, i) => out.push(`<g class="tap" data-act="openreq" data-arg="${i}">` + (opts.tall
       ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
-      : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })));
+      : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
     out.push('<rect class="dusk" x="-300" y="-200" width="1000" height="700" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
@@ -665,6 +677,7 @@
   };
 
   // ---------------- Mie's home ----------------
+  const hearts = (x, y) => `<g class="hearts-pop" pointer-events="none"><text x="${x - 8}" y="${y}" font-size="10">💗</text><text x="${x + 6}" y="${y - 6}" font-size="8">💕</text></g>`;
   DG.renderHome = function (G, opts = {}) {
     const has = id => G.home.items.includes(id);
     const se = DG.season(G);
@@ -743,7 +756,7 @@
     out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
-    out.push(DG.renderFigure(DG.FAMILY.adam.look, 'happy', 267, 184, 92, { seated: true }));
+    out.push(`<g class="tap${opts.bounce === 'adam' ? ' bounce' : ''}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 267, 184, 92, { seated: true })}${opts.bounce === 'adam' ? hearts(267, 96) : ''}</g>`);
     out.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 184, 92, { seated: true, legs: '#3b3040' }));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
     // toys
@@ -770,7 +783,10 @@
     // she grows a little every year (3 years old at the start)
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
     const eh = (opts.tall ? 92 : 62) * grow, footY = opts.tall ? 306 : 190;
-    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, opts.tall ? 143 : has('tricycle') ? 127 : 165, footY, eh, { child: true }));
+    const ex = opts.tall ? 143 : has('tricycle') ? 127 : 165;
+    out.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, ex, footY, eh, { child: true })}${opts.bounce === 'elizabeth' ? hearts(ex, footY - eh) : ''}</g>`);
+    // Pooh sits next to her, or is hugged when she is tapped
+    if (has('pooh')) out.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
     return `<svg class="shop-scene home-scene" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 

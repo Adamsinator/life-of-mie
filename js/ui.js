@@ -464,7 +464,7 @@
     if (!c) return '';
     return `<div class="overlay dismissable"><div class="sheet req">
       <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2 translate="no">${esc(c.name)}</h2><span class="muted">${c.story ? `📖 Chapter ${c.ch + 1}: ${esc(c.title)}` : `${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}`}</span></div></div>
-      <div class="bubble big">${(c.parts || [c.text]).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
+      <div class="bubble big">${(c.parts || [c.text]).slice(0, c.introN || 2).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
       ${briefHtml(c, isActive ? G.design : null)}
       <div class="actions">
         ${isActive ? '<button class="btn primary" data-act="closeov">Back to work</button>'
@@ -887,16 +887,15 @@
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
     const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
-    if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}${wardrobeHtml()}`;
-    if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}${ledgerHtml()}`;
-    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}
+    if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${wardrobeHtml()}`;
+    if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${ledgerHtml()}`;
+    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
         <h2>Mie's home</h2>
         <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (${DG.elizabethAge(G)}) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
         <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
         <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
-        <p class="muted small">Happiness drops by ${DG.homeDecay(G)} every night (each toy slows it by 1)${h.catFood <= 0 ? ', plus 8 while Dexter is hungry' : ''}.</p>
         <h3>Today</h3><div class="chips">${acts}</div>
         <h3>Dexter's food</h3>
         <div class="food-row"><span>${h.catFood > 0 ? `🐟 ${h.catFood} day${h.catFood > 1 ? 's' : ''} of food left` : '<b class="bad">Dexter is hungry! Mjav!</b>'}</span>
@@ -1371,6 +1370,14 @@
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
       case 'albumtab': UI.albumTab = arg; break;
+      case 'tapfamily': {
+        // a little moment with the family: hugs and giggles, a bit of happiness the first time each day
+        UI.bounce = arg; clearTimeout(UI.bounceT); UI.bounceT = setTimeout(() => { UI.bounce = null; render(); }, 1300);
+        const key = 'tap-' + arg;
+        if (G.home.did[key] !== G.day) { G.home.did[key] = G.day; G.home.happy = clamp(G.home.happy + 2, 0, 100); }
+        sfx(arg === 'pooh' ? 'squish' : 'good');
+        break;
+      }
       case 'readmail': { const m = DG.mailToday(G)[0]; if (m) { UI.overlay = { type: 'letter', m }; sfx('good'); } break; }
       case 'keepmail': {
         DG.openMail(G, arg);
