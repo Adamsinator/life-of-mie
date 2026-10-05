@@ -111,14 +111,14 @@ console.log('all checks passed');
   G2.rack = [DG.rackItem(d, G2, 1)];
   const repBefore = G2.rep, moneyBefore = G2.money;
   const res = DG.endDay(G2);
-  assert.strictEqual(res.wages, 120);
+  assert.strictEqual(res.wages, 1500);
   assert.strictEqual(G2.rep, repBefore, 'assistant keeps reputation');
-  assert.strictEqual(G2.money, moneyBefore + res.rackIncome - res.rent - res.wages + (res.mom ? 300 : 0));
+  assert.strictEqual(G2.money, moneyBefore + res.rackIncome - res.rent - res.wages + res.salary - res.housing.pay - res.tax + (res.mom ? 3000 : 0));
 
   // a rack dress should earn less than serving a real customer of similar spend
   const it = DG.rackItem(d, G2, 0.8);
   console.log(`rack: cotton A-line costs ${it.cost} kr, tagged ${it.price} kr, sells with p=${DG.rackSaleChance(G2).toFixed(2)}/night`);
-  assert(it.price > it.cost && it.price < it.cost + 200);
+  assert(it.price > it.cost && it.price < it.cost + 1500);
   assert(!/NaN|undefined/.test(DG.renderShop(G2)));
   console.log('v1.1 checks passed');
 }
@@ -161,18 +161,18 @@ console.log('all checks passed');
   P.upgrades.pottery = 2; assert.strictEqual(DG.crackChance(pot, 0.5, P), c / 2);
   const cost = DG.analyzePot(pot, P).cost, price = DG.potPrice(pot, 0.8);
   console.log(`pottery: stoneware celadon carved vase costs ${cost} kr, sells for ${price} kr (crack risk ${(DG.crackChance(pot, 0.8, P) * 100).toFixed(0)}% with electric kiln)`);
-  assert(price > cost && price < 3 * cost + 100, 'pottery is a side income, not a jackpot');
+  assert(price > cost && price < 8 * cost, 'pottery pays for the work, not a jackpot');
 
   // goals: progress, stays complete, claim once
   const Gg = DG.newGame(); DG.startDay(Gg);
   Gg.rep = 31; DG.updateGoals(Gg); Gg.rep = 10;
   assert(DG.claimableGoals(Gg).includes('rep30'));
-  const m0 = Gg.money; assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 300); assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 0);
-  assert.strictEqual(Gg.money, m0 + 300);
+  const m0 = Gg.money; assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 3000); assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 0);
+  assert.strictEqual(Gg.money, m0 + 3000);
 
   // floor: more customers and hangers, more rent
   const F = DG.newGame(); const r0 = DG.rent(F), h0 = DG.rackCapacity(F); F.upgrades.floor = 1;
-  assert.strictEqual(DG.rent(F) - r0, 40); assert.strictEqual(DG.rackCapacity(F) - h0, 2);
+  assert.strictEqual(DG.rent(F) - r0, 700); assert.strictEqual(DG.rackCapacity(F) - h0, 2);
 
   // v1.1 save without pottery fields migrates
   const old = DG.newGame(); delete old.kiln; delete old.shelf; delete old.goals; delete old.inv.clay; delete old.upgrades.pottery; delete old.stats.byArche;
@@ -189,7 +189,7 @@ console.log('all checks passed');
   assert(DG.doActivity(H, 'icecream')); assert(!DG.canDoActivity(H, 'zoo'), 'one outing per day');
   assert.strictEqual(H.home.happy, 88);
   assert.strictEqual(DG.homeMood(H).sat, 2);
-  const m0 = H.money; assert(DG.buyHomeItem(H, 'teddy')); assert.strictEqual(H.money, m0 - 90); assert(!DG.buyHomeItem(H, 'teddy'));
+  const m0 = H.money; assert(DG.buyHomeItem(H, 'teddy')); assert.strictEqual(H.money, m0 - 250); assert(!DG.buyHomeItem(H, 'teddy'));
   assert.strictEqual(DG.homeDecay(H), 9);
   H.home.catFood = 0; H.home.happy = 50;
   const r = DG.endDayHome(H); assert.strictEqual(r.drop, 9 + 8); assert(r.hungry); assert.strictEqual(H.home.happy, 33);
@@ -240,22 +240,35 @@ console.log('all checks passed');
   assert(DG.canDoActivity(G, 'badminton'));
   G.day = 10; assert(DG.canDoActivity(G, 'beach'), 'beach in summer');
   G.day = 24; assert(DG.canDoActivity(G, 'movie') && !DG.canDoActivity(G, 'beach'), 'movie night in winter only');
-  assert.strictEqual(DG.skat(1500), 0); assert.strictEqual(DG.skat(4000), 800);
+  assert.strictEqual(DG.skat(100), 0); assert.strictEqual(DG.skat(1500), 500); assert.strictEqual(DG.skat(4000), 1702);
   const T = DG.newGame(); DG.startDay(T); T.money = 10000; T.today.income = 5000; T.today.spent = 0;
   const m0 = T.money, res = DG.endDay(T);
   assert.strictEqual(res.tax, DG.skat(5000 - res.rent - res.wages));
-  assert.strictEqual(T.money, m0 - res.rent - res.wages - res.tax);
+  assert.strictEqual(T.money, m0 - res.rent - res.wages - res.tax + res.salary - res.housing.pay);
   // housing ladder: 5 moves to the Strandvejsvilla, each raising the happiness floor
   const H = DG.newGame(); DG.startDay(H);
   assert.strictEqual(DG.house(H).id, 'flat');
-  H.money = 1e4; assert(DG.moveHouse(H)); assert.strictEqual(DG.house(H).id, 'frb'); assert(!DG.moveHouse(H), 'cannot afford Valby');
-  H.money = 1e6; while (DG.nextHouse(H)) DG.moveHouse(H);
-  assert.strictEqual(DG.house(H).id, 'strandvej'); assert.strictEqual(H.money, 1e6 - (25000 + 55000 + 100000 + 180000));
+  assert.strictEqual(DG.moveCash(H), 225000, '5% down on 4.5m');
+  H.money = 300000; assert(DG.moveHouse(H)); assert.strictEqual(DG.house(H).id, 'frb');
+  assert.strictEqual(H.home.loan.principal, 4275000); assert.strictEqual(H.money, 75000);
+  const yearly = H.home.loan.payment * 365, annuity = 4275000 * 0.04 / (1 - Math.pow(1.04, -30));
+  assert(Math.abs(yearly - annuity) < 1, `annuity ${yearly} vs ${annuity}`);
+  assert.strictEqual(DG.moveCash(H), 100000, 'Valby down payment minus equity');
+  assert(!DG.moveHouse(H), 'cannot afford Valby');
+  // one day of the mortgage: interest deductible, principal goes down
+  const p0 = H.home.loan.principal, md = DG.mortgageDay(H);
+  assert(md.interest > 0 && H.home.loan.principal < p0 && Math.abs(p0 + md.interest - md.pay - H.home.loan.principal) < 1);
+  // equity carries over when moving up
+  H.money = 1e8; while (DG.nextHouse(H)) assert(DG.moveHouse(H));
+  assert.strictEqual(DG.house(H).id, 'strandvej');
+  assert(H.home.loan.principal <= 0.95 * 75e6 + 1 && H.home.loan.principal > 0.9 * 75e6, `villa loan ${H.home.loan.principal}`);
+  const paid = DG.repayLoan(H, 1e6); assert.strictEqual(paid, 1e6);
+  DG.repayLoan(H, Infinity); assert.strictEqual(H.home.loan.principal, 0); assert.strictEqual(DG.housingCostPerDay(H), 0);
   H.home.happy = 52; H.home.catFood = 0; DG.endDayHome(H); assert.strictEqual(H.home.happy, 50, 'villa happiness floor');
   assert(DG.claimableGoals(H).includes('dream') && DG.claimableGoals(H).includes('move1'));
   // accountant lowers SKAT
-  const A = DG.newGame(); assert.strictEqual(DG.skat(5000, A), 1200); A.upgrades.accountant = 1; assert.strictEqual(DG.skat(5000, A), 640);
-  A.upgrades.accountant = 2; assert.strictEqual(DG.skat(5000, A), 250);
+  const A = DG.newGame(); assert.strictEqual(DG.skat(5000, A), 2222); A.upgrades.accountant = 1; assert.strictEqual(DG.skat(5000, A), 1702);
+  A.upgrades.accountant = 2; assert.strictEqual(DG.skat(5000, A), 887);
   // old saves: dreams become houses
   const O = DG.newGame(); delete O.home.house; O.home.items = ['teddy', 'garden']; DG.ensureDefaults(O);
   assert.strictEqual(O.home.house, 2); assert.deepStrictEqual(O.home.items, ['teddy']);
@@ -268,7 +281,7 @@ console.log('all checks passed');
   assert.strictEqual(DG.styleCharm(G), 0);
   const c0 = DG.charm(G);
   G.money = 5000;
-  assert(DG.buyClothes(G, 'blazer')); assert.strictEqual(G.wardrobe.wear.outfit, 'blazer'); assert.strictEqual(G.money, 3800);
+  assert(DG.buyClothes(G, 'blazer')); assert.strictEqual(G.wardrobe.wear.outfit, 'blazer'); assert.strictEqual(G.money, 2000);
   assert(!DG.buyClothes(G, 'blazer'), 'cannot buy twice');
   assert.strictEqual(DG.styleCharm(G), 3); assert.strictEqual(DG.charm(G), c0 + 3);
   assert(DG.buyClothes(G, 'clip'));                     // spring piece: 1 + 1 seasonal

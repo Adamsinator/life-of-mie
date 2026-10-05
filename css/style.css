@@ -488,3 +488,10 @@ body.has-coach .view { padding-bottom: 200px; }
 .home-tabs { max-width: 1180px; margin: 0 auto 16px; }
 .mirror { display: grid; place-items: center; padding: 14px; margin: 12px 0; border-radius: 50% 50% 16px 16px; background: radial-gradient(ellipse at 50% 35%, var(--card), var(--paper)); border: 4px solid var(--gold); max-width: 240px; margin-inline: auto; }
 .card.wear .avatar { flex: none; }
+.finance { display: grid; gap: 8px; margin-bottom: 10px; }
+/* nav labels never overlap, whatever the language */
+.navbtn > span:not(.ic) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) { .navbtn { min-width: 0; flex: 1 1 0; } .nav { min-width: 0; } }
+/* long Danish compound words wrap inside cards and chips */
+.card-title, .chip-txt, .cust-info, .goal-txt, .house, .bm-txt { min-width: 0; }
+.card-title b, .chip-txt b, .chip-txt small, .card-title span, h2, h3, .lbl, .house b { overflow-wrap: anywhere; hyphens: auto; }

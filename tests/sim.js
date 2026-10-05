@@ -103,9 +103,11 @@ for (let gi = 0; gi < GAMES; gi++) {
       // home routine
       DG.doActivity(G, 'play'); DG.doActivity(G, 'pet');
       if (G.home.catFood < 2) DG.buyCatFood(G);
-      { const nx = DG.nextHouse(G); if (nx && G.money > nx.cost * 1.5 + 3000) { G.today.spent += nx.cost; DG.moveHouse(G); } }
-      if (G.money > 1500 && G.home.happy < 70) DG.doActivity(G, pick(DG.ACTIVITIES.filter(a => !a.free)).id);
-      { const t = DG.HOME_ITEMS.find(i => !G.home.items.includes(i.id)); if (t && G.money > t.cost * 2 + 1500) DG.buyHomeItem(G, t.id); }
+      { const nx = DG.nextHouse(G); if (nx && G.money > DG.moveCash(G) * 1.3 + 60000) DG.moveHouse(G); }
+      if (G.home.house && G.home.loan.principal > 0 && G.money > 400000) DG.repayLoan(G, G.money - 300000);
+      if (G.money > 12000 && G.home.happy < 70) DG.doActivity(G, pick(DG.ACTIVITIES.filter(a => !a.free)).id);
+      { const t = DG.HOME_ITEMS.find(i => !G.home.items.includes(i.id)); if (t && G.money > t.cost * 2 + 12000) DG.buyHomeItem(G, t.id); }
+      { const w = DG.WARDROBE.find(i => !G.wardrobe.owned.includes(i.id)); if (w && G.money > w.cost * 3 + 20000) DG.buyClothes(G, w.id); }
       check(G, 'home');
       // customers
       while (G.queue.length) {
@@ -118,7 +120,7 @@ for (let gi = 0; gi < GAMES; gi++) {
         check(G, 'dress');
       }
       // rack, sometimes
-      if (G.money > 600 && G.rack.length < DG.rackCapacity(G) && Math.random() < 0.4) {
+      if (G.money > 5000 && G.rack.length < DG.rackCapacity(G) && Math.random() < 0.4) {
         const b = bestDesign(G, Object.assign({}, DG.RACK_SHOPPER), 40);
         if (b) sew(G, DG.RACK_SHOPPER, b.d, skill);
         check(G, 'rack');
@@ -144,9 +146,9 @@ for (let gi = 0; gi < GAMES; gi++) {
         if (cost != null && G.money > cost * 1.8 + DG.dailyCosts(G) * 3 && Math.random() < 0.5) { G.money -= cost; G.today.spent += cost; G.upgrades[u.id] = lvl + 1; }
       }
       const dc = DG.DECOR.find(d => !G.decor.owned.includes(d.id));
-      if (dc && G.money > dc.cost * 3) { G.money -= dc.cost; G.decor.owned.push(dc.id); }
-      if (!G.staff.apprentice && G.money > 2500) { G.money -= 300; G.staff.apprentice = true; }
-      if (Math.random() < 0.2 && G.money > 800) { G.money -= 80; G.marketing.push('flyers'); }
+      if (dc && G.money > dc.cost * 3 + 10000) { G.money -= dc.cost; G.today.spent += dc.cost; G.decor.owned.push(dc.id); }
+      if (!G.staff.apprentice && G.money > 40000) { G.money -= 3000; G.today.spent += 3000; G.staff.apprentice = true; }
+      if (Math.random() < 0.2 && G.money > 10000) { G.money -= 800; G.today.spent += 800; G.marketing.push('flyers'); }
       DG.updateGoals(G);
       DG.claimableGoals(G).forEach(id => DG.claimGoal(G, id));
       check(G, 'spend');

@@ -26,7 +26,8 @@
     const G = {
       version: 1,
       day: 0,
-      money: 400,
+      money: 8000,
+      econ: 2,
       rep: 5,
       upgrades: { machine: 0, display: 0, supplier: 0, embroidery: 0, haggle: 0, fitting: 0 },
       inv: { fabrics: { cotton: 3 }, items: { zipper: 1 } },
@@ -75,6 +76,15 @@
       G.home.items = it.filter(id => !['kitchen', 'garden', 'summerhouse'].includes(id));
     }
     G.upgrades.accountant = G.upgrades.accountant || 0;
+    if (!G.econ) {
+      // saves from before realistic prices: scale money and price tags up once
+      G.money = Math.round(G.money * 8);
+      (G.rack || []).forEach(it => { it.price *= 8; it.cost *= 8; });
+      (G.shelf || []).forEach(it => { it.price *= 8; it.cost *= 8; });
+      (G.kiln || []).forEach(it => { it.price *= 8; it.cost *= 8; });
+      G.econ = 2;
+    }
+    G.home.loan = G.home.loan || { principal: 0, payment: 0, yearsLeft: 0 };
     G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };             // ids of tutorial tips this player has seen
     return G;
   };
@@ -125,14 +135,54 @@
   DG.house = G => DG.HOUSES[G.home.house || 0];
   DG.nextHouse = G => DG.HOUSES[(G.home.house || 0) + 1] || null;
   DG.homeFloor = G => DG.house(G).floor;
+  // ---------- housing & realkreditlån ----------
+  // annuity: yearly payment = L·r / (1 − (1+r)^−n), paid daily as 1/365 of it
+  DG.annuityPerDay = (L, years) => {
+    if (L <= 0 || years <= 0) return 0;
+    const r = DG.MORTGAGE.rate;
+    return L * r / (1 - Math.pow(1 + r, -years)) / 365;
+  };
+  DG.equity = G => (G.home.house ? DG.house(G).cost - G.home.loan.principal : 0);
+  // cash needed to move: 5% down payment, minus the equity in the current home
+  DG.moveCash = G => {
+    const nx = DG.nextHouse(G);
+    return nx ? Math.max(0, Math.round(DG.MORTGAGE.down * nx.cost - DG.equity(G))) : 0;
+  };
+  DG.housingCostPerDay = G => (G.home.house ? Math.round(G.home.loan.payment) : DG.HOUSES[0].rent);
   DG.moveHouse = function (G) {
     const nx = DG.nextHouse(G);
-    if (!nx || G.money < nx.cost) return false;
-    G.money -= nx.cost;
+    if (!nx) return false;
+    const cash = DG.moveCash(G);
+    if (G.money < cash) return false;
+    const principal = Math.max(0, nx.cost - DG.equity(G) - cash);
+    G.money -= cash;
     G.home.house += 1;
+    G.home.loan = { principal, payment: DG.annuityPerDay(principal, DG.MORTGAGE.years), yearsLeft: DG.MORTGAGE.years };
     G.home.happy = clamp(Math.max(G.home.happy + nx.joy, nx.floor), 0, 100);
     DG.updateGoals(G);
-    return nx;
+    return Object.assign({ cash, principal }, nx);
+  };
+  // extra repayment: lowers the debt and the daily payment over the remaining term
+  DG.repayLoan = function (G, amount) {
+    const L = G.home.loan;
+    amount = Math.min(Math.round(amount), Math.round(L.principal), Math.floor(G.money));
+    if (amount <= 0) return 0;
+    G.money -= amount;
+    L.principal -= amount;
+    L.payment = L.principal < 1 ? 0 : DG.annuityPerDay(L.principal, L.yearsLeft);
+    if (L.principal < 1) L.principal = 0;
+    return amount;
+  };
+  // one day of the mortgage: interest accrues, the payment covers interest + repayment
+  DG.mortgageDay = function (G) {
+    const L = G.home.loan;
+    if (!G.home.house || L.principal <= 0) return { pay: G.home.house ? 0 : DG.HOUSES[0].rent, interest: 0 };
+    const interest = L.principal * DG.MORTGAGE.rate / 365;
+    const pay = Math.min(L.payment, L.principal + interest);
+    L.principal = Math.max(0, L.principal + interest - pay);
+    L.yearsLeft = Math.max(0, L.yearsLeft - 1 / 365);
+    if (L.principal < 1) { L.principal = 0; L.payment = 0; }
+    return { pay: Math.round(pay), interest: Math.round(interest) };
   };
   DG.homeMood = function (G) {
     const h = G.home.happy;
@@ -263,7 +313,7 @@
     const dk = c.disliked.map(id => byId(DG.COLORS, id).name.toLowerCase());
     parts.push(`I adore ${lk.join(' and ')}${dk.length ? `, but please no ${dk.join(' or ')}` : ''}.`);
     parts.push(`My budget is ${c.budget.toLocaleString('da-DK')} kr.`);
-    return parts.join(' ');
+    return parts;   // one sentence each, so each can be translated
   }
 
   DG.genCustomer = function (G, opts = {}) {
@@ -317,12 +367,14 @@
       loyal,
     });
     if (arche.colors) { c.liked = arche.colors.liked.slice(0, 2); c.disliked = arche.colors.disliked.slice(); }
-    c.text = buildText(c, arche);
+    c.parts = buildText(c, arche);
+    c.text = c.parts.join(' ');
     return c;
   };
 
   // ---------- days ----------
-  DG.rent = G => 35 + 10 * Object.values(G.upgrades).reduce((a, b) => a + b, 0) + 30 * DG.upgradeLevel(G, 'floor');
+  // shop rent per day: 1.000 kr + 100 kr per upgrade level + 600 kr for the upstairs floor
+  DG.rent = G => 1000 + 100 * Object.values(G.upgrades).reduce((a, b) => a + b, 0) + 600 * DG.upgradeLevel(G, 'floor');
   DG.dailyCosts = G => DG.rent(G) + DG.wages(G);
 
   DG.startDay = function (G) {
@@ -354,11 +406,16 @@
   };
 
   // SKAT on daily profit; an accountant raises the tax-free amount and lowers the rate.
+  // SKAT on the shop's daily profit: bottom rate 37%, top rate 52% on the part above 2.000 kr.
+  // Accountant level 1 finds 1.000 kr/day more deductions; level 2 (virksomhedsordningen) also cuts the top rate to 42%.
   DG.skatRule = G => {
     const lvl = G ? DG.upgradeLevel(G, 'accountant') : 0;
-    return { free: 2000 + 1000 * lvl, rate: [0.4, 0.32, 0.25][lvl] };
+    return [{ free: 150, low: 0.37, top: 0.52, topFrom: 2000 }, { free: 1150, low: 0.37, top: 0.52, topFrom: 2000 }, { free: 2650, low: 0.37, top: 0.42, topFrom: 2000 }][lvl];
   };
-  DG.skat = (profit, G) => { const r = DG.skatRule(G); return Math.round(Math.max(0, profit - r.free) * r.rate); };
+  DG.skat = (profit, G) => {
+    const r = DG.skatRule(G), x = Math.max(0, profit - r.free);
+    return Math.round(Math.min(x, r.topFrom) * r.low + Math.max(0, x - r.topFrom) * r.top);
+  };
   DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
@@ -382,9 +439,12 @@
     if (G.today) G.today.income += pottery.income;
     const home = DG.endDayHome(G);
     G.money -= rent + wages;
-    // SKAT: 40% of the day's profit above 2.000 kr
+    // family economy: Adam's salary in, rent or mortgage out
+    const housing = DG.mortgageDay(G);
+    G.money += DG.ADAM_SALARY - housing.pay;
+    // SKAT on the shop's profit; mortgage interest is deductible (rentefradrag)
     const t = G.today || { income: 0, spent: 0 };
-    const profit = t.income - t.spent - rent - wages;
+    const profit = t.income - t.spent - rent - wages - housing.interest;
     const tax = DG.skat(profit, G);
     const taxWithout = DG.skat(profit);   // what it would have been without an accountant
     G.money -= tax;
@@ -392,11 +452,11 @@
     G.queue = [];
     let mom = false;
     if (G.money < 0) {
-      if (!G.momUsed) { G.money += 300; G.momUsed = true; mom = true; }
+      if (!G.momUsed) { G.money += 3000; G.momUsed = true; mom = true; }
       else G.gameOver = true;
     }
     DG.updateGoals(G);
-    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary: DG.ADAM_SALARY, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
@@ -533,20 +593,20 @@
   };
 
   // ---------- ready-to-wear rack ----------
-  // Walk-in shoppers want a generally appealing dress: price = 0.9·materials + 18·appeal,
+  // Walk-in shoppers want a generally appealing dress: price = 0.9·materials + 150·appeal,
   // appeal = mean of the dress's three best stats (after stitching).
   DG.RACK_SHOPPER = {
     rack: true, name: 'the rack', title: 'Ready-to-wear', cid: 'rack', oid: 'rack',
     weights: {}, targets: {}, styles: [], reqs: [], liked: [], disliked: [], budget: 0, visits: 0,
   };
-  DG.rackItem = function (design, G, craft) {
+  DG.rackItem = function (design, G, craft) {   // price = 0.9·materials + 150·appeal, rounded to 50 kr
     const an = DG.analyze(design, G);
     const attrs = Object.assign({}, an.attrs);
     attrs.quality = clamp(round1(attrs.quality * (0.85 + 0.25 * craft)), 0, 10);
     const top3 = DG.ATTRS.map(k => attrs[k]).sort((a, b) => b - a).slice(0, 3);
     const appeal = round1(top3.reduce((a, b) => a + b, 0) / 3);
     const cost = design.cost != null ? design.cost : an.cost;
-    const price = Math.round((0.9 * cost + 18 * appeal) / 10) * 10;
+    const price = Math.round((0.9 * cost + 150 * appeal) / 50) * 50;
     return { design: Object.assign({}, design), appeal, cost, price, attrs };
   };
 

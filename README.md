@@ -15,6 +15,10 @@ No build step and no dependencies. It is plain HTML, CSS and JavaScript.
   GitHub Pages needs a **public** repository, or a paid GitHub plan for a private one.
 - **Single file:** `npm run build` writes `dist/life-of-mie.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
 
+## Languages
+
+The game is fully playable in **English and Danish** (*Mies liv*). It starts in Danish when the device is set to Danish. Switch under **Menu → Settings → Language / Sprog**, or on the welcome screen. All texts are translated, including customer requests, item names, tips, help and the evening stories. Translations live in `js/lang-da.js`, and the engine in `js/i18n.js` translates text the moment it appears on screen.
+
 ## Getting started
 
 A new player gets a short introduction, then **tips from Mie** that walk through the first order: reading wishes, designing, buying materials, sewing, the result and closing the shop. More tips appear as new things become relevant (market, family, rack, seasons, goals, pottery). Each tip shows once with the relevant button highlighted. They can be switched off in Settings and replayed from **Menu → Help**, which also has help topics for every part of the game.
@@ -53,15 +57,19 @@ Menu → Settings has these options:
 
 Reputation unlocks new kinds of customers, ending with wedding guests, influencers, gala guests and brides.
 
+## Prices
+
+All prices are realistic Copenhagen kroner: fabric from 60 kr/m (polyester) to 1.500 kr/m (cashmere), customer budgets from about 1.800 kr (students) to 45.000 kr (brides), and shop rent from 1.000 kr a day.
+
 ## Spending money
 
 Besides fabric and notions, the **Upgrades** screen has five tabs: Equipment, Expansion (pottery studio, upstairs floor, described below), Decor, Staff and Marketing.
 
 | Tab | What you buy | Effect |
 |---|---|---|
-| Equipment | Sewing machine, shop window, supplier network, embroidery machine, market haggling, fitting room | Better stitching, more and richer customers, premium fabrics, embroidery and beading, cheaper market, higher satisfaction. Each level adds 10 kr to the daily rent. |
+| Equipment | Sewing machine, shop window, supplier network, embroidery machine, market haggling, fitting room | Better stitching, more and richer customers, premium fabrics, embroidery and beading, cheaper market, higher satisfaction. Each level adds 100 kr to the daily rent (shop rent starts at 1.000 kr/day). |
 | Decor | Plant, window flowers, rug, mirror, sketch gallery, espresso machine, armchair, neon sign, chandelier, and four wallpapers | Each item appears in the shop scene and adds **charm**. Every charm point gives +0.25 satisfaction, +0.5% customer budgets and a better chance of rack sales. |
-| Staff | Oskar the apprentice (300 kr + 50 kr/day), Lise the shop assistant (400 kr + 70 kr/day) | Oskar: 10% less fabric per dress and a wider stitch zone. Lise: one more customer per day, and no reputation loss for customers you could not help. |
+| Staff | Oskar the apprentice (3.000 kr + 600 kr/day), Lise the shop assistant (4.000 kr + 900 kr/day) | Oskar: 10% less fabric per dress and a wider stitch zone. Lise: one more customer per day, and no reputation loss for customers you could not help. |
 | Marketing | Flyers, newspaper ad, influencer shout-out, fashion show | Paid today, works tomorrow: extra customers, bigger budgets, a guaranteed high-end client, or an immediate reputation boost. |
 
 The **ready-to-wear rack** on the Shop screen lets Mie sew a dress without an order, which is a good way to use leftover fabric. The price tag is $0.9\cdot\text{materials} + 18\cdot\text{appeal}$, where appeal is the mean of the dress's three best stats. Each evening every rack dress sells with probability $\min(0.85,\ 0.25 + 0.03\cdot\text{charm} + 0.05\cdot\text{shop window level})$. Dresses that don't sell can be marked down.
@@ -76,7 +84,7 @@ Every 7 days the season changes: spring → summer → autumn → winter, starti
 
 ## Pottery studio
 
-Buy the **Pottery studio** under Upgrades → Expansion (600 kr, level 2 for 1.500 kr). In the Pottery screen you:
+Buy the **Pottery studio** under Upgrades → Expansion (8.000 kr, level 2 for 20.000 kr). In the Pottery screen you:
 
 1. Pick a shape (cup, mug, bowl, plate, planter, jug, vase, amphora, teapot), a clay (terracotta, stoneware, porcelain), a glaze and a decoration. Clay, glazes and gold leaf are sold at the market.
 2. **Knead the clay:** tap fast to push out air bubbles. Good kneading lowers the crack risk (×0.8 when perfect, ×1.3 when not kneaded).
@@ -97,15 +105,22 @@ The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, th
 - **Every day:** play with Elizabeth and pet Dexter (tap him, he purrs). Both are free, once a day each.
 - **Outings:** badminton with Adam, ice cream in Nyhavn, a beach day at Amager Strand (summer only), movie night with popcorn (winter only), Copenhagen Zoo, date night with Adam, a family day at Tivoli. One outing per day.
 - **Shopping:** toys for Elizabeth (crayons, teddy bear, wooden train, puppet theatre, tricycle, dollhouse) and things for Dexter (feather wand, scratching post, cat bed, cat tower). They all appear in the scene.
-- **Where they live:** the family starts in a **small flat in Nørrebro** and can move up in five steps. Each move raises the lowest level family happiness can fall to, slows its nightly drop by 1 and changes the view from the window.
+- **Where they live:** the family starts in a **rented flat in Nørrebro** (300 kr/day) and can buy their way up in five steps. Each move raises the lowest level family happiness can fall to, slows its nightly drop by 1 and changes the view from the window.
 
-  | Step | Home | Cost | Happiness never below |
+  | Step | Home | Price | Happiness never below |
   |---|---|---|---|
-  | 1 | Apartment on Frederiksberg | 8.000 kr | 10 |
-  | 2 | Rækkehus in Valby | 25.000 kr | 20 |
-  | 3 | Parcelhus in Lyngby | 55.000 kr | 30 |
-  | 4 | Villa in Hellerup | 100.000 kr | 40 |
-  | 5 | **Strandvejsvilla in Klampenborg**, with a view over Øresund | 180.000 kr | 50 |
+  | 1 | Ejerlejlighed on Frederiksberg | 4.500.000 kr | 10 |
+  | 2 | Rækkehus in Valby | 6.500.000 kr | 20 |
+  | 3 | Parcelhus in Lyngby | 11.000.000 kr | 30 |
+  | 4 | Villa in Hellerup | 25.000.000 kr | 40 |
+  | 5 | **Strandvejsvilla in Klampenborg**, with a view over Øresund | 75.000.000 kr | 50 |
+
+- **Buying with a realkreditlån:** each purchase needs a 5% down payment. The equity in your current home counts towards it, so moving up rolls your equity forward. The rest is a 30-year fixed-rate annuity loan at 4%, paid daily:
+
+  $$\text{payment per day} = \frac{1}{365}\cdot L\,\frac{r}{1-(1+r)^{-n}},\qquad r = 4\%,\ n = 30$$
+
+  Each day, interest accrues on the remaining debt and the payment covers interest plus repayment. You can make extra repayments (100.000 kr, 1.000.000 kr or the whole loan), and the payment is then recalculated over the remaining term.
+- **Adam's salary:** 1.000 kr per day net goes into the family budget.
 - **Cat food** lasts 7 days. A hungry Dexter says "Mjav!".
 - Each evening brings a little story from home.
 
@@ -120,12 +135,12 @@ What she wears shows everywhere: in the shop, at home and in the tips. Each piec
 
 ## Upstairs floor and goals
 
-- **Upstairs floor** (2.500 kr, +40 kr/day rent): +1 customer per day (and room for one more) and +2 rack hangers.
+- **Upstairs floor** (150.000 kr, +700 kr/day rent): +1 customer per day (and room for one more) and +2 rack hangers.
 - **Goals:** 16 milestones with cash rewards, such as your first dress, 5 workwear dresses, a 95% masterpiece, a teapot that survives the kiln, all four seasons, and a bride's dress. Goals stay complete once reached. Collect the rewards on the Goals screen.
 
 ## SKAT
 
-Each evening, 40% of the day's profit above 2.000 kr goes to tax. An **accountant (revisor)** under Upgrades → Equipment lowers it. Level 1 (1.200 kr) makes the first 3.000 kr tax-free and lowers the rate to 32%. Level 2 (3.500 kr) makes 4.000 kr tax-free at 25%. The day-end summary shows how much the accountant saved. Early days are untouched; it stops a booming shop from turning money meaningless.
+Each evening SKAT is paid on the shop's profit (family spending, house purchases and loan repayments are not business costs): 37% on the first 2.000 kr above a 150 kr daily allowance, and 52% top tax above that. Mortgage interest is deductible (rentefradrag), while family spending is not. An **accountant (revisor)** under Upgrades → Equipment lowers it. Level 1 (12.000 kr) finds 1.000 kr more deductions a day. Level 2 (35.000 kr) uses *virksomhedsordningen* to cut the top rate to 42% and finds 2.500 kr of deductions a day. The day-end summary shows how much the accountant saved. Early days are untouched; it stops a booming shop from turning money meaningless.
 
 ## Testing
 

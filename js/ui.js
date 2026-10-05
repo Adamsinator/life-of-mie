@@ -24,9 +24,13 @@
     const r = document.documentElement;
     if (S.theme === 'auto') delete r.dataset.mieTheme; else r.dataset.mieTheme = S.theme;
     r.classList.toggle('no-anim', !S.anim);
+    DG.setLang(S.lang);
+    document.title = S.lang === 'da' ? 'Mies liv' : 'Life of Mie';
     DG.Audio.setVolumes(S.music, S.sfx);
   }
   const sfx = n => DG.Audio.play(n);
+  // the game's name: "Life of Mie" / "Mies liv"
+  const brandHtml = () => (S.lang === 'da' ? '<span class="brand-script">Mies</span> <span class="brand-word">liv</span>' : '<span class="brand-script">Life of</span> <span class="brand-word">Mie</span>');
 
   function toast(msg) {
     document.querySelectorAll('.toast').forEach(x => x.remove());
@@ -68,7 +72,7 @@
     }
     return `<button class="cust" data-act="openreq" data-arg="${arg}">
       ${DG.renderAvatar(c.look, 'neutral', 64)}
-      <span class="cust-info"><span class="cust-name">${esc(c.name)} ${c.visits ? '<span class="tag">Regular</span>' : ''}</span>
+      <span class="cust-info"><span class="cust-name"><span translate="no">${esc(c.name)}</span> ${c.visits ? '<span class="tag">Regular</span>' : ''}</span>
       <span class="muted">${esc(c.title)}</span><span class="pchips small">${prioChips(c)}</span></span>
       <span class="cust-budget">${kr(c.budget)}</span>
     </button>`;
@@ -82,7 +86,7 @@
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
-      <div class="brand"><span class="brand-script">Life of</span><span class="brand-word">Mie</span></div>
+      <div class="brand" translate="no">${brandHtml()}</div>
       <div class="hud">
         <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
         <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} <span class="sname">${se.name}</span></b></div>
@@ -118,7 +122,7 @@
     const rack = `<section class="panel rack-panel">
         <div class="sec-head"><h2>Ready-to-wear rack</h2><span class="muted">${G.rack.length} of ${cap} hangers · each dress has a ${Math.round(DG.rackSaleChance(G) * 100)}% chance to sell every evening</span></div>
         ${G.rack.length ? `<div class="rack">${G.rack.map((it, i) => `<div class="rack-item"><span class="thumb">${DG.renderDress(it.design, 'rk' + i)}</span><b>${kr(it.price)}</b>
-          <button class="btn small ghost" data-act="markdown" data-arg="${i}" ${it.price <= 50 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>`
+          <button class="btn small ghost" data-act="markdown" data-arg="${i}" ${it.price <= 300 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>`
           : '<p class="muted">Nothing on the rack yet. Sew a dress without an order to use up leftover fabric and earn money while you sleep.</p>'}
         <button class="btn wide" data-act="rackorder" ${G.active || G.rack.length >= cap ? 'disabled' : ''}>✂️ Sew a dress for the rack</button>
         ${G.active && !G.active.rack ? '<p class="muted small">Finish the current order first.</p>' : ''}
@@ -298,7 +302,7 @@
         ${c.rack ? `<div class="brief-mini"><span class="rack-ic">👗</span><div class="bm-txt"><b>Dress for the rack</b><span class="muted small">No customer: walk-in shoppers pay for a dress whose three best stats are high.</span></div>
           <button class="btn small ghost" data-act="cancelrack">Cancel</button></div>`
         : `<div class="brief-mini">${DG.renderAvatar(c.look, 'neutral', 56)}
-          <div class="bm-txt"><b>${esc(c.name)}</b><span class="muted small">${esc(c.title)}</span></div>
+          <div class="bm-txt"><b translate="no">${esc(c.name)}</b><span class="muted small">${esc(c.title)}</span></div>
           <button class="btn small ghost" data-act="openreq" data-arg="active">Read request</button></div>
         <div class="pchips">${prioChips(c)}</div>`}
         ${c.reqs.length ? `<ul class="reqs inline">${c.reqs.map(r => { const ok = DG.REQS[r].check(d); return `<li class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${DG.REQS[r].short}</li>`; }).join('')}</ul>` : ''}
@@ -377,14 +381,14 @@
   }
 
   function upEquipment() {
-    return `<div class="sec-head"><h2>Equipment and shop</h2><span class="muted">Each upgrade level adds 10 kr to the daily rent.</span></div>
+    return `<div class="sec-head"><h2>Equipment and shop</h2><span class="muted">Each upgrade level adds 100 kr to the daily rent.</span></div>
       <div class="grid upg">${DG.UPGRADES.filter(u => u.group !== 'expansion').map(upgradeCard).join('')}</div>
       <h3>Who visits the shop</h3>
       <ul class="arche-list">${DG.ARCHETYPES.map(a => `<li class="${a.minRep <= G.rep ? 'on' : ''}"><b>${a.title}</b><span class="muted small">${a.minRep <= G.rep ? 'visiting' : `from reputation ${a.minRep}`} · ${kr(a.budget[0])} to ${kr(a.budget[1])}</span></li>`).join('')}</ul>`;
   }
 
   function upExpansion() {
-    return `<div class="sec-head"><h2>Grow the atelier</h2><span class="muted">Big steps. The upstairs floor adds 40 kr to the daily rent, the pottery studio 10 kr per level.</span></div>
+    return `<div class="sec-head"><h2>Grow the atelier</h2><span class="muted">Big steps. The upstairs floor adds 700 kr to the daily rent, the pottery studio 100 kr per level.</span></div>
       <div class="grid upg">${DG.UPGRADES.filter(u => u.group === 'expansion').map(upgradeCard).join('')}</div>`;
   }
 
@@ -403,8 +407,8 @@
   function ovIntro() {
     return `<div class="overlay"><div class="sheet intro">
       <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 120)}<div>
-        <h1><span class="brand-script">Life of</span> Mie</h1>
-        <p>Mie has just opened a tiny dress shop on a cobbled street in Copenhagen. She has a sewing machine, a dress form, 400 kr in the bank and big dreams.</p></div></div>
+        <h1 translate="no">${brandHtml()}</h1>
+        <p>Mie has just opened a tiny dress shop on a cobbled street in Copenhagen. She has a sewing machine, a dress form, 8.000 kr in the bank and big dreams.</p></div></div>
       <ol class="howto">
         <li><b>Meet customers.</b> Each one has wishes: quality, workwear, creativity, exclusivity, elegance or comfort, plus favourite colours, must-haves and a budget.</li>
         <li><b>Shop the market.</b> Buy fabric by the metre and notions like buttons, zippers and lace. Prices change every day.</li>
@@ -421,8 +425,8 @@
     const c = isActive ? G.active : G.queue[+arg];
     if (!c) return '';
     return `<div class="overlay dismissable"><div class="sheet req">
-      <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2>${esc(c.name)}</h2><span class="muted">${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}</span></div></div>
-      <div class="bubble big">${esc(c.text)}</div>
+      <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2 translate="no">${esc(c.name)}</h2><span class="muted">${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}</span></div></div>
+      <div class="bubble big">${(c.parts || [c.text]).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
       ${briefHtml(c, isActive ? G.design : null)}
       <div class="actions">
         ${isActive ? '<button class="btn primary" data-act="closeov">Back to work</button>'
@@ -463,7 +467,7 @@
       <div class="res-top">
         <div class="res-dress">${DG.renderDress(design, 'res')}</div>
         <div class="res-say">
-          <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble">${esc(o.quote)} ${esc(o.line)}</div></div>
+          <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble"><span>${esc(o.quote)}</span> <span>${esc(o.line)}</span></div></div>
           <div class="score"><span class="pct">${ev.S}%</span><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="muted">satisfaction</span></div>
         </div>
       </div>
@@ -514,13 +518,16 @@
       <table class="rtable money"><tbody>
         <tr><td>Dresses delivered</td><td class="num">${t.served}</td></tr>
         <tr><td>Income</td><td class="num good">${kr(t.income)}</td></tr>
-        <tr><td>Purchases</td><td class="num">−${kr(t.spent)}</td></tr>
+        <tr><td>Shop purchases</td><td class="num">−${kr(t.spent)}</td></tr>
+        ${t.private ? `<tr><td>Family and private spending</td><td class="num">−${kr(t.private)}</td></tr>` : ''}
         ${o.res.sold && o.res.sold.length ? `<tr><td>Rack sales (${o.res.sold.length} dress${o.res.sold.length > 1 ? 'es' : ''}, included in income)</td><td class="num good">${kr(o.res.rackIncome)}</td></tr>` : ''}
         ${o.res.pottery && o.res.pottery.sold.length ? `<tr><td>Pottery sold (${o.res.pottery.sold.length}, included in income)</td><td class="num good">${kr(o.res.pottery.income)}</td></tr>` : ''}
         ${o.res.pottery && (o.res.pottery.fired.length || o.res.pottery.cracked.length) ? `<tr><td>Kiln: ${o.res.pottery.fired.length} fired${o.res.pottery.cracked.length ? `, ${o.res.pottery.cracked.length} cracked 💔` : ' perfectly'}</td><td class="num">${kr(o.res.pottery.fired.reduce((a, it) => a + it.price, 0))} to shelf</td></tr>` : ''}
         <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
         ${o.res.wages ? `<tr><td>Staff wages</td><td class="num">−${kr(o.res.wages)}</td></tr>` : ''}
-        ${o.res.tax ? `<tr><td>SKAT (${Math.round(DG.skatRule(G).rate * 100)}% of profit above ${kr(DG.skatRule(G).free)})</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
+        ${o.res.salary ? `<tr><td>👔 Adam's salary</td><td class="num good">+${kr(o.res.salary)}</td></tr>` : ''}
+        ${o.res.housing ? `<tr><td>🏡 ${G.home.house ? 'Mortgage payment (realkreditlån)' : 'Rent for the flat'}</td><td class="num">−${kr(o.res.housing.pay)}</td></tr>` : ''}
+        ${o.res.tax ? `<tr><td>SKAT on the shop's profit of ${kr(o.res.profit)}</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
         ${o.res.taxSaved ? `<tr><td>🧮 Saved by your accountant</td><td class="num good">${kr(o.res.taxSaved)}</td></tr>` : ''}
         ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
@@ -547,7 +554,8 @@
     const slider = (key, label) => `<div class="set-row"><label class="lbl" for="vol-${key}">${label}</label><input type="range" id="vol-${key}" min="0" max="100" step="5" value="${Math.round(S[key] * 100)}" data-setting="${key}"><span class="vol" id="vol-${key}-v">${Math.round(S[key] * 100)}%</span></div>`;
     let body = '';
     if (t === 'settings') {
-      body = `<div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
+      body = `<div class="set-row"><span class="lbl">Language / Sprog</span>${seg('lang', [['en', 'English'], ['da', 'Dansk']])}</div>
+        <div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
         ${slider('music', 'Music')}${slider('sfx', 'Sound effects')}
         <div class="set-row"><span class="lbl">Animations</span>${seg('anim', [[true, 'On'], [false, 'Off']])}</div>
         <div class="set-row"><span class="lbl">Tips</span>${seg('tips', [[true, 'On'], [false, 'Off']])}</div>
@@ -557,7 +565,7 @@
       const act = DG.Profiles.active();
       body = `<p class="muted small">Every player has their own shop on this device.</p>
         <ul class="players">${DG.Profiles.list().map(p => `<li class="${act && p.id === act.id ? 'on' : ''}">
-          <div class="pl-main"><b>${esc(p.name)}</b><span class="muted small">Day ${p.day || 0} · ${kr(p.money || 0)}</span></div>
+          <div class="pl-main"><b translate="no">${esc(p.name)}</b><span class="muted small">Day ${p.day || 0} · ${kr(p.money || 0)}</span></div>
           <div class="pl-act">${act && p.id === act.id ? '<span class="tag">Playing</span>' : `<button class="btn small primary" data-act="switchplayer" data-arg="${p.id}">Play</button>
             <button class="btn small ghost" data-act="deleteplayer" data-arg="${p.id}">${UI.confirm === 'del-' + p.id ? 'Tap again to delete' : 'Delete'}</button>`}</div>
           <div class="pl-rename"><input class="text-in small" id="rn-${p.id}" value="${esc(p.name)}" maxlength="24" aria-label="Rename ${esc(p.name)}"><button class="btn small" data-act="renameplayer" data-arg="${p.id}">Rename</button></div>
@@ -652,7 +660,7 @@
         <section class="panel">
           <div class="sec-head"><h2>Shelf</h2><span class="muted">${G.shelf.length} of ${DG.shelfCapacity(G)} · each pot has a ${Math.round(DG.shelfSaleChance(G) * 100)}% chance to sell every evening · up to 3 pots add charm</span></div>
           ${G.shelf.length ? `<div class="rack">${G.shelf.map((it, i) => `<div class="rack-item"><span class="thumb">${DG.renderPot(it.pot, 'st' + i)}</span><b>${kr(it.price)}</b>
-            <button class="btn small ghost" data-act="potmarkdown" data-arg="${i}" ${it.price <= 20 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>` : '<p class="muted">Nothing for sale yet.</p>'}
+            <button class="btn small ghost" data-act="potmarkdown" data-arg="${i}" ${it.price <= 100 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>` : '<p class="muted">Nothing for sale yet.</p>'}
         </section>
       </div>
     </div>`;
@@ -784,17 +792,33 @@
       </section>
       <section class="panel">
         <h2>Where we live</h2>
+        ${housingHtml()}
         <div class="houses">${DG.HOUSES.map((hs, i) => {
           const cur = (G.home.house || 0), state = i < cur ? 'past' : i === cur ? 'now' : i === cur + 1 ? 'next' : 'later';
           return `<article class="house ${state}"><span class="house-step">${i === 0 ? 'Start' : `Step ${i}`}</span><b>${hs.name}</b><span class="small muted">${hs.desc}</span>
             <span class="small">${i ? `❤️ +${hs.joy} · happiness never below ${hs.floor}` : 'Where the story begins'}</span>
+            ${i ? `<span class="small">Price ${kr(hs.cost)}</span>` : `<span class="small">Rent ${kr(hs.rent)} per day</span>`}
             ${state === 'now' ? '<span class="tag">Home sweet home</span>' : state === 'past' ? '<span class="muted small">Moved on ✓</span>'
-              : state === 'next' ? `<button class="btn primary" data-act="movehouse" ${G.money < hs.cost ? 'disabled' : ''}>Move here: ${kr(hs.cost)}</button>` : `<span class="muted small">${kr(hs.cost)}</span>`}</article>`;
+              : state === 'next' ? `<button class="btn primary" data-act="movehouse" ${G.money < DG.moveCash(G) ? 'disabled' : ''}>Move here: ${kr(DG.moveCash(G))} in cash</button>` : ''}</article>`;
         }).join('')}</div>
         <h2>Toys for Elizabeth</h2><div class="grid upg">${items('elizabeth')}</div>
         <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
       </section>
     </div>`;
+  }
+
+  function housingHtml() {
+    const L = G.home.loan, nx = DG.nextHouse(G);
+    const own = G.home.house > 0;
+    const loanTxt = own ? (L.principal > 0
+      ? `<div class="sum-grid"><div><span class="lbl">Mortgage left</span><b>${kr(L.principal)}</b><span class="muted small">${L.yearsLeft.toFixed(1)} years at ${DG.MORTGAGE.rate * 100}%</span></div>
+          <div><span class="lbl">Payment per day</span><b>${kr(L.payment)}</b></div><div><span class="lbl">Equity</span><b>${kr(DG.equity(G))}</b></div></div>
+          <div class="actions">${[100000, 1000000].map(a => `<button class="btn small" data-act="repay" data-arg="${a}" ${G.money < a ? 'disabled' : ''}>Pay off ${kr(a)}</button>`).join('')}
+          <button class="btn small" data-act="repay" data-arg="all" ${G.money < L.principal ? 'disabled' : ''}>Pay off everything</button></div>`
+      : '<p class="good"><b>The home is fully paid off. No more mortgage!</b></p>')
+      : `<p class="small">The family rents the flat for ${kr(DG.HOUSES[0].rent)} per day. Adam's salary (${kr(DG.ADAM_SALARY)} per day) goes into the family budget.</p>`;
+    return `<div class="finance">${loanTxt}
+      ${nx ? `<p class="muted small">Next home: ${esc(nx.name)} for ${kr(nx.cost)}. Buying takes a ${DG.MORTGAGE.down * 100}% down payment (minus the equity in your current home); the rest is a ${DG.MORTGAGE.years}-year realkreditlån at ${DG.MORTGAGE.rate * 100}%, about ${kr(DG.annuityPerDay(nx.cost - Math.max(DG.equity(G), DG.MORTGAGE.down * nx.cost), DG.MORTGAGE.years))} per day.</p>` : ''}</div>`;
   }
 
   function wardrobeHtml() {
@@ -906,9 +930,9 @@
       ['🏺 Pottery', 'Buy the studio under Upgrades → Expansion. Knead (fewer cracks), throw on the wheel (holding keeps the pressure in the green), optionally paint, and the kiln fires overnight. Pots sell from the shelf and add charm.'],
       ['🏡 Home and family', 'The family starts in a small flat in Nørrebro and can move up in five steps to a Strandvejsvilla in Klampenborg; each home raises the lowest family happiness can fall to. Family happiness drops every night. Above 75 Mie works better, below 30 worse. Play with Elizabeth and pet Dexter daily, buy toys, go on outings (some only in summer or winter) and keep Dexter fed.'],
       ['👗 Mie\'s wardrobe', 'Home → Mie\'s wardrobe has outfits, accessories and round glasses for Mie. What she wears shows everywhere and adds style charm to the shop; seasonal pieces give +1 extra in their season.'],
-      ['🧮 SKAT and the accountant', 'Each evening SKAT takes 40% of the day\'s profit above 2.000 kr. An accountant (Upgrades → Equipment) raises the tax-free amount and lowers the rate to 32% and then 25%.'],
+      ['🧮 SKAT and the accountant', 'Each evening SKAT is paid on the shop\'s profit: 37% on the first 2.000 kr above a small allowance and 52% top tax above that. Mortgage interest is deductible. An accountant (Upgrades → Equipment) finds more deductions, and at level 2 virksomhedsordningen lowers the top rate to 42%.'],
       ['⭐ Upgrades', 'Equipment improves work, expansions add pottery and an upstairs floor, decor adds charm, staff help every day for a wage, and marketing brings more or richer customers tomorrow.'],
-      ['🏆 Goals', '18 milestones with cash rewards. Collect them on the Goals screen.'],
+      ['🏆 Goals', 'Milestones with cash rewards. Collect them on the Goals screen.'],
       ['💾 Saving', 'The game saves automatically on this device. Menu → Save can make a save code to move your game to another device. Each player has their own shop.'],
     ];
     return `<button class="btn wide" data-act="howto">📖 Show the introduction</button>
@@ -957,8 +981,9 @@
   function welcomeScreen() {
     return `<div class="welcome"><div class="panel center">
       ${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 120)}
-      <h1><span class="brand-script">Life of</span> Mie</h1>
+      <h1 translate="no">${brandHtml()}</h1>
       <p>Welcome! You play as Mie, a dressmaker with her own little shop in Copenhagen. Keep the name or type your own. Each player gets their own shop, saved on this device.</p>
+      <div class="seg lang-pick">${[['en', 'English'], ['da', 'Dansk']].map(([v, l]) => `<button class="chip ${S.lang === v ? 'on' : ''}" data-act="setting" data-arg="lang:${v}">${l}</button>`).join('')}</div>
       <label class="lbl" for="firstname">Your name</label>
       <input id="firstname" class="text-in" maxlength="24" value="Mie" autocomplete="off">
       <button class="btn primary big wide" data-act="firstplayer">Start playing</button>
@@ -1238,7 +1263,7 @@
         if (arg === 'pet') return act('pet');
         const a = byId(DG.ACTIVITIES, arg);
         if (DG.doActivity(G, arg)) {
-          if (!a.free) G.today.spent += a.cost;
+          if (!a.free) G.today.private = (G.today.private || 0) + a.cost;
           sfx('fanfare');
           toast(`${a.icon} ${a.name}: family happiness +${a.joy}!`);
         }
@@ -1258,22 +1283,28 @@
       }
       case 'buyhome': {
         const it = byId(DG.HOME_ITEMS, arg);
-        if (DG.buyHomeItem(G, arg)) { G.today.spent += it.cost; sfx('coin'); toast(`${it.icon} ${it.name} for ${it.who === 'dexter' ? 'Dexter' : 'Elizabeth'}!`); }
+        if (DG.buyHomeItem(G, arg)) { G.today.private = (G.today.private || 0) + it.cost; sfx('coin'); toast(`${it.icon} ${it.name} for ${it.who === 'dexter' ? 'Dexter' : 'Elizabeth'}!`); }
         break;
       }
       case 'hometab': UI.homeTab = arg; break;
       case 'buywear': {
         const w = byId(DG.WARDROBE, arg);
-        if (DG.buyClothes(G, arg)) { G.today.spent += w.cost; sfx('coin'); toast(`👗 Mie is wearing her new ${w.name.toLowerCase()}!`); }
+        if (DG.buyClothes(G, arg)) { G.today.private = (G.today.private || 0) + w.cost; sfx('coin'); toast(`👗 Mie is wearing her new ${w.name.toLowerCase()}!`); }
         break;
       }
       case 'wear': if (DG.wearClothes(G, arg)) sfx('click'); break;
       case 'movehouse': {
         const nx = DG.moveHouse(G);
-        if (nx) { G.today.spent += nx.cost; sfx('fanfare'); toast(`🏡 The family moved to: ${nx.name}!`); window.scrollTo(0, 0); }
+        if (nx) { G.today.private = (G.today.private || 0) + nx.cash; sfx('fanfare'); toast(`🏡 The family moved to: ${nx.name}!`); window.scrollTo(0, 0); }
         break;
       }
-      case 'catfood': if (DG.buyCatFood(G)) { G.today.spent += DG.CAT_FOOD.cost; sfx('meow'); toast('Dexter approves. 🐟'); } break;
+      case 'repay': {
+        const amt = arg === 'all' ? G.home.loan.principal : +arg;
+        const paid = DG.repayLoan(G, amt);
+        if (paid) { G.today.private = (G.today.private || 0) + paid; sfx('coin'); toast(G.home.loan.principal ? `Paid ${kr(paid)} off the mortgage.` : '🎉 The mortgage is paid off!'); }
+        break;
+      }
+      case 'catfood': if (DG.buyCatFood(G)) { G.today.private = (G.today.private || 0) + DG.CAT_FOOD.cost; sfx('meow'); toast('Dexter approves. 🐟'); } break;
       case 'goexpansion': UI.view = 'upgrades'; UI.upTab = 'expansion'; window.scrollTo(0, 0); break;
       case 'setpot': {
         const i = arg.indexOf(':');
@@ -1296,7 +1327,7 @@
       case 'throw': startThrowing(); return;
       case 'potmarkdown': {
         const it = G.shelf[+arg];
-        if (it) { it.price = Math.max(20, Math.round(it.price * 0.8 / 5) * 5); toast(`Marked down to ${kr(it.price)}.`); }
+        if (it) { it.price = Math.max(100, Math.round(it.price * 0.8 / 10) * 10); toast(`Marked down to ${kr(it.price)}.`); }
         break;
       }
       case 'claim': {
@@ -1316,7 +1347,7 @@
       case 'cancelrack': if (G.active && G.active.rack && !G.design.sewn) { G.active = null; G.design = null; UI.view = 'shop'; } break;
       case 'markdown': {
         const it = G.rack[+arg];
-        if (it) { it.price = Math.max(50, Math.round(it.price * 0.8 / 10) * 10); toast(`Marked down to ${kr(it.price)}.`); }
+        if (it) { it.price = Math.max(300, Math.round(it.price * 0.8 / 50) * 50); toast(`Marked down to ${kr(it.price)}.`); }
         break;
       }
       case 'buydecor': {
