@@ -496,6 +496,8 @@
     'A little sketch from Mie. Make it your own!': 'En lille skitse fra Mie. Gør den til din egen!',
     "Mie can't think of anything we can afford today. Maybe visit the market?": 'Mie kan ikke komme i tanke om noget, vi har råd til i dag. Måske et smut på markedet?',
     '🏆 {0} goals collected: +{1} kr!': '🏆 {0} mål hentet: +{1} kr!', 'That has already been used.': 'Det er allerede brugt.',
+    'Upstairs live Adam, Elizabeth and Dexter the cat. A happy family makes Mie work better, so visit them every day.': 'Ovenpå bor Adam, Elizabeth og katten Dexter. En glad familie får Mie til at arbejde bedre, så besøg dem hver dag.',
+    'Payment': 'Betaling', 'Hugs 💗': 'Kram 💗', 'Hugs': 'Kram', 'for your own daughter': 'til din egen datter', 'Paid in hugs': 'Betalt med kram',
     'Collections': 'Samlinger', 'Little sets to complete at your own pace. Each finished set hangs a framed keepsake on the shop wall.': 'Små samlinger, du kan fuldende i dit eget tempo. Hver færdig samling hænger et indrammet minde op på butikkens væg.',
     'Fabric library': 'Stofbiblioteket', 'Sew a dress in every fabric.': 'Sy en kjole i hvert stof.', 'Every colour of the rainbow': 'Alle regnbuens farver', 'Sew a dress in every colour.': 'Sy en kjole i hver farve.',
     'The silhouette book': 'Silhuetbogen', 'Four stars or more in every silhouette.': 'Fire stjerner eller mere i hver silhuet.', "The potter's shelf": 'Keramikerens hylde', 'Fire every pot shape in the kiln.': 'Brænd hver krukkeform i ovnen.',

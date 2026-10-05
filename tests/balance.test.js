@@ -347,7 +347,8 @@ console.log('all checks passed');
   for (let guard = 0; guard < 200; guard++) {
     const open = DG.STORIES.filter(st => DG.storyChapter(G, st));
     if (!open.length) break;
-    G.day = Math.max(G.day, Math.min(...open.map(st => DG.storyState(G, st.id).next))); G.queue = [];
+    const due = st => { const s = DG.storyState(G, st.id), c = st.ch[s.ch]; return Math.max(s.next, c.age != null ? (c.age - 3) * DG.YEAR + 1 : 0); };
+    G.day = Math.max(G.day, Math.min(...open.map(due))); G.queue = [];
     const c = DG.storyArrival(G, () => 0);
     assert(c, `a story should arrive on day ${G.day}`);
     const st = DG.STORIES.find(x => x.id === c.story), i = c.ch;
@@ -366,6 +367,7 @@ console.log('all checks passed');
   DG.mailToday(G).forEach(m => DG.openMail(G, m.id));
   assert.strictEqual(DG.mailToday(G).length, 0); assert.strictEqual(G.letters.length, n);
   assert(G.money > m0 && G.keepsakes > k0, 'gifts arrive');
+  assert(DG.elizabethAge(G) >= 8, 'Elizabeth grew up along the way');
   assert.strictEqual(G.stats.storiesDone, DG.STORIES.length);
   // story customers are not mixed into the ordinary regulars
   assert(!G.known.some(k => String(k.cid).startsWith('story-')));
@@ -393,4 +395,26 @@ console.log('all checks passed');
   }
   assert(n > 60 && n < 140, `surprises ${n}`); assert.strictEqual(same, 0);
   console.log(`v1.9 collection and surprise checks passed (${n} surprises in 300 days)`);
+}
+{
+  // the Danish year: events on their days, with their effects
+  const G = DG.newGame(); G.rep = 60;
+  const dayOf = (season, d) => DG.SEASONS.findIndex(x => x.id === season) * DG.SEASON_LENGTH + d;
+  G.day = dayOf('summer', 2) - 1; DG.startDay(G);
+  assert.strictEqual(G.event.id, 'students');
+  for (let i = 0; i < 40; i++) { const c = DG.genCustomer(G); if (c.arche === 'student') assert(c.reqs.includes('whitedress'), 'students want white'); }
+  G.day = dayOf('winter', 5) - 1; DG.startDay(G); G.queue = [];
+  assert.strictEqual(G.event.id, 'christmas');
+  G.home.happy = 50; const res = DG.endDay(G);
+  assert(res.evHome && G.home.happy > 50 - 10 + 10, 'Christmas Eve at home');
+  // Adam is promoted in his second year, and again in his fourth; once each
+  const H = DG.newGame();
+  H.day = DG.YEAR; DG.startDay(H);
+  assert.strictEqual(H.adamLevel, 1); assert.strictEqual(DG.adamSalary(H), DG.ADAM_SALARY + 250);
+  DG.startDay(H); assert.strictEqual(H.mail.filter(m => m.from === 'Adam' && m.title === 'Good news').length, 1);
+  H.day = 3 * DG.YEAR; DG.startDay(H); assert.strictEqual(H.adamLevel, 2);
+  // Elizabeth's birthday letter on the third day of spring
+  const E = DG.newGame(); E.day = DG.YEAR + 2; DG.startDay(E);
+  assert(E.mail.some(m => /turns 4 today/.test(m.text)), 'birthday letter');
+  console.log('v1.9 event and family checks passed');
 }

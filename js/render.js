@@ -727,8 +727,10 @@
     if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="300" rx="120" ry="22" fill="#e7c9b0"/><ellipse cx="160" cy="300" rx="108" ry="18" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
       + '<g transform="translate(352 238)"><path d="M-14 66 l4 -24 h20 l4 24Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M0 42 Q-26 20 -20 -8 Q-4 10 0 42Z"/><path d="M0 42 Q24 16 22 -12 Q6 8 0 42Z"/><path d="M0 42 Q-2 6 8 -22 Q-10 0 0 42Z"/><path d="M0 42 Q-30 34 -34 14 Q-14 20 0 42Z"/></g></g>');
     // Elizabeth last, so she is in front of the furniture
-    out.push(opts.tall ? DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, 120, 214, 46, { child: true })
-      : DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, has('tricycle') ? 112 : 150, 130, 30, { child: true }));
+    // she grows a little every year (3 years old at the start)
+    const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
+    const ez = (opts.tall ? 46 : 30) * grow, footY = opts.tall ? 214 + 46 * 1.96 : 130 + 30 * 1.96;
+    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, opts.tall ? 120 : has('tricycle') ? 112 : 150, footY - ez * 1.96, ez, { child: true }));
     return `<svg class="shop-scene home-scene" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 

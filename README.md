@@ -106,12 +106,14 @@ Calibration (best of N random designs, by stitching skill): a careless pick (N=4
 
 ## Life stories, letters and the album
 
-- **Five women with a life story** (`js/stories.js`): Freja (first date → his parents → engagement → wedding → a baby → the christening), Karla (studenterkjole → Roskilde → job interview → her first collection → her own studio), Inger (80th birthday → golden wedding → Christmas with eleven grandchildren → Lake Garda), Nadia (a café show → the newspaper → Venice → a painting of Mie's shop) and Sofie (after night shifts → Oliver's confirmation → head nurse gala → a weekend in Skagen).
+- **Five women with a life story** (and Elizabeth's own) (`js/stories.js`): Freja (first date → his parents → engagement → wedding → a baby → the christening), Karla (studenterkjole → Roskilde → job interview → her first collection → her own studio), Inger (80th birthday → golden wedding → Christmas with eleven grandchildren → Lake Garda), Nadia (a café show → the newspaper → Venice → a painting of Mie's shop) and Sofie (after night shifts → Oliver's confirmation → head nurse gala → a weekend in Skagen).
 - They drop by now and then for the next chapter (about half the days a chapter is due), some only once the shop is well known. A whole story unfolds over a couple of in-game years (`DG.STORY_PACE`).
 - After each chapter a **letter** arrives the next morning, warmer if the dress was four stars or more, often with a little gift: money, fabric, something for Elizabeth or a keepsake for the shop wall (+1 charm).
 - **Album** (in the top bar): *Stories* shows each woman's chapters with her dresses, *Lookbook* keeps every four-star dress and every story dress (60 at most, story dresses are never dropped), *Letters* keeps the post, and *Goals* lives here too.
 - **Collections** (Album → Collections): every fabric, every colour, every silhouette at four stars, every pot shape fired, and a five-star dress in each season. A finished set brings a framed keepsake for the shop wall (+1 charm) and a reward in the post.
 - **Little surprises:** about every third morning there is something in the post: kanelsnegle from the baker, a thank-you note (sometimes with a tip) from a happy customer, a fabric sample, a drawing in the letterbox, a note from Adam, seasonal cards and invitations, or a sock from Dexter.
+- **The Danish year** (`DG.EVENTS`): Easter, student season (students want white dresses), Sankthans, Kulturnatten, Halloween, julefrokost season, Christmas Eve and New Year's Eve fall on fixed days of their season. They change who walks in and their budgets, and some bring an evening at home (bonfire, risalamande, jumping into the new year).
+- **The family grows.** A year is 28 days. Elizabeth (3 at the start) has a birthday on the third day of every spring and gets visibly taller; at 4, 5, 6 and 8 she asks her mum for a dress of her own (birthday party, fastelavn, first school day, the school play) and pays in hugs. Adam is promoted in his second and fourth year (+250 kr a day each time), with a note in the post.
 - Story texts are written in English and Danish side by side.
 
 ## Prices

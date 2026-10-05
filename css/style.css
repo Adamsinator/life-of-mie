@@ -626,3 +626,4 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .coll-item.have { opacity: 1; filter: none; }
 .coll-item.word { font-size: .8rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--paper); }
 .coll-item.word.have { background: var(--teal); color: var(--on-accent); }
+.event.festive { background: #fff1e0; border-color: #f0c99a; color: #5a3a1a; }

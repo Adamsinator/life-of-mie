@@ -78,7 +78,7 @@
       ${c.reqs.length ? `<div class="brief-row"><span class="lbl">Must have</span><ul class="reqs">${reqs}</ul></div>` : ''}
       <div class="brief-row"><span class="lbl">Colours</span><div class="colrow">${c.liked.map(id => DG.colorDot(id, 22)).join('')}<span class="muted small">loves</span>${c.disliked.map(id => DG.colorDot(id, 22)).join('')}<span class="muted small">dislikes</span></div></div>
       <div class="brief-row"><span class="lbl">Fancies</span><span>${styles}</span></div>
-      <div class="brief-row"><span class="lbl">Budget</span><b>${kr(c.budget)}</b></div>
+      ${c.family ? '<div class="brief-row"><span class="lbl">Payment</span><b>Hugs 💗</b></div>' : `<div class="brief-row"><span class="lbl">Budget</span><b>${kr(c.budget)}</b></div>`}
     </div>`;
   }
 
@@ -91,7 +91,7 @@
       ${DG.renderAvatar(c.look, 'neutral', 64)}
       <span class="cust-info"><span class="cust-name"><span translate="no">${esc(c.name)}</span> ${c.story ? '<span class="tag story">📖 Her story</span>' : c.visits ? '<span class="tag">Regular</span>' : ''}</span>
       <span class="muted">${esc(c.title)}</span><span class="pchips small">${prioChips(c)}</span></span>
-      <span class="cust-budget">${kr(c.budget)}</span>
+      <span class="cust-budget">${c.family ? '💗' : kr(c.budget)}</span>
     </button>`;
   }
 
@@ -141,6 +141,7 @@
       : ev.type === 'buzz' ? 'Fashion Week buzz: customers bring 20% bigger budgets today.'
         : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
     const queue = G.queue.map((c, i) => custCard(c, i)).join('');
+    const eventBanner = G.event ? `<div class="event festive"><b>${G.event.icon} ${G.event.name}</b> ${esc(G.event.text)}</div>` : '';
     const seasonBanner = G.newSeason ? `<div class="event season">${DG.season(G).icon} ${esc(DG.season(G).hello)} In season: ${DG.season(G).in.map(id => byId(DG.FABRICS, id).name.toLowerCase()).join(', ')}.</div>` : '';
     const post = DG.mailToday(G);
     const mailBanner = post.length ? `<button class="event mail" data-act="readmail">📬 ${post.length === 1 ? `A letter from <span translate="no">${esc(post[0].from)}</span>` : `${post.length} letters in the post`}</button>` : '';
@@ -161,7 +162,7 @@
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
-        ${mailBanner}${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
+        ${mailBanner}${eventBanner}${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
           <div><dt>Happy customers</dt><dd>${G.stats.served ? starsHtml(G.stats.totalS / G.stats.served / 20) : '–'}</dd></div>
@@ -360,6 +361,7 @@
             ${fa ? `<div><span class="lbl">Accent</span><b>${an.accentM} m</b><span class="muted small">${fa.name}</span></div>` : ''}
             <div><span class="lbl">Materials</span><b>${kr(an.cost)}</b><span class="muted small">at today's prices</span></div>
             ${c.rack ? `<div><span class="lbl">Est. price tag</span><b>${kr(DG.rackItem(d, G, 0.8).price)}</b><span class="muted small">with good stitching</span></div>`
+              : c.family ? '<div><span class="lbl">Payment</span><b>Hugs 💗</b><span class="muted small">for your own daughter</span></div>'
               : `<div><span class="lbl">Budget</span><b>${kr(c.budget)}</b><span class="small ${margin < 0 ? 'bad' : 'good'}">${margin < 0 ? 'over budget' : `${kr(margin)} margin`}</span></div>`}
           </div>
           ${an.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
@@ -506,7 +508,7 @@
         <div class="res-say">
           <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble"><span>${esc(o.quote)}</span> <span>${esc(o.line)}</span></div></div>
           <div class="score"><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="mood-word">${moodWord(ev.S)}</span></div>
-          <p class="paid">💰 ${ev.tip ? `Paid ${kr(ev.pay)} and a ${kr(ev.tip)} tip` : `Paid ${kr(ev.pay)}`}</p>
+          <p class="paid">${cust.family ? '💗 Paid in hugs' : `💰 ${ev.tip ? `Paid ${kr(ev.pay)} and a ${kr(ev.tip)} tip` : `Paid ${kr(ev.pay)}`}`}</p>
           <p class="muted small">${after}</p>
         </div>
       </div>
@@ -564,6 +566,7 @@
     if (r.pottery && r.pottery.cracked.length) lines.push(['💔', `${r.pottery.cracked.length} pot${r.pottery.cracked.length > 1 ? 's' : ''} cracked in the kiln. It happens to every potter.`]);
     if (r.missed) lines.push(['☕', `${r.missed} customer${r.missed > 1 ? 's' : ''} will pop back tomorrow${r.assistant ? ', after a cup of Lise\'s tea' : ''}.`]);
     if (r.taxSaved) lines.push(['🧮', `Your accountant kept ${kr(r.taxSaved)} away from SKAT.`]);
+    if (r.evHome) lines.push([r.evHome.icon, r.evHome.home.text]);
     if (r.help) lines.push(['💌', `Mie's mum and dad popped by with an envelope: "For the shop, skat. We're so proud of you."`]);
     if (!lines.length) lines.push(['🌙', 'A quiet day. The shop smells of fresh linen and tea.']);
     return `<div class="overlay"><div class="sheet dayend">
@@ -864,7 +867,7 @@
       <table class="rtable money"><tbody>
         <tr><td>Shop rent and upkeep</td><td class="num">${kr(DG.rent(G))}</td></tr>
         ${DG.wages(G) ? `<tr><td>Staff wages</td><td class="num">${kr(DG.wages(G))}</td></tr>` : ''}
-        <tr><td>Adam's salary</td><td class="num good">+${kr(DG.ADAM_SALARY)}</td></tr>
+        <tr><td>Adam's salary</td><td class="num good">+${kr(DG.adamSalary(G))}</td></tr>
       </tbody></table>
     </section>`;
   }
@@ -890,7 +893,7 @@
     <div class="shop-grid">
       <section class="panel">
         <h2>Mie's home</h2>
-        <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (3) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
+        <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (${DG.elizabethAge(G)}) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
         <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
         <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
         <p class="muted small">Happiness drops by ${DG.homeDecay(G)} every night (each toy slows it by 1)${h.catFood <= 0 ? ', plus 8 while Dexter is hungry' : ''}.</p>
@@ -926,7 +929,7 @@
           <div class="actions">${[100000, 1000000].map(a => `<button class="btn small" data-act="repay" data-arg="${a}" ${G.money < a ? 'disabled' : ''}>Pay off ${kr(a)}</button>`).join('')}
           <button class="btn small" data-act="repay" data-arg="all" ${G.money < L.principal ? 'disabled' : ''}>Pay off everything</button></div>`
       : '<p class="good"><b>The home is fully paid off. No more mortgage!</b></p>')
-      : `<p class="small">The family rents the flat for ${kr(DG.HOUSES[0].rent)} per day. Adam's salary (${kr(DG.ADAM_SALARY)} per day) goes into the family budget.</p>`;
+      : `<p class="small">The family rents the flat for ${kr(DG.HOUSES[0].rent)} per day. Adam's salary (${kr(DG.adamSalary(G))} per day) goes into the family budget.</p>`;
     return `<div class="finance">${loanTxt}
       ${nx ? `<p class="muted small">Next home: ${esc(nx.name)} for ${kr(nx.cost)}. Buying takes a ${DG.MORTGAGE.down * 100}% down payment (minus the equity in your current home); the rest is a ${DG.MORTGAGE.years}-year realkreditlån at ${DG.MORTGAGE.rate * 100}%, about ${kr(DG.annuityPerDay(nx.cost - Math.max(DG.equity(G), DG.MORTGAGE.down * nx.cost), DG.MORTGAGE.years))} per day.</p>` : ''}</div>`;
   }
@@ -972,7 +975,7 @@
         return `<li class="chap locked"><span class="thumb q">…</span><span class="muted small">A chapter still to come</span></li>`;
       }).join('');
       return `<article class="story ${met ? '' : 'unmet'}">
-        <div class="story-head">${met ? DG.renderAvatar(st.look, 'happy', 64) : '<span class="avatar-q">?</span>'}<div><h3 translate="${met ? 'no' : 'yes'}">${met ? st.name : 'Someone you have not met yet'}</h3>
+        <div class="story-head">${met ? DG.renderAvatar(st.look || Object.assign({}, DG.FAMILY.elizabeth.look, { bg: '#f5dfe4' }), 'happy', 64) : '<span class="avatar-q">?</span>'}<div><h3 translate="${met ? 'no' : 'yes'}">${met ? st.name : 'Someone you have not met yet'}</h3>
           <span class="muted small">${met ? `${st.job} · ${s.done.length} of ${st.ch.length} chapters` : 'Every life has a story. Keep the shop open.'}</span></div></div>
         ${met ? `<ol class="chapters">${chapters}</ol>` : ''}
       </article>`;
@@ -1053,7 +1056,7 @@
     { id: 'market', when: () => UI.view === 'market' && !ov(), target: '.grid',
       title: 'The market', text: 'Fabric is sold by the metre. Prices change every morning (the arrows), and the six small bars show what each fabric is good at.' },
     { id: 'home', when: () => G.day >= 2 && UI.view === 'shop' && !ov(), target: '[data-act=view][data-arg=home]',
-      title: 'Mie\'s family', text: 'Upstairs live Adam, Elizabeth (3) and Dexter the cat. A happy family makes Mie work better, so visit them every day.' },
+      title: 'Mie\'s family', text: 'Upstairs live Adam, Elizabeth and Dexter the cat. A happy family makes Mie work better, so visit them every day.' },
     { id: 'homeview', when: () => UI.view === 'home' && !ov(), target: '.happy',
       title: 'Family happiness', text: 'Play with Elizabeth and pet Dexter every day for free. Toys and outings help too. And don\'t forget Dexter\'s cat food!' },
     { id: 'upgrades', when: () => UI.view === 'upgrades' && !ov(), target: '.view-upgrades .tabs',
@@ -1308,6 +1311,7 @@
     const before = eligibleTitles();
     const ev = DG.evaluate(cust, design, G, craft);
     ev.cost = design.cost != null ? design.cost : ev.cost;
+    if (cust.family) { ev.repDelta = 0; G.home.happy = clamp(G.home.happy + (ev.S >= 80 ? 6 : 3), 0, 100); }   // a dress for Elizabeth
     G.money += ev.pay + ev.tip;
     G.today.income += ev.pay + ev.tip;
     sfx(ev.S >= 60 ? 'coin' : 'bad');

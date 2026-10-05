@@ -183,6 +183,31 @@
     },
   ];
 
+  // Elizabeth grows up, and now and then asks her mum for a dress of her own (she pays in hugs).
+  DG.STORIES.push({
+    id: 'elizabeth', name: 'Elizabeth', family: true, start: 0,
+    job: T('your daughter', 'din datter'), liked: ['blush', 'lavender'], disliked: ['brown'],
+    look: null,
+    ch: [
+      { arche: 'student', age: 4, minRep: 0, title: T('A birthday party dress', 'En fødselsdagskjole'), reqs: ['bowtie'], w: { comfort: 2, creativity: 3 },
+        lines: [T('Mummy, I am turning FOUR. Can I have a princess dress? With a bow. And pink. And a bow.', 'Mor, jeg bliver FIRE. Må jeg få en prinsessekjole? Med en sløjfe. Og lyserød. Og en sløjfe.')],
+        good: T('Elizabeth twirled all afternoon and told every guest that her mummy made her dress.', 'Elizabeth snurrede rundt hele eftermiddagen og fortalte alle gæster, at hendes mor havde syet kjolen.'),
+        ok: T('She wore it to bed. And to breakfast. And to the playground.', 'Hun sov i den. Og spiste morgenmad i den. Og gik på legepladsen i den.'), gift: { happy: 8 } },
+      { arche: 'artist', age: 5, minRep: 0, title: T('Fastelavn', 'Fastelavn'), w: { creativity: 3, comfort: 1 },
+        lines: [T('Mummy! At Fastelavn I want to be a butterfly. Or a dragon. A butterfly dragon!', 'Mor! Til fastelavn vil jeg være en sommerfugl. Eller en drage. En sommerfugledrage!')],
+        good: T('Elizabeth became cat queen at the barrel. She says it is because of the dress.', 'Elizabeth blev kattedronning ved tønden. Hun siger, det er på grund af kjolen.'),
+        ok: T('She ate four fastelavnsboller and the butterfly dragon survived.', 'Hun spiste fire fastelavnsboller, og sommerfugledragen overlevede.'), gift: { happy: 8 } },
+      { arche: 'worker', age: 6, minRep: 0, title: T('The first school day', 'Første skoledag'), reqs: ['pockets'], w: { workwear: 2, comfort: 3 },
+        lines: [T('Tomorrow I start school. I need pockets for my rubber and a secret note from you.', 'I morgen skal jeg i skole. Jeg skal have lommer til mit viskelæder og en hemmelig seddel fra dig.')],
+        good: T('Elizabeth found the note in her pocket at lunch. Her teacher says she showed it to the whole class.', 'Elizabeth fandt sedlen i lommen til frokost. Hendes lærer siger, at hun viste den til hele klassen.'),
+        ok: T('First day done! She made a friend called Ella and lost one shoe.', 'Første dag er overstået! Hun har fået en veninde, der hedder Ella, og mistet én sko.'), gift: { happy: 10 } },
+      { arche: 'guest', age: 8, minRep: 0, title: T('The school play', 'Skolekomedien'), w: { creativity: 3, elegance: 2 },
+        lines: [T('I got a real part in the school play! I am the moon. The moon needs a dress, Mummy.', 'Jeg har fået en rigtig rolle i skolekomedien! Jeg er månen. Månen skal have en kjole, mor.')],
+        good: T('The moon got the biggest applause of the evening. Adam filmed all of it, twice.', 'Månen fik aftenens største klapsalve. Adam filmede det hele, to gange.'),
+        ok: T('She forgot one line and made up a better one. The audience loved it.', 'Hun glemte én replik og fandt på en bedre. Publikum elskede det.'), gift: { happy: 10 } },
+    ],
+  });
+
   // new requests used by the stories
   Object.assign(DG.REQS, {
     whitedress: { short: T('White or ivory', 'Hvid eller elfenben'), text: T('It has to be white or ivory.', 'Den skal være hvid eller elfenben.'), check: d => ['white', 'ivory'].includes(d.mainColor) },
@@ -198,17 +223,21 @@
   DG.storyState = (G, id) => (G.stories[id] = G.stories[id] || { ch: 0, next: byId(DG.STORIES, id).start, done: [] });
   DG.storyChapter = (G, st) => st.ch[DG.storyState(G, st.id).ch] || null;
 
+  const HUGS = T('I can pay you in hugs.', 'Jeg kan betale med kram.');
   // Called each morning: maybe one story customer walks in (never two at once).
   DG.storyArrival = function (G, rnd = Math.random) {
     const busy = new Set(G.queue.map(c => c.story).concat(G.active && G.active.story ? [G.active.story] : []));
     const ready = DG.STORIES.filter(st => {
       const s = DG.storyState(G, st.id), chap = st.ch[s.ch];
+      if (chap && chap.age != null && DG.elizabethAge(G) < chap.age) return false;
       return chap && G.day >= s.next && G.rep >= chap.minRep && !busy.has(st.id);
     }).sort((a, b) => DG.storyState(G, a.id).next - DG.storyState(G, b.id).next);
     if (!ready.length || rnd() > 0.5) return null;
     const st = ready[0], s = DG.storyState(G, st.id), chap = st.ch[s.ch];
-    const base = { cid: 'story-' + st.id, name: st.name, look: Object.assign({}, st.look), job: st.job, liked: st.liked.slice(), disliked: st.disliked.slice(), visits: s.ch, lastS: s.done.length ? s.done[s.done.length - 1].S : 0 };
-    const c = DG.genCustomer(G, { arche: chap.arche, base, storyLines: chap.lines, reqs: chap.reqs, w: chap.w });
+    const look = st.family ? Object.assign({}, DG.FAMILY.elizabeth.look, { bg: '#f5dfe4' }) : st.look;
+    const base = { cid: 'story-' + st.id, name: st.name, look: Object.assign({}, look), job: st.job, liked: st.liked.slice(), disliked: st.disliked.slice(), visits: s.ch, lastS: s.done.length ? s.done[s.done.length - 1].S : 0 };
+    const c = DG.genCustomer(G, { arche: chap.arche, base, storyLines: chap.lines, reqs: chap.reqs, w: chap.w, budget: st.family ? 0 : null });
+    if (st.family) { c.family = true; c.parts = c.parts.filter(x => !/^My budget is/.test(x)).concat([HUGS]); c.text = c.parts.join(' '); }
     Object.assign(c, { story: st.id, ch: s.ch, title: chap.title });
     return c;
   };
@@ -222,8 +251,8 @@
     s.done.push({ ch: cust.ch, S, day: G.day, design: JSON.parse(JSON.stringify(design)) });
     s.ch += 1;
     const nx = st.ch[s.ch];
-    s.next = G.day + (nx ? Math.round(nx.gap * DG.STORY_PACE) : 0);
-    G.mail.push({ id: 'm' + G.nextId++, from: st.name, story: st.id, look: st.look, day: G.day + 1, text: S >= 80 ? chap.good : chap.ok, gift: chap.gift || null, title: chap.title });
+    s.next = G.day + (nx ? Math.round((nx.gap || 0) * DG.STORY_PACE) : 0);
+    G.mail.push({ id: 'm' + G.nextId++, from: st.name, story: st.id, look: st.family ? DG.FAMILY.elizabeth.look : st.look, day: G.day + 1, text: S >= 80 ? chap.good : chap.ok, gift: chap.gift || null, title: chap.title });
     if (!nx) G.stats.storiesDone = (G.stats.storiesDone || 0) + 1;
   };
   // A story order that was declined comes back a few days later.
@@ -244,6 +273,47 @@
     G.letters.unshift({ from: m.from, text: m.text, day: m.day, title: m.title || '', story: m.story || null });
     if (G.letters.length > 60) G.letters.pop();
     return m;
+  };
+
+  // ---------- the Danish year: little events on fixed days of each season ----------
+  // arche: more of these customers; budget: bigger budgets; reqs: extra wishes for an archetype; home: an evening at home
+  DG.EVENTS = [
+    { season: 'spring', day: 5, id: 'easter', icon: '🐣', name: T('Easter', 'Påske'), text: T('Påskefrokost season: guests want something fresh for long lunches.', 'Påskefrokost-tid: gæsterne vil have noget frisk til de lange frokoster.'), arche: { guest: 2, summer: 1.5 },
+      home: { joy: 6, text: T('Elizabeth hunted for chocolate eggs in the garden and found Dexter instead.', 'Elizabeth ledte efter chokoladeæg i haven og fandt Dexter i stedet.') } },
+    { season: 'summer', day: 2, id: 'students', icon: '🎓', name: T('Student season', 'Studentertid'), text: T('Studenter everywhere: students want white dresses today.', 'Studenter overalt: eleverne vil have hvide kjoler i dag.'), arche: { student: 3 }, reqs: { student: ['whitedress'] } },
+    { season: 'summer', day: 6, id: 'sankthans', icon: '🔥', name: T('Sankthans', 'Sankthans'), text: T('Midsummer Eve. Bonfires on the beach tonight.', 'Sankthansaften. Bål på stranden i aften.'), arche: { summer: 1.8 },
+      home: { joy: 8, text: T('The family sang "Vi elsker vort land" by the bonfire. Adam knew all the verses, to everyone\'s surprise.', 'Familien sang "Vi elsker vort land" ved bålet. Adam kunne alle versene, til alles overraskelse.') } },
+    { season: 'autumn', day: 3, id: 'culture', icon: '🎭', name: T('Culture Night', 'Kulturnatten'), text: T('Kulturnatten: the city is out late and wants something creative.', 'Kulturnatten: byen er ude til sent og vil have noget kreativt.'), arche: { artist: 2.5 }, budget: 1.1 },
+    { season: 'autumn', day: 6, id: 'halloween', icon: '🎃', name: T('Halloween', 'Halloween'), text: T('Halloween parties tonight. Dark colours are in.', 'Halloweenfester i aften. Mørke farver er in.'), arche: { artist: 1.5, gala: 1.3 },
+      home: { joy: 6, text: T('Elizabeth went trick-or-treating as a very small, very polite ghost.', 'Elizabeth gik rundt og samlede slik som et meget lille og meget høfligt spøgelse.') } },
+    { season: 'winter', day: 2, id: 'julefrokost', icon: '🎄', name: T('Julefrokost season', 'Julefrokosttid'), text: T('Christmas parties all month: bigger budgets for party dresses.', 'Julefrokoster hele måneden: større budgetter til festkjoler.'), arche: { gala: 2, guest: 1.6 }, budget: 1.15 },
+    { season: 'winter', day: 5, id: 'christmas', icon: '🎁', name: T('Christmas Eve', 'Juleaften'), text: T('The shop closes early and the family dances around the tree.', 'Butikken lukker tidligt, og familien danser om juletræet.'), arche: { winter: 2 },
+      home: { joy: 12, text: T('Risalamande, a hidden almond (Elizabeth found it, of course) and dancing around the tree until everyone was dizzy.', 'Risalamande, en gemt mandel (Elizabeth fandt den selvfølgelig) og dans om træet, til alle var svimle.') } },
+    { season: 'winter', day: 7, id: 'newyear', icon: '🎆', name: T("New Year's Eve", 'Nytårsaften'), text: T('Nytår! Everyone wants to sparkle at midnight.', 'Nytår! Alle vil funkle ved midnat.'), arche: { gala: 2.5, influencer: 1.5 }, budget: 1.1,
+      home: { joy: 6, text: T('The family jumped off the sofa into the new year. Dexter hid under the bed until morning.', 'Familien hoppede ned fra sofaen ind i det nye år. Dexter gemte sig under sengen til næste morgen.') } },
+  ];
+  DG.dayOfSeason = G => (Math.max(0, G.day - 1) % DG.SEASON_LENGTH) + 1;
+  DG.todaysEvent = G => DG.EVENTS.find(e => e.season === DG.season(G).id && e.day === DG.dayOfSeason(G)) || null;
+
+  // ---------- the family grows: birthdays and promotions ----------
+  DG.YEAR = 28;   // four seasons of seven days
+  DG.elizabethAge = G => 3 + Math.floor(Math.max(0, G.day - 1) / DG.YEAR);
+  // Adam is promoted in his second and fourth year
+  DG.adamSalary = G => DG.ADAM_SALARY + (G.adamLevel || 0) * 250;
+  const BDAY = T('Elizabeth turns {0} today! There is cake for breakfast and a crown made of paper.', 'Elizabeth fylder {0} i dag! Der er kage til morgenmad og en krone af papir.');
+  DG.familyMorning = function (G) {
+    const year = Math.floor(Math.max(0, G.day - 1) / DG.YEAR);
+    // Elizabeth's birthday: the third day of spring
+    if (year > 0 && DG.season(G).id === 'spring' && DG.dayOfSeason(G) === 3)
+      G.mail.push({ id: 'm' + G.nextId++, from: 'Elizabeth', day: G.day, title: T('A birthday', 'En fødselsdag'), text: BDAY.replace('{0}', DG.elizabethAge(G)), gift: { happy: 6 } });
+    const want = year >= 3 ? 2 : year >= 1 ? 1 : 0;
+    if ((G.adamLevel || 0) < want) {
+      G.adamLevel = want;
+      G.mail.push({ id: 'm' + G.nextId++, from: 'Adam', day: G.day, title: T('Good news', 'Gode nyheder'),
+        text: want === 1 ? T('Guess who is the new team lead? Dinner is on me tonight. (+250 kr a day for the family)', 'Gæt hvem der er ny teamleder? Jeg giver middag i aften. (+250 kr om dagen til familien)')
+          : T('They made me head of department! I bought flowers for you and a dinosaur for Elizabeth. (+250 kr a day)', 'De har gjort mig til afdelingsleder! Jeg har købt blomster til dig og en dinosaur til Elizabeth. (+250 kr om dagen)'),
+        gift: { happy: 6 } });
+    }
   };
 
   // ---------- little surprises in the morning post ----------

@@ -347,7 +347,8 @@
     if (opts.arche) eligible = [byId(DG.ARCHETYPES, opts.arche)];
     // Higher-tier archetypes get more likely as the shop window improves.
     const se = DG.season(G);
-    const weights = eligible.map(a => (1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0)) * (se.arche[a.id] || 1));
+    const evt = G.event || null;
+    const weights = eligible.map(a => (1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0)) * (se.arche[a.id] || 1) * ((evt && evt.arche && evt.arche[a.id]) || 1));
     let r = Math.random() * weights.reduce((x, y) => x + y, 0);
     let arche = eligible[0];
     for (let i = 0; i < eligible.length; i++) { r -= weights[i]; if (r <= 0) { arche = eligible[i]; break; } }
@@ -374,14 +375,15 @@
     const loyal = base.visits > 0 && base.lastS >= 85;
     const ev = G.market.event;
     let budget = randInt(arche.budget[0], arche.budget[1]) * (1 + 0.05 * display) * (loyal ? 1.1 : 1) * (ev && ev.type === 'buzz' ? 1.2 : 1)
-      * (1 + 0.005 * DG.charm(G)) * ((G.boost && G.boost.budget) || 1);
-    budget = Math.round(budget / 10) * 10;
+      * (1 + 0.005 * DG.charm(G)) * ((G.boost && G.boost.budget) || 1) * ((evt && evt.budget) || 1);
+    budget = opts.budget != null ? opts.budget : Math.round(budget / 10) * 10;
 
     const targets = {};
     // seasoned shops get more demanding customers, and regulars expect a little more each visit
     const lift = 1 + DG.BAL.ramp * clamp(G.rep, 0, 100) / 100, extra = Math.min(DG.BAL.visitMax, DG.BAL.visitStep * (base.visits || 0));
     for (const k in arche.t) targets[k] = clamp(Math.round((arche.t[k] * lift + extra + (Math.random() - 0.5)) * 2) / 2, 3, 9.5);
     const reqs = opts.reqs ? opts.reqs.slice() : arche.reqs.filter(([, p]) => Math.random() < p).map(([id]) => id);
+    if (!opts.reqs && evt && evt.reqs && evt.reqs[arche.id]) evt.reqs[arche.id].forEach(r => { if (!reqs.includes(r)) reqs.push(r); });
 
     const c = Object.assign(base, {
       oid: 'o' + G.nextId++,
@@ -432,6 +434,9 @@
     if (G.market.event && G.market.event.type === 'rain') n -= 1;
     n = clamp(n, 1, cap) + extra;   // campaigns may exceed the usual cap
     G.today = { income: 0, spent: 0, served: 0, seen: [], startMoney: G.money };
+    // a day in the Danish year, and news from the family
+    G.event = DG.todaysEvent ? DG.todaysEvent(G) : null;
+    if (DG.familyMorning) DG.familyMorning(G);
     G.queue = (G.returning || []).slice(0, n);
     G.returning = [];
     G.queue.forEach(c => G.today.seen.push(c.cid));
@@ -479,7 +484,11 @@
     G.money -= rent + wages;
     // family economy: Adam's salary in, rent or mortgage out
     const housing = DG.mortgageDay(G);
-    G.money += DG.ADAM_SALARY - housing.pay;
+    const salary = DG.adamSalary ? DG.adamSalary(G) : DG.ADAM_SALARY;
+    G.money += salary - housing.pay;
+    // an evening at home for the day's event (Sankthans, Christmas Eve...)
+    const evHome = G.event && G.event.home ? G.event : null;
+    if (evHome) G.home.happy = clamp(G.home.happy + evHome.home.joy, 0, 100);
     // SKAT on the shop's profit; mortgage interest is deductible (rentefradrag)
     const t = G.today || { income: 0, spent: 0 };
     const profit = t.income - t.spent - rent - wages - housing.interest;
@@ -494,10 +503,10 @@
     if (G.money < DG.HELP_FLOOR / 4) { help = DG.HELP_FLOOR - Math.round(G.money); G.money = DG.HELP_FLOOR; G.stats.helped = (G.stats.helped || 0) + 1; }
     const t2 = G.today || { income: 0, spent: 0, private: 0 };
     G.ledger.push({ day: G.day, income: t2.income, spent: t2.spent, private: t2.private || 0, rack: rackIncome, pots: pottery.income,
-      rent, wages, salary: DG.ADAM_SALARY, housing: housing.pay, interest: housing.interest, tax, help, money: Math.round(G.money) });
+      rent, wages, salary, housing: housing.pay, interest: housing.interest, tax, help, money: Math.round(G.money) });
     if (G.ledger.length > 60) G.ledger.shift();
     DG.updateGoals(G);
-    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary: DG.ADAM_SALARY, missed, help, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary, evHome, missed, help, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
