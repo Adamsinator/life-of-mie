@@ -39,20 +39,49 @@
   const head = (title, hint) => `<h2>${title}</h2><p class="muted">${hint}</p>`;
 
   // ---------------- cutting: trace the dashed pattern line ----------------
-  function samplePiece() {
+  // Real pattern pieces, in a 300×210 board: a skirt panel shaped by the silhouette, a bodice front or a
+  // sleeve. Each is a list of segments: [x, y] straight, or [cx, cy, x, y] a curve to (x, y).
+  const PIECES = {
+    aline: [[110, 28], [190, 28], [252, 176], [150, 194, 48, 176], [110, 28]],
+    empire: [[118, 26], [182, 26], [262, 178], [150, 198, 38, 178], [118, 26]],
+    wrap: [[96, 26], [176, 26], [256, 168], [160, 196, 40, 182], [70, 120, 96, 26]],
+    shirt: [[104, 24], [196, 24], [214, 180], [150, 188, 86, 180], [104, 24]],
+    pinafore: [[106, 26], [194, 26], [236, 180], [150, 192, 64, 180], [106, 26]],
+    sheath: [[112, 24], [188, 24], [208, 70, 200, 110], [194, 184], [150, 190, 106, 184], [100, 110], [92, 70, 112, 24]],
+    mermaid: [[116, 22], [184, 22], [204, 70, 190, 120], [252, 184], [150, 200, 48, 184], [110, 120], [96, 70, 116, 22]],
+    ballgown: [[126, 22], [174, 22], [272, 150], [282, 184], [150, 210, 18, 184], [28, 150], [126, 22]],
+    bodice: [[100, 30], [124, 26], [150, 52, 176, 26], [200, 30], [220, 70], [206, 110], [212, 178], [150, 186, 88, 178], [94, 110], [80, 70], [100, 30]],
+    sleeve: [[70, 120], [110, 40, 150, 34], [190, 40, 230, 120], [216, 180], [150, 190, 84, 180], [70, 120]],
+  };
+  function samplePiece(design) {
+    const sil = design && design.silhouette;
+    // most cuts are the skirt panel; now and then the bodice, or a sleeve if the dress has them
+    const r = Math.random();
+    const key = r < 0.6 || !design ? sil : r < 0.85 || !design.sleeves || design.sleeves === 'none' ? 'bodice' : 'sleeve';
+    const segs = PIECES[key] || PIECES.aline;
     const pts = [];
-    const seg = (a, b) => { const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 6); for (let i = 0; i < n; i++) pts.push([a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]); };
-    const A = [110, 30], B = [190, 30], C = [240, 172], D = [60, 172];
-    seg(A, B); seg(B, C);
-    for (let i = 0; i < 30; i++) { const t = i / 30; pts.push([(1 - t) * (1 - t) * C[0] + 2 * (1 - t) * t * 150 + t * t * D[0], (1 - t) * (1 - t) * C[1] + 2 * (1 - t) * t * 196 + t * t * D[1]]); }
-    seg(D, A); pts.push(A.slice());
-    return pts;
+    let [x, y] = segs[0];
+    const push = (nx, ny) => { const n = Math.max(1, Math.ceil(Math.hypot(nx - x, ny - y) / 6)); for (let i = 0; i < n; i++) pts.push([x + (nx - x) * i / n, y + (ny - y) * i / n]); x = nx; y = ny; };
+    for (const sg of segs.slice(1)) {
+      if (sg.length === 2) push(sg[0], sg[1]);
+      else {
+        const [cx, cy, ex, ey] = sg, x0 = x, y0 = y, n = 24;
+        for (let i = 1; i <= n; i++) { const t = i / n; const nx = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * ex, ny = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * ey; pts.push([x, y]); x = nx; y = ny; }
+      }
+    }
+    pts.push([x, y]);
+    // dense curves: thin out to roughly even 6-unit steps so tracing feels the same everywhere
+    const even = [pts[0]];
+    for (const q of pts) { const l = even[even.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) >= 5.5) even.push(q); }
+    even.push(pts[pts.length - 1]);
+    return { pts: even, key };
   }
   DG.MiniGames = {};
   DG.MiniGames.cut = function (host, opts, done) {
-    const P = samplePiece();
+    const piece = samplePiece(opts.design), P = piece.pts;
     const color = opts.color || '#e8d7be';
-    host.innerHTML = `${head('Cut the pattern ✂️', 'Trace the dashed line with your finger, all the way round. Start at the gold dot.')}
+    const what = { bodice: 'the bodice', sleeve: 'a sleeve' }[piece.key] || 'the skirt panel';
+    host.innerHTML = `${head(`Cut ${what} ✂️`, 'Trace the dashed line with your finger, all the way round. Start at the gold dot.')}
       <div class="mg-board"><svg class="mg-svg" viewBox="0 0 300 210">
         <rect x="6" y="6" width="288" height="198" rx="8" fill="${color}"/><rect x="6" y="6" width="288" height="198" rx="8" fill="url(#mgweave)" opacity=".25"/>
         <defs><pattern id="mgweave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 3H6M3 0V6" stroke="#000" stroke-width=".5"/></pattern></defs>

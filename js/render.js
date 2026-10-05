@@ -152,7 +152,7 @@
     const out = [];
     // dress form + stand
     out.push(`<ellipse cx="100" cy="310" rx="34" ry="6" fill="var(--form-dark, #8c7357)"/><rect x="97.5" y="150" width="5" height="160" fill="var(--form-dark, #8c7357)"/>`);
-    out.push(`<path d="M91 40 h18 v14 C126 56 133 60 133 66 L129 120 C126 138 131 150 133 160 L67 160 C69 150 74 138 71 120 L67 66 C67 60 74 56 91 54 Z" fill="#e8d7be" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="40" rx="11" ry="5" fill="#d9c3a3" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="36" rx="5" ry="3" fill="#8c7357"/>`);
+    out.push(`<path d="M91 40 h18 v14 C118 55 124 58 126 63 L123 84 C121 96 120 108 120 ${W} C120 ${W + 15} 123 148 124 160 L76 160 C77 148 80 ${W + 15} 80 ${W} C80 108 79 96 77 84 L74 63 C76 58 82 55 91 54 Z" fill="#e8d7be" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="40" rx="11" ry="5" fill="#d9c3a3" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="36" rx="5" ry="3" fill="#8c7357"/>`);
 
     const op = fm && fm.tex === 'sheer' ? ' opacity=".9"' : '';
     if (isPina) {
@@ -170,6 +170,13 @@
 
     // shading overlays
     out.push(`<g clip-path="url(#${P}c)"><rect x="0" y="40" width="200" height="270" fill="url(#${P}sh)"/>`);
+    // soft folds give the skirt volume, more of them the fuller it is
+    const folds = { aline: 4, wrap: 3, empire: 5, ballgown: 7, pinafore: 3, shirt: 2, mermaid: 0, sheath: 0 }[sil] || 0;
+    for (let i = 1; i <= folds; i++) {
+      const f = i / (folds + 1) * 2 - 1, x0 = 100 + f * 18, x1 = 100 + f * (hw - 4);
+      out.push(`<path d="M${x0.toFixed(1)} ${W + 4} Q${((x0 + x1) / 2 + f * 3).toFixed(1)} ${(W + span * 0.55).toFixed(1)} ${x1.toFixed(1)} ${(hemY(x1) - 1).toFixed(1)}" stroke="${darken(mainHex, 0.3)}" stroke-width="${(1.6 - Math.abs(f) * 0.6).toFixed(2)}" fill="none" opacity=".22" stroke-linecap="round"/>`);
+      out.push(`<path d="M${(x0 + 2).toFixed(1)} ${W + 6} Q${((x0 + x1) / 2 + f * 3 + 2).toFixed(1)} ${(W + span * 0.55).toFixed(1)} ${(x1 + 2.5).toFixed(1)} ${(hemY(x1) - 2).toFixed(1)}" stroke="#fff" stroke-width=".9" fill="none" opacity=".18" stroke-linecap="round"/>`);
+    }
     if (fm && fm.tex === 'sheen') out.push(`<rect x="0" y="40" width="200" height="270" fill="url(#${P}hl)"/>`);
     if (fm && fm.tex === 'velvet') out.push(`<rect x="0" y="40" width="200" height="270" fill="url(#${P}vv)"/>`);
     out.push('</g>');
@@ -181,9 +188,20 @@
 
     if (sil === 'wrap') {
       out.push(`<path d="M88 58 L121 ${W} Q${112} ${W + span * 0.55} ${hemR - 12} ${hemY(hemR - 12)}" fill="none" stroke="${line}" stroke-width="1"/>`);
-      out.push(`<path d="M121 ${W} q8 6 6 22 M121 ${W} q3 8 -2 20" stroke="${mainFill}" stroke-width="3" fill="none" stroke-linecap="round"/>`);
+      // the tie: a bow at the waist with two hanging ends
+      out.push(`<path d="M121 ${W} q8 6 6 24 M121 ${W} q2 9 -3 22" stroke="${line}" stroke-width="4.2" fill="none" stroke-linecap="round"/><path d="M121 ${W} q8 6 6 24 M121 ${W} q2 9 -3 22" stroke="${mainFill}" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M121 ${W} q-8 -8 -12 -1 q5 6 12 1 q9 -6 11 2 q-5 5 -11 -2" fill="${mainFill}" stroke="${line}" stroke-width=".7"/>`);
     }
-    if (sil === 'shirt') out.push(`<path d="M100 ${neckBottom} V${H - 2}" stroke="${line}" stroke-width=".8" fill="none"/><path d="M103 ${neckBottom} V${H - 2}" stroke="${line}" stroke-width=".5" opacity=".6" fill="none"/>`);
+    if (sil === 'shirt') {
+      // button placket, a pointed collar and a belt
+      out.push(`<path d="M97 ${neckBottom} V${H - 2} M103 ${neckBottom} V${H - 2}" stroke="${line}" stroke-width=".7" fill="none"/>`);
+      if (!strapless && neck !== 'collar') out.push(`<path d="M89 57 L99 72 L86 71 Z M111 57 L101 72 L114 71 Z" fill="${mainFill}" stroke="${line}" stroke-width=".8"/>`);
+      if (!d.closure || !byId(DG.CLOSURES, d.closure).hex) for (let y = neckBottom + 6; y <= H - 10; y += 13) out.push(`<circle cx="100" cy="${y}" r="1.8" fill="#f6efe2" stroke="${line}" stroke-width=".4"/>`);
+      out.push(`<rect x="78" y="${W - 4}" width="44" height="8" fill="${ribbonHex}" stroke="${darken(ribbonHex, 0.3)}" stroke-width=".5"/><rect x="95" y="${W - 5}" width="10" height="10" rx="1.5" fill="none" stroke="#c9a54a" stroke-width="1.6"/>`);
+    }
+    if (sil === 'empire') {
+      // ribbon under the bust with a small bow
+      out.push(`<path d="M76 ${W - 3} Q100 ${W + 1} 124 ${W - 3} L124 ${W + 3} Q100 ${W + 7} 76 ${W + 3} Z" fill="${ribbonHex}" stroke="${darken(ribbonHex, 0.3)}" stroke-width=".4"/><path d="M100 ${W + 2} q-9 -7 -10 1 q1 7 10 -1 q9 -7 10 1 q-1 7 -10 -1 M99 ${W + 3} l-4 12 M101 ${W + 3} l4 12" fill="${ribbonHex}" stroke="${darken(ribbonHex, 0.35)}" stroke-width=".5"/>`);
+    }
 
     if (has('ruffles')) {
       const top = x => hemY(x) - 11;
@@ -351,6 +369,40 @@
     return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-0.8" y="0" width="1.6" height="34" fill="#8c7357"/><ellipse cx="0" cy="34" rx="6" ry="1.6" fill="#8c7357"/><path d="M-5 2 L5 2 L4 10 L9 26 Q0 28 -9 26 L-4 10Z" fill="${hex}" stroke="${darken(hex, 0.35)}" stroke-width=".6"/></g>`;
   }
 
+  // ---------------- whole people ----------------
+  // A standing (or seated) person for the scenes: the portrait head and shoulders on top of a body with
+  // arms, a dress or trousers, legs and shoes. size = width in scene units; returns a nested <svg>.
+  //   opts: { seated, child, trousers, legs: tights colour, shoes }
+  DG.renderFigure = function (look, mood, x, y, size, opts = {}) {
+    const top = look.top || '#d6577b', td = darken(top, 0.22), skin = look.skin;
+    const trousers = opts.trousers || look.shirt || look.trousers;
+    const legsCol = opts.legs || skin, shoe = opts.shoes || '#3b2a2f';
+    const hgt = opts.child ? 196 : opts.seated ? 222 : 262;
+    const b = [];
+    const arm = (sx, hx, hy) => `<path d="M${sx} 92 Q${(sx + hx) / 2} ${(92 + hy) / 2} ${hx} ${hy}" stroke="${top}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M${sx} 92 Q${(sx + hx) / 2} ${(92 + hy) / 2} ${hx} ${hy}" stroke="${td}" stroke-width="1" fill="none" opacity=".35"/><circle cx="${hx}" cy="${hy + 5}" r="5.5" fill="${skin}"/>`;
+    if (opts.child) {
+      b.push(`<rect x="38" y="160" width="9" height="28" rx="4" fill="${legsCol}"/><rect x="53" y="160" width="9" height="28" rx="4" fill="${legsCol}"/>`);
+      b.push(`<ellipse cx="41" cy="190" rx="8" ry="4.5" fill="#d6577b"/><ellipse cx="59" cy="190" rx="8" ry="4.5" fill="#d6577b"/>`);
+      b.push(`<path d="M24 96 Q28 118 34 128 L22 166 Q50 174 78 166 L66 128 Q72 118 76 96 Z" fill="${top}" stroke="${td}" stroke-width="1"/>`);
+      b.push(arm(24, 16, 140) + arm(76, 84, 140));
+    } else if (opts.seated) {
+      b.push(`<rect x="34" y="170" width="11" height="42" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/><rect x="55" y="170" width="11" height="42" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/>`);
+      b.push(`<ellipse cx="39" cy="215" rx="10" ry="5" fill="${shoe}"/><ellipse cx="61" cy="215" rx="10" ry="5" fill="${shoe}"/>`);
+      b.push(`<path d="M20 96 Q22 120 30 138 L70 138 Q78 120 80 96 Z" fill="${top}"/>`);
+      b.push(trousers ? `<path d="M28 136 L72 136 L74 176 Q50 180 26 176 Z" fill="#3d4a5c"/>` : `<path d="M28 134 L72 134 L76 176 Q50 182 24 176 Z" fill="${top}" stroke="${td}" stroke-width="1"/>`);
+      b.push(arm(22, 30, 150) + arm(78, 70, 150));
+    } else {
+      b.push(`<rect x="35" y="190" width="11" height="60" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/><rect x="54" y="190" width="11" height="60" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/>`);
+      b.push(`<ellipse cx="40" cy="252" rx="10" ry="5" fill="${shoe}"/><ellipse cx="60" cy="252" rx="10" ry="5" fill="${shoe}"/>`);
+      if (trousers) b.push(`<path d="M30 140 L70 140 L68 246 L52 246 L50 170 L48 246 L32 246 Z" fill="#3d4a5c"/><path d="M20 96 Q22 124 30 146 L70 146 Q78 124 80 96 Z" fill="${top}"/><rect x="30" y="140" width="40" height="5" fill="#2b2b30"/>`);
+      else b.push(`<path d="M20 96 Q22 120 31 140 L69 140 Q78 120 80 96 Z" fill="${top}"/><path d="M31 138 L69 138 Q80 172 84 204 Q50 212 16 204 Q20 172 31 138 Z" fill="${top}" stroke="${td}" stroke-width="1"/><path d="M40 146 Q36 176 32 204 M60 146 Q64 176 68 204" stroke="${td}" stroke-width="1" opacity=".4" fill="none"/>`);
+      b.push(arm(21, 15, 166) + arm(79, 85, 166));
+    }
+    const head = DG.renderAvatar(Object.assign({}, look, { bg: 'transparent' }), mood, 100).replace(/^<svg[^>]*>/, '<svg x="0" y="0" width="100" height="100" viewBox="0 0 100 100" overflow="visible">');
+    const h = size * hgt / 100;
+    return `<svg class="figure" x="${x}" y="${y}" width="${size}" height="${h.toFixed(1)}" viewBox="0 0 100 ${hgt}" overflow="visible">${b.join('')}${head}</svg>`;
+  };
+
   const inScene = look => Object.assign({}, look, { bg: 'transparent' });
 
   DG.renderShop = function (G) {
@@ -425,10 +477,10 @@
     out.push('<rect x="338" y="118" width="62" height="36" rx="2" fill="#7a5236"/><rect x="338" y="114" width="62" height="6" rx="2" fill="#9a6b47"/><rect x="384" y="102" width="14" height="12" rx="2" fill="#2f1d2b"/><rect x="386" y="104" width="10" height="4" fill="#9db69a"/>');
     if (owned('espresso')) out.push('<rect x="342" y="100" width="14" height="14" rx="2" fill="#b9bcc2"/><rect x="345" y="96" width="8" height="5" rx="1" fill="#2f1d2b"/><rect x="346" y="108" width="5" height="5" fill="#fff"/><path d="M349 106 q2 -3 0 -6" stroke="#ccc" stroke-width=".8" fill="none"/>');
     // staff
-    const staffSlots = { apprentice: [186, 146], assistant: [292, 150] };
-    DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderAvatar(inScene(st.look), 'happy', 40).replace('<svg', `<svg x="${staffSlots[st.id][0]}" y="${staffSlots[st.id][1]}"`)); });
+    const staffSlots = { apprentice: [190, 116], assistant: [296, 120] };
+    DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 30, { trousers: st.id === 'apprentice' })); });
     // waiting customers
-    G.queue.slice(0, 5).forEach((c, i) => out.push(DG.renderAvatar(inScene(c.look), 'neutral', 40).replace('<svg', `<svg x="${18 + i * 30}" y="${148 + (i % 2) * 8}"`)));
+    G.queue.slice(0, 5).forEach((c, i) => out.push(DG.renderFigure(c.look, 'neutral', 16 + i * 30, 118 + (i % 2) * 8, 30, { legs: c.look.tights, shoes: c.look.shoes })));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 0 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
     out.push('<rect class="dusk" width="400" height="210" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
@@ -644,10 +696,9 @@
     out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
-    out.push(DG.renderAvatar(DG.FAMILY.adam.look, 'happy', 46).replace('<svg', '<svg x="244" y="82"'));
-    out.push(DG.renderAvatar(Object.assign({}, DG.mieLook(G), { bg: 'transparent', measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 46).replace('<svg', '<svg x="194" y="82"'));
+    out.push(DG.renderFigure(DG.FAMILY.adam.look, 'happy', 244, 82, 46, { seated: true }));
+    out.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 194, 82, 46, { seated: true, legs: '#3b3040' }));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
-    out.push(DG.renderAvatar(DG.FAMILY.elizabeth.look, eMood, 34).replace('<svg', `<svg x="${has('tricycle') ? 132 : 150}" y="150"`));
     // toys
     if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
     if (has('train')) out.push('<g transform="translate(236 184)"><rect x="0" y="-8" width="14" height="8" fill="#c44d6c"/><rect x="2" y="-14" width="6" height="6" fill="#c44d6c"/><rect x="16" y="-7" width="11" height="7" fill="#1d6b6b"/><rect x="29" y="-7" width="11" height="7" fill="#e9c35a"/>' + [3, 11, 19, 25, 32, 38].map(x => `<circle cx="${x}" cy="1" r="2" fill="#333"/>`).join('') + '</g>');
@@ -665,6 +716,8 @@
     const dmood = opts.dexter || (G.home.catFood <= 0 ? 'hungry' : has('catbed') ? 'sleep' : 'sit');
     const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && dmood === 'sit' ? [82, 98] : [70, 184];
     out.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
+    // Elizabeth last, so she is in front of the furniture
+    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, has('tricycle') ? 112 : 150, 130, 30, { child: true }));
     return `<svg class="shop-scene home-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 

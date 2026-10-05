@@ -49,9 +49,14 @@
     const t = document.createElement('div');
     t.className = 'toast';
     t.textContent = msg;
-    const bar = document.querySelector('.topbar');   // sit just below the top bar so money stays visible
-    if (bar) t.style.top = `${Math.max(10, bar.getBoundingClientRect().bottom + 8)}px`;
     document.body.appendChild(t);
+    // placed once the screen has updated: below the top bar, or at the bottom while a window is open
+    // so it never covers that window's title
+    requestAnimationFrame(() => {
+      const bar = document.querySelector('.topbar');
+      if (document.body.classList.contains('modal-open')) t.classList.add('bottom');
+      else if (bar) t.style.top = `${Math.max(10, bar.getBoundingClientRect().bottom + 8)}px`;
+    });
     setTimeout(() => t.classList.add('out'), 2200);
     setTimeout(() => t.remove(), 2700);
   }
@@ -1086,7 +1091,7 @@
     if (!host || !o) return;
     if (o.type === 'sew') {
       const ph = UI.sew.phase;
-      UI.mgCleanup = DG.MiniGames[ph](host, { color: DG.colorHex(G.design.mainColor) }, r => sewPhaseDone(ph, r));
+      UI.mgCleanup = DG.MiniGames[ph](host, { color: DG.colorHex(G.design.mainColor), design: G.design }, r => sewPhaseDone(ph, r));
     } else if (o.type === 'wedge') {
       UI.mgCleanup = DG.MiniGames.wedge(host, { color: byId(DG.CLAYS, G.pot.clay).hex }, r => { UI.potRun.wedge = r; startWheel(); });
     } else if (o.type === 'paint') {

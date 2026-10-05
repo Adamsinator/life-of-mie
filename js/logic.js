@@ -302,6 +302,8 @@
       bg: pick(['#f5dfe4', '#e2ecdf', '#dfe8f3', '#f3ead6', '#ebe2f3', '#f6e3d6']),
       glasses: Math.random() < 0.25,
       earrings: Math.random() < 0.5,
+      tights: Math.random() < 0.35 ? pick(['#2b2b33', '#5a4a52', '#c9a08a']) : null,
+      shoes: pick(['#3b2a2f', '#7a4a2e', '#c44d6c', '#2f3b55', '#e8e0d6']),
     };
   };
 

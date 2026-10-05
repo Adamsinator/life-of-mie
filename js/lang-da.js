@@ -304,7 +304,7 @@
     'Sewing a dress for the rack': 'Syr en kjole til stativet', 'Cut': 'Klip', 'Stitch': 'Sy', 'Iron': 'Stryg', 'Knead': 'Ælt', 'Wheel': 'Drejeskive', 'Paint': 'Mal',
     'Tap': 'Tryk på', 'when the needle is over the green. The gold centre is a perfect stitch.': 'når nålen er over det grønne. Den gyldne midte er et perfekt sting.',
     'Five stitches. Steady hands!': 'Fem sting. Rolige hænder!', 'Stitch!': 'Sy!', 'Perfect!': 'Perfekt!', 'Nice stitch': 'Pænt sting', 'A bit wobbly': 'Lidt vaklende', 'Oops!': 'Ups!',
-    'Cut the pattern': 'Klip mønsteret ud', 'Trace the dashed line with your finger, all the way round. Start at the gold dot.': 'Følg den stiplede linje med fingeren hele vejen rundt. Start ved den gyldne prik.',
+    'Cut the pattern': 'Klip mønsteret ud', 'Cut the skirt panel': 'Klip skørtedelen ud', 'Cut the bodice': 'Klip overdelen ud', 'Cut a sleeve': 'Klip et ærme ud', 'Trace the dashed line with your finger, all the way round. Start at the gold dot.': 'Følg den stiplede linje med fingeren hele vejen rundt. Start ved den gyldne prik.',
     'Ready, steady, snip!': 'Klar, parat, klip!', 'Clean cut!': 'Rent snit!', 'Not bad at all.': 'Slet ikke dårligt.', 'A bit jagged...': 'Lidt takket...',
     'Iron the dress': 'Stryg kjolen', 'Hold and swipe the iron over every wrinkle before time runs out.': 'Hold og stryg strygejernet hen over hver fold, før tiden løber ud.',
     '{0} wrinkles to go': '{0} folder tilbage', 'All smooth!': 'Helt glat!', 'Crisp as a fresh baguette!': 'Sprød som en frisk baguette!', 'Nicely pressed.': 'Pænt presset.', 'Still a little crumpled...': 'Stadig lidt krøllet...',

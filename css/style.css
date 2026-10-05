@@ -582,3 +582,4 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 }
 .abar { grid-template-columns: 128px 1fr; }
 .undo-buy { float: right; margin-left: 10px; }
+.toast.bottom { top: auto !important; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); }
