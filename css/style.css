@@ -548,3 +548,20 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
   .hud-item.rep .repbar { width: 70px; }
   .navbtn { min-width: 0; padding-left: 8px; padding-right: 8px; }
 }
+
+/* ---------- cozy (v1.8) ---------- */
+.stars5 { position: relative; display: inline-block; color: rgba(227, 181, 59, .35); letter-spacing: 1px; line-height: 1; white-space: nowrap; }
+.stars5 i { position: absolute; inset: 0 auto 0 0; overflow: hidden; color: var(--gold); font-style: normal; white-space: nowrap; }
+.hud .stars5 { font-size: 1.05rem; }
+.mood-word { font-family: var(--f-display); font-size: 1.6rem; font-weight: 600; }
+.paid { margin: 10px 0 2px; font-weight: 700; }
+.link-btn { display: block; margin: 12px auto 4px; padding: 8px 14px; border: 0; background: none; color: var(--teal); font-weight: 800; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.diary { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 10px; }
+.diary li { display: flex; gap: 12px; align-items: flex-start; font-size: 1.05rem; }
+.diary .ic { font-size: 1.4rem; line-height: 1.2; }
+.purse-line { text-align: center; font-weight: 800; margin: 14px 0 0; }
+.result .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.result .actions .btn { flex: 1 1 200px; }
+.table-scroll { max-height: 360px; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.ledger-days th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 4px 6px; position: sticky; top: 0; background: var(--panel); }
+.ledger-days th.num { text-align: right; }

@@ -40,7 +40,8 @@
     if (out == null) {
       for (const [re, rep] of I.patterns) {
         const mm = re.exec(core);
-        if (mm) { out = rep.replace(/\$(\d)/g, (_, i) => tr(mm[+i] || '')); break; }
+        // $1 is translated as well, %1 (names) is kept as it is
+        if (mm) { out = rep.replace(/([$%])(\d)/g, (_, k, i) => (k === '$' ? tr(mm[+i] || '') : mm[+i] || '')); break; }
       }
     }
     // "🎯 Title ✓": translate the text between leading and trailing symbols

@@ -329,7 +329,7 @@
       desc: 'Cuts patterns so carefully that every dress uses 10% less fabric, and steadies the fabric so the stitch zone is wider.' },
     { id: 'assistant', name: 'Lise, shop assistant', icon: '💁‍♀️', fee: 4000, wage: 900,
       look: { skin: '#a06a44', hair: '#1c1c1c', style: 3, top: '#d6577b', bg: '#f5dfe4', glasses: true, earrings: true },
-      desc: 'Room for one more customer each day. Customers you could not help leave with a voucher, so no reputation is lost.' },
+      desc: 'Room for one more customer each day, and she makes tea for anyone who has to come back tomorrow, so they return in a sunny mood (+3 satisfaction).' },
   ];
 
   // Marketing: paid today, takes effect tomorrow.

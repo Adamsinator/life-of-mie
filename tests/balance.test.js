@@ -113,7 +113,7 @@ console.log('all checks passed');
   const res = DG.endDay(G2);
   assert.strictEqual(res.wages, 1500);
   assert.strictEqual(G2.rep, repBefore, 'assistant keeps reputation');
-  assert.strictEqual(G2.money, moneyBefore + res.rackIncome - res.rent - res.wages + res.salary - res.housing.pay - res.tax + (res.mom ? 3000 : 0));
+  assert.strictEqual(G2.money, moneyBefore + res.rackIncome - res.rent - res.wages + res.salary - res.housing.pay - res.tax + res.help);
 
   // a rack dress should earn less than serving a real customer of similar spend
   const it = DG.rackItem(d, G2, 0.8);
@@ -293,4 +293,35 @@ console.log('all checks passed');
   assert.strictEqual(look.acc, 'clip'); assert.strictEqual(look.measure, false); assert.strictEqual(look.hair, '#3b2418');
   const old = DG.newGame(); delete old.wardrobe; DG.ensureDefaults(old); assert.strictEqual(old.wardrobe.wear.glasses, 'rdark');
   console.log('v1.6 checks passed');
+}
+
+// ---- v1.8: cozy rules ----
+{
+  // no game over: the family tops the money up instead
+  const G = DG.newGame(); DG.startDay(G);
+  G.money = -50000;
+  const res = DG.endDay(G);
+  assert.strictEqual(G.gameOver, false);
+  assert.strictEqual(G.money, DG.HELP_FLOOR);
+  assert(res.help > 0 && G.stats.helped === 1);
+  // nobody is turned away: waiting customers come back the next morning, no reputation lost
+  const H = DG.newGame(); H.rep = 50; DG.startDay(H);
+  while (H.queue.length < 2) H.queue.push(DG.genCustomer(H));
+  const names = H.queue.slice(0, 3).map(c => c.name), rep0 = H.rep;
+  DG.endDay(H);
+  assert.strictEqual(H.rep, rep0);
+  DG.startDay(H);
+  assert.deepStrictEqual(H.queue.slice(0, names.length).map(c => c.name), names.slice(0, H.queue.length));
+  assert(H.queue[0].back);
+  // a weak dress costs at most a little reputation
+  const cust = DG.genCustomer(H);
+  const bad = DG.evaluate(cust, DG.newDesign(H), H, 0);
+  assert(bad.repDelta >= -0.6, `repDelta ${bad.repDelta}`);
+  // every day is written in the ledger
+  assert.strictEqual(H.ledger.length, 1); assert.strictEqual(H.ledger[0].day, 1);
+  // an old save that had ended is opened again, with money to carry on
+  const O = DG.newGame(); O.gameOver = true; O.money = -300; delete O.ledger;
+  DG.ensureDefaults(O);
+  assert.strictEqual(O.gameOver, false); assert.strictEqual(O.money, DG.HELP_FLOOR); assert.deepStrictEqual(O.ledger, []);
+  console.log('v1.8 cozy checks passed');
 }

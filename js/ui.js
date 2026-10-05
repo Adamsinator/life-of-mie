@@ -92,6 +92,13 @@
 
   const eligibleTitles = () => DG.ARCHETYPES.filter(a => a.minRep <= G.rep).map(a => a.title);
 
+  // ---------------- cozy helpers: words and stars instead of numbers ----------------
+  const yearOf = () => Math.floor(Math.max(0, G.day - 1) / (DG.SEASON_LENGTH * 4)) + 1;
+  const dayOfSeason = () => (Math.max(0, G.day - 1) % DG.SEASON_LENGTH) + 1;
+  // n of 5 stars (halves show as a partly filled star)
+  const starsHtml = n => `<span class="stars5" aria-label="${Math.round(n * 2) / 2} of 5 stars"><i style="width:${clamp(Math.round(n * 2) / 2, 0, 5) * 20}%">★★★★★</i>☆☆☆☆☆</span>`;
+  const moodWord = S => S >= 90 ? 'Over the moon' : S >= 75 ? 'Delighted' : S >= 60 ? 'Happy' : S >= 40 ? 'Pleased enough' : 'A polite smile';
+
   // ---------------- top bar ----------------
   function topbar() {
     const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
@@ -100,10 +107,9 @@
     return `<header class="topbar">
       <div class="brand" translate="no">${DG.logoSVG(34)}${brandHtml()}</div>
       <div class="hud">
-        <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
-        <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} <span class="sname">${se.name}</span></b></div>
-        <div class="hud-item"><span class="lbl">Bank</span><b class="${G.money < 100 ? 'low' : ''}">${kr(G.money)}</b></div>
-        <div class="hud-item rep"><span class="lbl">Reputation</span><b>${Math.round(G.rep)}</b><span class="repbar"><i style="width:${clamp(G.rep, 0, 100)}%"></i></span></div>
+        <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Year ${yearOf()}</span><b>${se.icon} <span class="sname">${se.name}</span> ${dayOfSeason()}</b></div>
+        <div class="hud-item"><span class="lbl">Purse</span><b>${kr(G.money)}</b></div>
+        <div class="hud-item rep" title="Reputation ${Math.round(G.rep)} of 100"><span class="lbl">Reputation</span><b>${starsHtml(1 + G.rep / 25)}</b></div>
       </div>
       <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${(id === 'workshop' && G.active) || (id === 'goals' && claimable) ? '<i class="dot"></i>' : ''}</button>`).join('')}
         <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">☰</span><span>Menu</span></button></nav>
@@ -146,13 +152,12 @@
         ${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
-          <div><dt>Avg. satisfaction</dt><dd>${G.stats.served ? Math.round(G.stats.totalS / G.stats.served) + '%' : '–'}</dd></div>
-          <div><dt>Rent${DG.wages(G) ? ' + wages' : ''} tonight</dt><dd>${kr(DG.dailyCosts(G))}</dd></div>
+          <div><dt>Happy customers</dt><dd>${G.stats.served ? starsHtml(G.stats.totalS / G.stats.served / 20) : '–'}</dd></div>
           <div><dt>Shop charm</dt><dd>✨ ${DG.charm(G)}</dd></div>
           <div><dt>Regulars</dt><dd>${G.known.length}</dd></div>
           <div><dt>Mie's mood</dt><dd>${G.home.happy >= 75 ? '😊' : G.home.happy < 30 ? '😔' : '🙂'} ${Math.round(G.home.happy)}</dd></div>
         </dl>
-        <button class="btn ghost wide" data-act="endday">${UI.confirm === 'endday' ? `Tap again: ${G.queue.length} will leave (−rep)` : 'Close shop for today 🌙'}</button>
+        <button class="btn ghost wide" data-act="endday">${UI.confirm === 'endday' ? `Tap again: ${G.queue.length === 1 ? 'she pops' : 'they pop'} back tomorrow` : 'Close shop for today 🌙'}</button>
       </section>
       <section class="panel">
         ${G.active ? `<h2>Current order</h2>${custCard(G.active, 'active')}<button class="btn primary wide" data-act="view" data-arg="workshop">Go to the workshop ✂️</button>` : ''}
@@ -442,7 +447,7 @@
       ${briefHtml(c, isActive ? G.design : null)}
       <div class="actions">
         ${isActive ? '<button class="btn primary" data-act="closeov">Back to work</button>'
-          : `<button class="btn ghost" data-act="decline" data-arg="${arg}">Decline (−1 rep)</button>
+          : `<button class="btn ghost" data-act="decline" data-arg="${arg}">Kindly decline</button>
              <button class="btn" data-act="closeov">Not yet</button>
              <button class="btn primary" data-act="accept" data-arg="${arg}" ${G.active ? 'disabled' : ''}>Accept order</button>`}
       </div>
@@ -472,17 +477,22 @@
 
   function ovResult(o) {
     const { ev, cust, design } = o;
-    const mood = ['angry', 'angry', 'sad', 'neutral', 'happy', 'ecstatic'][ev.stars];
+    const mood = ['sad', 'sad', 'neutral', 'happy', 'happy', 'ecstatic'][ev.stars];
     const colorWord = id => cust.liked.includes(id) ? 'a favourite' : cust.disliked.includes(id) ? 'disliked' : 'neutral';
     const profit = ev.pay + ev.tip - ev.cost;
+    const after = ev.S >= 85 ? `${esc(cust.name)} is going to tell all her friends about Mie's.` : ev.S >= 60 ? `${esc(cust.name)} will be back.` : `${esc(cust.name)} might pop by again another day.`;
     return `<div class="overlay"><div class="sheet result">
       <div class="res-top">
         <div class="res-dress">${DG.renderDress(design, 'res')}</div>
         <div class="res-say">
           <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble"><span>${esc(o.quote)}</span> <span>${esc(o.line)}</span></div></div>
-          <div class="score"><span class="pct">${ev.S}%</span><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="muted">satisfaction</span></div>
+          <div class="score"><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="mood-word">${moodWord(ev.S)}</span></div>
+          <p class="paid">💰 ${ev.tip ? `Paid ${kr(ev.pay)} and a ${kr(ev.tip)} tip` : `Paid ${kr(ev.pay)}`}</p>
+          <p class="muted small">${after}</p>
         </div>
       </div>
+      <button class="link-btn" data-act="toggle-ui" data-arg="resDetails">${UI.resDetails ? 'Hide the details' : 'How did she judge it?'}</button>
+      ${UI.resDetails ? `
       <div class="res-grid">
         <div>
           <h3>What ${esc(cust.name)} judged</h3>
@@ -503,12 +513,13 @@
             <tr><td>Tip</td><td class="num">${kr(ev.tip)}</td></tr>
             <tr><td>Materials used</td><td class="num">−${kr(ev.cost)}</td></tr>
             <tr class="tot"><td>Profit</td><td class="num ${profit < 0 ? 'bad' : 'good'}">${kr(profit)}</td></tr>
-            <tr><td>Reputation</td><td class="num ${ev.repDelta < 0 ? 'bad' : 'good'}">${ev.repDelta > 0 ? '+' : ''}${ev.repDelta}</td></tr>
+            <tr><td>Satisfaction</td><td class="num">${ev.S}%</td></tr>
+            <tr><td>Reputation</td><td class="num">${ev.repDelta > 0 ? '+' : ''}${ev.repDelta}</td></tr>
           </tbody></table>
-          <p class="muted small">${ev.S >= 55 ? `${esc(cust.name)} will probably come back.` : ev.S >= 40 ? `${esc(cust.name)} is unlikely to come back.` : `${esc(cust.name)} will never set foot in the shop again.`}</p>
         </div>
-      </div>
-      <button class="btn primary big wide" data-act="resultdone">Back to the shop</button>
+      </div>` : ''}
+      <div class="actions">${G.queue.length ? `<button class="btn big" data-act="resultdone">Back to the shop</button><button class="btn primary big" data-act="nextcust">Next customer: <span translate="no">${esc(G.queue[0].name)}</span></button>`
+        : '<button class="btn primary big wide" data-act="resultdone">Back to the shop</button>'}</div>
     </div></div>`;
   }
 
@@ -524,9 +535,25 @@
   }
 
   function ovDayEnd(o) {
-    const t = o.res.today || { income: 0, spent: 0, served: 0, startMoney: G.money };
+    const r = o.res, t = r.today || { income: 0, spent: 0, served: 0, startMoney: G.money };
+    const net = Math.round(G.money - (t.startMoney == null ? G.money : t.startMoney));
+    const lines = [];
+    if (t.served) lines.push(['👗', t.served > 1 ? `${t.served} dresses went home with their new owners.` : 'A dress went home with its new owner.']);
+    if (r.sold && r.sold.length) lines.push(['🧺', `Walk-in shoppers took ${r.sold.length} dress${r.sold.length > 1 ? 'es' : ''} from the rack.`]);
+    if (r.pottery && r.pottery.sold.length) lines.push(['🏺', `${r.pottery.sold.length} pot${r.pottery.sold.length > 1 ? 's' : ''} found a new home.`]);
+    if (r.pottery && r.pottery.fired.length) lines.push(['🔥', `The kiln is warm: ${r.pottery.fired.length} new pot${r.pottery.fired.length > 1 ? 's' : ''} for the shelf tomorrow.`]);
+    if (r.pottery && r.pottery.cracked.length) lines.push(['💔', `${r.pottery.cracked.length} pot${r.pottery.cracked.length > 1 ? 's' : ''} cracked in the kiln. It happens to every potter.`]);
+    if (r.missed) lines.push(['☕', `${r.missed} customer${r.missed > 1 ? 's' : ''} will pop back tomorrow${r.assistant ? ', after a cup of Lise\'s tea' : ''}.`]);
+    if (r.taxSaved) lines.push(['🧮', `Your accountant kept ${kr(r.taxSaved)} away from SKAT.`]);
+    if (r.help) lines.push(['💌', `Mie's mum and dad popped by with an envelope: "For the shop, skat. We're so proud of you."`]);
+    if (!lines.length) lines.push(['🌙', 'A quiet day. The shop smells of fresh linen and tea.']);
     return `<div class="overlay"><div class="sheet dayend">
-      <h2>Day ${G.day} is done 🌙</h2>
+      <h2>Evening, ${DG.season(G).name.toLowerCase()} ${dayOfSeason()} 🌙</h2>
+      <ul class="diary">${lines.map(([ic, txt]) => `<li><span class="ic">${ic}</span><span>${esc(txt)}</span></li>`).join('')}</ul>
+      ${r.home ? `<div class="home-night">${DG.renderAvatar(DG.FAMILY.elizabeth.look, r.home.happy >= 30 ? 'happy' : 'sad', 44)}<p><b>At home:</b> ${esc(r.home.event)}${r.home.hungry ? '<br><b>Dexter is hungry. Buy cat food on the Home screen!</b>' : ''}</p></div>` : ''}
+      <p class="purse-line">👛 ${kr(G.money)} in the purse <span class="${net >= 0 ? 'good' : 'muted'}">(${net >= 0 ? '+' : '−'}${kr(Math.abs(net))} today)</span></p>
+      <button class="link-btn" data-act="toggle-ui" data-arg="showBooks">${UI.showBooks ? 'Close the accounts' : '📒 Today\'s accounts'}</button>
+      ${UI.showBooks ? `
       <table class="rtable money"><tbody>
         <tr><td>Dresses delivered</td><td class="num">${t.served}</td></tr>
         <tr><td>Income</td><td class="num good">${kr(t.income)}</td></tr>
@@ -541,21 +568,10 @@
         ${o.res.housing ? `<tr><td>🏡 ${G.home.house ? 'Mortgage payment (realkreditlån)' : 'Rent for the flat'}</td><td class="num">−${kr(o.res.housing.pay)}</td></tr>` : ''}
         ${o.res.tax ? `<tr><td>SKAT on the shop's profit of ${kr(o.res.profit)}</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
         ${o.res.taxSaved ? `<tr><td>🧮 Saved by your accountant</td><td class="num good">${kr(o.res.taxSaved)}</td></tr>` : ''}
-        ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
+        ${o.res.help ? `<tr><td>💌 From Mie's parents</td><td class="num good">+${kr(o.res.help)}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
-      </tbody></table>
-      ${o.res.home ? `<div class="home-night">${DG.renderAvatar(DG.FAMILY.elizabeth.look, o.res.home.happy >= 30 ? 'happy' : 'sad', 44)}<p><b>At home:</b> ${esc(o.res.home.event)}<br><span class="muted small">Family happiness ${Math.round(o.res.home.happy)} (−${o.res.home.drop}).${o.res.home.hungry ? ' <b class="bad">Dexter is hungry. Buy cat food on the Home screen!</b>' : ''}</span></p></div>` : ''}
-      ${o.res.mom ? '<p class="event">Mie couldn\'t make rent, so her mum sent 300 kr. "Just this once, skat!" Next time the bank will close the shop.</p>' : ''}
-      <button class="btn primary big wide" data-act="nextday">Open the shop: day ${G.day + 1}</button>
-    </div></div>`;
-  }
-
-  function ovGameOver() {
-    return `<div class="overlay"><div class="sheet center">
-      ${DG.renderAvatar(DG.mieLook(G), 'sad', 120)}
-      <h2>The bank has closed the atelier</h2>
-      <p>Mie ran out of money on day ${G.day} after making ${G.stats.served} dresses. Her best one scored ${G.stats.best}%.</p>
-      <button class="btn primary big" data-act="newgame">Start over</button>
+      </tbody></table>` : ''}
+      <button class="btn primary big wide" data-act="nextday">Good night</button>
     </div></div>`;
   }
 
@@ -614,7 +630,6 @@
 
   function overlay() {
     const o = UI.overlay;
-    if (G.gameOver) return ovGameOver();
     if (!o) return '';
     switch (o.type) {
       case 'intro': return ovIntro();
@@ -781,6 +796,35 @@
   }
 
   // ---------------- Mie's home ----------------
+  // All the money details live here, so the rest of the game can stay calm.
+  function ledgerHtml() {
+    const L = G.ledger.slice().reverse();
+    const inn = e => e.income + e.salary + e.help, out = e => e.spent + e.private + e.rent + e.wages + e.housing + e.tax;
+    const week = L.slice(0, 7), sum = f => week.reduce((a, e) => a + f(e), 0);
+    const rows = [['Shop takings', e => e.income], ['Adam\'s salary', e => e.salary], ['Fabric and supplies', e => -e.spent], ['Family and private', e => -e.private],
+      ['Shop rent and upkeep', e => -e.rent], ['Staff wages', e => -e.wages], [G.home.house ? 'Mortgage' : 'Flat rent', e => -e.housing], ['SKAT', e => -e.tax], ['From Mie\'s parents', e => e.help]]
+      .filter(([, f]) => week.some(e => f(e)));
+    return `<section class="panel ledger">
+      <div class="sec-head"><h2>📒 Accounts</h2><span class="muted">Everything that came in and went out, for when you feel like doing the books.</span></div>
+      ${!L.length ? '<p class="muted">The book is still empty. Each evening is written down here.</p>' : `
+      <h3>The last ${week.length === 1 ? 'day' : `${week.length} days`}</h3>
+      <table class="rtable money"><tbody>
+        ${rows.map(([l, f]) => { const v = sum(f); return `<tr><td>${l}</td><td class="num ${v < 0 ? '' : 'good'}">${v < 0 ? '−' : '+'}${kr(Math.abs(v))}</td></tr>`; }).join('')}
+        <tr class="tot"><td>Together</td><td class="num">${sum(e => inn(e) - out(e)) < 0 ? '−' : '+'}${kr(Math.abs(sum(e => inn(e) - out(e))))}</td></tr>
+      </tbody></table>
+      <h3>Day by day</h3>
+      <div class="table-scroll"><table class="rtable money ledger-days"><thead><tr><th>Day</th><th class="num">In</th><th class="num">Out</th><th class="num">Purse</th></tr></thead><tbody>
+        ${L.slice(0, 28).map(e => `<tr><td>${e.day}</td><td class="num good">+${kr(inn(e))}</td><td class="num">−${kr(out(e))}</td><td class="num">${kr(e.money)}</td></tr>`).join('')}
+      </tbody></table></div>`}
+      <h3>Every day</h3>
+      <table class="rtable money"><tbody>
+        <tr><td>Shop rent and upkeep</td><td class="num">${kr(DG.rent(G))}</td></tr>
+        ${DG.wages(G) ? `<tr><td>Staff wages</td><td class="num">${kr(DG.wages(G))}</td></tr>` : ''}
+        <tr><td>Adam's salary</td><td class="num good">+${kr(DG.ADAM_SALARY)}</td></tr>
+      </tbody></table>
+    </section>`;
+  }
+
   function viewHome() {
     const h = G.home, mood = DG.homeMood(G);
     const acts = DG.ACTIVITIES.map(a => {
@@ -795,8 +839,9 @@
       return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">❤️ +${it.joy} now, and a slower daily drop</span></div></div>
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
-    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
+    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
     if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}${wardrobeHtml()}`;
+    if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}${ledgerHtml()}`;
     return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
@@ -910,7 +955,7 @@
       title: 'Grow the shop', text: 'Spend money on equipment, expansions, decor (charm makes customers happier), staff and marketing.' },
     { id: 'rack', when: () => G.day >= 3 && UI.view === 'shop' && !ov() && !G.active, target: '.rack-panel',
       title: 'Ready-to-wear rack', text: 'Leftover fabric? Sew a dress without an order and hang it on the rack. Walk-in shoppers buy in the evening.' },
-    { id: 'season', when: () => G.day > DG.SEASON_LENGTH && UI.view === 'shop' && !ov(), target: '.hud-item:nth-child(2)',
+    { id: 'season', when: () => G.day > DG.SEASON_LENGTH && UI.view === 'shop' && !ov(), target: '.hud-item:nth-child(1)',
       title: 'A new season', text: 'Every 7 days the season changes. It changes who visits and which fabrics are in season (+3) or off-season (−4).' },
     { id: 'goals', when: () => DG.claimableGoals(G).length && !ov(), target: '[data-act=view][data-arg=goals]',
       title: 'Goal complete!', text: 'You reached a goal. Collect the cash reward on the Goals screen.' },
@@ -928,7 +973,7 @@
       title: 'Mie misses her family', text: 'Family happiness is low, so Mie is distracted at work. Spend time at home.' },
   ];
   function currentTip() {
-    if (!S.tips || !G || G.gameOver) return null;
+    if (!S.tips || !G) return null;
     if (ov() && !['req', 'result'].includes(ov())) return null;
     for (const t of TIPS) {
       if (G.tips.includes(t.id)) continue;
@@ -944,6 +989,7 @@
   function helpHtml() {
     const topics = [
       ['🎯 The goal', 'Run Mie\'s dress atelier in Copenhagen. Make customers happy, earn money, raise your reputation and grow the shop, while keeping the family upstairs happy. There is no end: aim for the Goals and a bride\'s dress.'],
+      ['🌿 No rush, no way to lose', 'Take your time: nothing in the shop runs on a clock. Customers you don\'t get to today simply pop back tomorrow, declining an order is fine, and if money ever runs low, Mie\'s mum and dad help out. All the money details are in Home → Accounts.'],
       ['👗 Customers and scoring', 'Each customer has wishes (hearts 1–3) across quality, workwear, creativity, exclusivity, elegance and comfort, plus must-haves, colours and favourite silhouettes. Satisfaction = 65% wishes + 15% colour + 10% silhouette + 10% craft, −15 per missed must-have, plus small bonuses for charm, season and Mie\'s mood. 75%+ pays the full budget; 85%+ adds a tip.'],
       ['🧺 Market and seasons', 'Fabric is sold per metre and prices move every morning. In-season fabric costs 12% more but gives +3 satisfaction; off-season fabric is 15% cheaper but gives −4. Seasons change every 7 days.'],
       ['✂️ Workshop and sewing', 'Pick fabrics, colours, shape, details and extras. The bars show the dress and the black marks the wishes. Sewing is cut → stitch → iron (or only stitch in Quick mode). Better craft means higher quality.'],
@@ -972,8 +1018,9 @@
   function patchNode(a, b) {
     if (a.nodeType !== 1) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
     const aa = a.attributes, ba = b.attributes;
-    for (let i = aa.length - 1; i >= 0; i--) { const n = aa[i].name; if (!b.hasAttribute(n)) a.removeAttribute(n); }
-    for (let i = 0; i < ba.length; i++) { const { name, value } = ba[i]; if (a.getAttribute(name) !== value) a.setAttribute(name, value); }
+    const keepOpen = a.tagName === 'DETAILS';   // a section the player opened stays open
+    for (let i = aa.length - 1; i >= 0; i--) { const n = aa[i].name; if (!b.hasAttribute(n) && !(keepOpen && n === 'open')) a.removeAttribute(n); }
+    for (let i = 0; i < ba.length; i++) { const { name, value } = ba[i]; if (a.getAttribute(name) !== value && !(keepOpen && name === 'open')) a.setAttribute(name, value); }
     morphChildren(a, b);
   }
   function morphChildren(live, next) {
@@ -1000,7 +1047,7 @@
     if (UI.mgCleanup) { UI.mgCleanup(); UI.mgCleanup = null; }
     if (!G) { paint(app, welcomeScreen()); return; }
     const tip = currentTip();
-    const ovType = G.gameOver ? 'gameover' : UI.overlay && UI.overlay.type;
+    const ovType = UI.overlay && UI.overlay.type;
     paint(app, topbar() + `<main class="view view-${UI.view}" data-key="${UI.view}">${VIEWS[UI.view]()}</main>`
       + `<div class="ov-host" data-key="${ovType || ''}">${overlay()}</div>` + (tip ? coachHtml(tip) : ''));
     UI.lastOverlay = ovType;
@@ -1009,7 +1056,7 @@
       const el = app.querySelector(tip.target);
       if (el) el.classList.add('coach-target');
     }
-    document.body.classList.toggle('modal-open', !!(UI.overlay || G.gameOver));
+    document.body.classList.toggle('modal-open', !!UI.overlay);
     if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
     mountMiniGame();
@@ -1200,6 +1247,7 @@
       case 'howto': UI.overlay = { type: 'intro' }; break;
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
+      case 'toggle-ui': UI[arg] = !UI[arg]; break;
       case 'openreq': UI.overlay = { type: 'req', arg }; break;
       case 'accept': {
         if (G.active) return;
@@ -1212,9 +1260,8 @@
       }
       case 'decline': {
         const c = G.queue.splice(+arg, 1)[0];
-        G.rep = clamp(G.rep - 1, 0, 100);
         UI.overlay = null;
-        toast(`${c.name} leaves a little disappointed.`);
+        toast(`${c.name} understands and wishes you a lovely day.`);
         break;
       }
       case 'buyf': case 'buyi': {
@@ -1455,7 +1502,8 @@
         toast(`${m.name} booked for tomorrow.`);
         break;
       }
-      case 'resultdone': UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0); break;
+      case 'resultdone': UI.overlay = null; UI.resDetails = false; UI.view = 'shop'; window.scrollTo(0, 0); break;
+      case 'nextcust': UI.resDetails = false; UI.view = 'shop'; UI.overlay = G.queue.length ? { type: 'req', arg: '0' } : null; break;
       case 'upgrade': {
         const u = byId(DG.UPGRADES, arg);
         const lvl = DG.upgradeLevel(G, arg);
@@ -1472,7 +1520,7 @@
         UI.confirm = null;
         const res = DG.endDay(G);
         if (res.pottery && res.pottery.cracked.length) setTimeout(() => sfx('crack'), 300);
-        UI.overlay = G.gameOver ? null : { type: 'dayend', res };
+        UI.overlay = { type: 'dayend', res }; UI.showBooks = false;
         break;
       }
       case 'nextday': {
@@ -1481,7 +1529,7 @@
         break;
       }
       case 'newgame': {
-        if (!G.gameOver && UI.confirm !== 'newgame') { UI.confirm = 'newgame'; break; }
+        if (UI.confirm !== 'newgame') { UI.confirm = 'newgame'; break; }
         UI.confirm = null;
         G = DG.newGame(); DG.startDay(G);
         UI.view = 'shop'; UI.overlay = { type: 'intro' };

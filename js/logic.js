@@ -47,7 +47,7 @@
   };
 
   // Fills in fields added after the first release, so older saves keep working.
-  DG.SAVE_SCHEMA = 3;   // bump when ensureDefaults learns a new migration
+  DG.SAVE_SCHEMA = 4;   // bump when ensureDefaults learns a new migration
   // Rule for every update: only ADD fields here, never remove or reset progress.
   // tests/fixtures holds frozen saves from earlier versions; they must keep loading intact.
   DG.ensureDefaults = function (G) {
@@ -92,6 +92,10 @@
     }
     G.home.loan = G.home.loan || { principal: 0, payment: 0, yearsLeft: 0 };
     G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };
+    // cozy update: there is no game over any more, and the day's accounts are kept in a ledger
+    G.ledger = G.ledger || [];
+    G.returning = G.returning || [];
+    if (G.gameOver) { G.gameOver = false; if (G.money < DG.HELP_FLOOR) G.money = DG.HELP_FLOOR; }
     G.schema = Math.max(G.schema || 0, DG.SAVE_SCHEMA);
     return G;
   };
@@ -336,7 +340,7 @@
 
     // Returning customer?
     const busy = new Set(G.queue.map(q => q.cid).concat(G.active ? [G.active.cid] : []));
-    const back = G.known.filter(k => k.lastS >= 55 && !busy.has(k.cid) && !(G.today && G.today.seen.includes(k.cid)));
+    const back = G.known.filter(k => k.lastS >= 40 && !busy.has(k.cid) && !(G.today && G.today.seen.includes(k.cid)));
     let base;
     if (back.length && Math.random() < Math.min(0.45, 0.08 * back.length)) {
       base = JSON.parse(JSON.stringify(pick(back)));
@@ -408,8 +412,10 @@
     if (G.market.event && G.market.event.type === 'rain') n -= 1;
     n = clamp(n, 1, cap) + extra;   // campaigns may exceed the usual cap
     G.today = { income: 0, spent: 0, served: 0, seen: [], startMoney: G.money };
-    G.queue = [];
-    for (let i = 0; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
+    G.queue = (G.returning || []).slice(0, n);
+    G.returning = [];
+    G.queue.forEach(c => G.today.seen.push(c.cid));
+    for (let i = G.queue.length; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
   };
 
   // SKAT on daily profit; an accountant raises the tax-free amount and lowers the rate.
@@ -423,6 +429,7 @@
     const r = DG.skatRule(G), x = Math.max(0, profit - r.free);
     return Math.round(Math.min(x, r.topFrom) * r.low + Math.max(0, x - r.topFrom) * r.top);
   };
+  DG.HELP_FLOOR = 2000;   // the family never lets the shop run dry: below 500 kr they top it up to 2.000 kr
   DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
@@ -455,15 +462,18 @@
     const tax = DG.skat(profit, G);
     const taxWithout = DG.skat(profit);   // what it would have been without an accountant
     G.money -= tax;
-    if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
+    // nobody is turned away: whoever was still waiting simply pops back tomorrow
+    G.returning = G.queue.slice(0, 3).map(c => Object.assign(c, { back: true }));
     G.queue = [];
-    let mom = false;
-    if (G.money < 0) {
-      if (!G.momUsed) { G.money += 3000; G.momUsed = true; mom = true; }
-      else G.gameOver = true;
-    }
+    // there is no game over: when money runs out, Mie's parents help with a little envelope
+    let help = 0;
+    if (G.money < DG.HELP_FLOOR / 4) { help = DG.HELP_FLOOR - Math.round(G.money); G.money = DG.HELP_FLOOR; G.stats.helped = (G.stats.helped || 0) + 1; }
+    const t2 = G.today || { income: 0, spent: 0, private: 0 };
+    G.ledger.push({ day: G.day, income: t2.income, spent: t2.spent, private: t2.private || 0, rack: rackIncome, pots: pottery.income,
+      rent, wages, salary: DG.ADAM_SALARY, housing: housing.pay, interest: housing.interest, tax, help, money: Math.round(G.money) });
+    if (G.ledger.length > 60) G.ledger.shift();
     DG.updateGoals(G);
-    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary: DG.ADAM_SALARY, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary: DG.ADAM_SALARY, missed, help, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
@@ -587,13 +597,14 @@
     const seasonAdj = sf === 'in' ? 3 : sf === 'out' ? -4 : 0;
 
     let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0)
-      + 0.25 * DG.charm(G) + seasonAdj + DG.homeMood(G).sat;
+      + 0.25 * DG.charm(G) + seasonAdj + DG.homeMood(G).sat + (cust.back && G.staff.assistant ? 3 : 0);
     S = Math.round(clamp(S, 0, 100));
 
     const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
     const pay = Math.round(cust.budget * base);
     const tip = S >= 85 ? Math.round(cust.budget * (S - 85) / 100 * (1 + 0.5 * fitting)) : 0;
-    const repDelta = round1((S - 70) / 12);
+    // a less successful dress costs only a little reputation: nobody is punished hard here
+    const repDelta = round1(S >= 70 ? (S - 70) / 12 : Math.max(-0.6, (S - 70) / 40));
     const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
 
     return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj, moodAdj: DG.homeMood(G).sat };
@@ -619,12 +630,12 @@
 
   // Complaint/praise line from the result.
   DG.feedbackLine = function (cust, ev, design) {
-    if (ev.seasonAdj < 0) return `${byId(DG.FABRICS, design.main).name}? In this weather? Really?`;
-    if (ev.failed.length) return `And you forgot: ${DG.REQS[ev.failed[0]].short.toLowerCase()}!`;
-    if (cust.disliked.includes(design.mainColor)) return `I told you I don't like ${byId(DG.COLORS, design.mainColor).name.toLowerCase()}...`;
+    if (ev.seasonAdj < 0) return `${byId(DG.FABRICS, design.main).name} in this weather... I'll save it for another season.`;
+    if (ev.failed.length) return `Next time I'd love it with: ${DG.REQS[ev.failed[0]].short.toLowerCase()}.`;
+    if (cust.disliked.includes(design.mainColor)) return `${byId(DG.COLORS, design.mainColor).name} isn't really my colour, but the work is lovely.`;
     const worst = ev.rows.slice().sort((a, b) => b.w * (1 - b.fit) - a.w * (1 - a.fit))[0];
     if (worst && worst.fit < 0.8) return `I wish it was more ${DG.ATTR_META[worst.k].adj}.`;
-    if (ev.craft < 0.5) return 'Some of the seams look a little wobbly.';
+    if (ev.craft < 0.5) return 'A seam or two has a little personality.';
     if (cust.liked.includes(design.mainColor)) return `And the ${byId(DG.COLORS, design.mainColor).name.toLowerCase()}! My favourite colour!`;
     return '';
   };
@@ -743,7 +754,7 @@
   // Remember a customer after their visit; very unhappy customers never return.
   DG.rememberCustomer = function (G, cust, S) {
     G.known = G.known.filter(k => k.cid !== cust.cid);
-    if (S >= 40) {
+    {
       G.known.push({ cid: cust.cid, name: cust.name, look: cust.look, job: cust.job, liked: cust.liked,
         disliked: cust.disliked, visits: (cust.visits || 0) + 1, lastS: S });
       if (G.known.length > 15) G.known.shift();

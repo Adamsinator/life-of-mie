@@ -110,7 +110,7 @@
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
     g.addEventListener('pointercancel', pu);
-    const stop = timerLoop(opts.time || 14, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
+    const stop = timerLoop(opts.time || 20, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
     return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 
@@ -181,7 +181,7 @@
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
     g.addEventListener('pointercancel', pu);
-    const stop = timerLoop(opts.time || 8, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
+    const stop = timerLoop(opts.time || 12, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
     return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 
@@ -217,7 +217,7 @@
       if (taps >= target) finish();
     };
     btn.addEventListener('pointerdown', tap);
-    const stop = timerLoop(opts.time || 5, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
+    const stop = timerLoop(opts.time || 7, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
     return () => stop();
   };
 

@@ -76,10 +76,20 @@ Menu → Settings has these options:
    - **Iron:** swipe the iron over the wrinkles.
 
    Craft = 30% cutting + 50% stitching + 20% ironing. It raises quality and counts for 10% of satisfaction.
-5. **Result:** satisfaction decides payment, tip and reputation, and whether the customer comes back. Regulars return with new requests and bigger budgets.
-6. **Close the shop:** pay rent, and a new day begins.
+5. **Result:** stars and a word for how happy she is, and what she paid; *How did she judge it?* shows the full breakdown. Satisfaction decides payment, tip and reputation. Regulars return with new requests and bigger budgets.
+6. **Close the shop:** the evening page tells the day's little story; *Today's accounts* shows the numbers. A new day begins.
 
 Reputation unlocks new kinds of customers, ending with wedding guests, influencers, gala guests and brides.
+
+## Cozy by design
+
+There is no way to lose and nothing runs on a clock:
+
+- **No game over.** If the purse drops below 500 kr in the evening, Mie's mum and dad top it up to 2.000 kr (`DG.HELP_FLOOR`). Saves that had ended in an earlier version open again.
+- **Nobody is turned away.** Customers still waiting at closing time come back the next morning (up to 3), with no reputation lost. With Lise the assistant they return in a sunny mood (+3 satisfaction). Declining an order is free.
+- **Gentle reputation.** A weak dress costs at most 0.6 reputation, and every customer may return.
+- **Fewer numbers.** The top bar shows the season and day, the purse, and reputation as 1–5 stars. Results and evenings use stars and words, with the numbers one tap away. All money details are in **Home → Accounts** (the last 60 days are kept in `G.ledger`).
+- Mini-game timers are relaxed (cut 20 s, iron 12 s, knead 7 s).
 
 ## Prices
 
