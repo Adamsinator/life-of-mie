@@ -491,6 +491,11 @@
     'Dansk': 'Dansk', 'English': 'English', 'the rack': 'stativet', 'Wish: {0}': 'Ønske: {0}', 'Name': 'Navn',
 
     // ---- v1.8 cozy ----
+    "Mie's idea": 'Mies idé', "Buy what's missing and sew ({0} kr)": 'Køb det manglende og sy ({0} kr)',
+    'Mie sketched an idea. Change anything you like!': 'Mie har skitseret en idé. Ændr alt, hvad du vil!', 'How about this? Tap again for another idea.': 'Hvad med den her? Tryk igen for en ny idé.',
+    'A little sketch from Mie. Make it your own!': 'En lille skitse fra Mie. Gør den til din egen!',
+    "Mie can't think of anything we can afford today. Maybe visit the market?": 'Mie kan ikke komme i tanke om noget, vi har råd til i dag. Måske et smut på markedet?',
+    '🏆 {0} goals collected: +{1} kr!': '🏆 {0} mål hentet: +{1} kr!', 'That has already been used.': 'Det er allerede brugt.',
     'Ambience': 'Stemning', 'Year {0}': 'År {0}', 'Purse': 'Pung', 'Reputation {0} of {1}': 'Omdømme {0} af {1}', '{0} of {1} stars': '{0} af {1} stjerner',
     'Happy customers': 'Glade kunder', 'Tap again: she pops back tomorrow': 'Tryk igen: hun kigger forbi i morgen', 'Tap again: they pop back tomorrow': 'Tryk igen: de kigger forbi i morgen',
     'Kindly decline': 'Sig venligt nej tak',
@@ -523,6 +528,7 @@
 
   // Sentences with names or other words inside. $1, $2 … are translated too when possible.
   const P = [
+    [/^↶ Undo: (\d+) m (.+)$/, '↶ Fortryd: $1 m $2'], [/^↶ Undo: (\d+)× (.+)$/, '↶ Fortryd: $1× $2'], [/^Returned (.+)\.$/, '$1 er leveret tilbage.'],
     [/^Evening, (spring|summer|autumn|winter) (\d+)$/, 'Aften, $1 $2'],
     [/^(.+) in this weather\.\.\. I'll save it for another season\.$/, '$1 i det her vejr... Den gemmer jeg til en anden sæson.'],
     [/^Next time I'd love it with: (.+)\.$/, 'Næste gang ville jeg elske den med: $1.'],

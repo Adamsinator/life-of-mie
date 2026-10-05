@@ -610,6 +610,41 @@
     return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj, moodAdj: DG.homeMood(G).sat };
   };
 
+  // ---------- Mie's idea: a suggested design for when you'd rather not choose everything ----------
+  // A handful of tries (a good sketch, not a perfect one: there is still room to make it shine), leaning on what the customer loves, keeps those she can afford today,
+  // and prefers using fabric already on the shelf. Returns design fields, or null if nothing fits.
+  DG.suggestDesign = function (G, cust, tries = 16, rnd = Math.random) {
+    const pk = a => a[Math.floor(rnd() * a.length)];
+    const fabs = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
+    const closures = DG.CLOSURES.filter(c => c.id !== 'none' && (!c.item || DG.isUnlocked(G, byId(DG.ITEMS, c.item))));
+    const extras = DG.EXTRAS.filter(e => DG.isUnlocked(G, e) && (!e.item || DG.isUnlocked(G, byId(DG.ITEMS, e.item))));
+    const liked = (cust.liked || []).filter(Boolean);
+    const colourFor = f => (f.colors ? (f.colors.find(c => liked.includes(c)) || pk(f.colors)) : liked.length && rnd() < 0.75 ? pk(liked) : pk(DG.COLORS.filter(c => !(cust.disliked || []).includes(c.id))).id);
+    const random = () => {
+      const main = pk(fabs), styles = DG.SILHOUETTES.filter(x => (cust.styles || []).includes(x.id));
+      const sil = styles.length && rnd() < 0.7 ? pk(styles) : pk(DG.SILHOUETTES);
+      const accent = rnd() < 0.25 ? pk(fabs) : null;
+      return { main: main.id, mainColor: colourFor(main), accent: accent && accent.id, accentColor: accent ? colourFor(accent) : pk(DG.COLORS).id,
+        silhouette: sil.id, length: pk(DG.LENGTHS).id, neckline: pk(DG.NECKLINES).id, sleeves: pk(DG.SLEEVES).id,
+        closure: sil.noClosure && rnd() < 0.5 ? 'none' : pk(closures).id, extras: extras.filter(() => rnd() < 0.2).map(e => e.id) };
+    };
+    const value = d => {
+      const an = DG.analyze(d, G);
+      if (an.issues.some(x => !x.startsWith('Need')) || an.missingCost > G.money) return null;
+      const S = cust.rack ? DG.rackItem(d, G, 0.8).price / 5 : DG.evaluate(cust, d, G, 0.8).S;
+      return S - an.missingCost / Math.max(300, cust.budget || 800) * 20;
+    };
+    let best = null, bestV = -Infinity;
+    for (let i = 0; i < tries; i++) {
+      // the second half refines the best so far by changing one thing at a time
+      let d = random();
+      if (best && i > tries / 2) { d = Object.assign({}, best, { extras: best.extras.slice() }); const k = pk(['main', 'silhouette', 'length', 'neckline', 'sleeves', 'closure', 'extras', 'accent']); const r = random(); d[k] = r[k]; if (k === 'main') d.mainColor = r.mainColor; if (k === 'accent') d.accentColor = r.accentColor; }
+      const v = value(d);
+      if (v != null && v > bestV) { best = d; bestV = v; }
+    }
+    return best;
+  };
+
   // ---------- ready-to-wear rack ----------
   // Walk-in shoppers want a generally appealing dress: price = 0.9·materials + 150·appeal,
   // appeal = mean of the dress's three best stats (after stitching).

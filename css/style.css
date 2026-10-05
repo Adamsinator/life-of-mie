@@ -570,3 +570,15 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .shop-scene.evening .dusk { opacity: 1; }
 .shop-scene.evening .dusk-sky { opacity: 1; }
 .shop-scene.evening .lamp-glow { opacity: .9; }
+/* workshop: the sew button stays in reach (under the dress on a landscape iPad, under the summary otherwise) */
+.ws-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-top: 12px; }
+.ws-actions .btn.primary { flex: 1 1 220px; }
+.ws-actions-left { display: none; }
+@media (orientation: landscape) and (min-width: 960px) {
+  .ws-actions-left { display: flex; }
+  .ws-actions-sum { display: none; }
+  .ws-left .stage .dress-svg { max-height: 30vh; }
+  .ws-left .stage { margin: 8px 0; }
+}
+.abar { grid-template-columns: 128px 1fr; }
+.undo-buy { float: right; margin-left: 10px; }

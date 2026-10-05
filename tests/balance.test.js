@@ -325,3 +325,19 @@ console.log('all checks passed');
   assert.strictEqual(O.gameOver, false); assert.strictEqual(O.money, DG.HELP_FLOOR); assert.deepStrictEqual(O.ledger, []);
   console.log('v1.8 cozy checks passed');
 }
+{
+  // Mie's idea: always something affordable and valid, and usually a happy customer
+  let tot = 0, n = 0;
+  for (let i = 0; i < 40; i++) {
+    const G = DG.newGame(); G.rep = 30 + i; DG.startDay(G);
+    for (const c of G.queue) {
+      const d = DG.suggestDesign(G, c);
+      assert(d, 'no idea');
+      const an = DG.analyze(d, G);
+      assert(an.issues.every(x => x.startsWith('Need')) && an.missingCost <= G.money, 'idea must be sewable and affordable');
+      tot += DG.evaluate(c, d, G, 0.8).S; n++;
+    }
+  }
+  assert(tot / n > 75 && tot / n < 97, `idea quality ${tot / n}`);
+  console.log(`v1.8 idea checks passed (avg ${Math.round(tot / n)}%)`);
+}

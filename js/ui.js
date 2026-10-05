@@ -132,7 +132,7 @@
         : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
     const queue = G.queue.map((c, i) => custCard(c, i)).join('');
     const seasonBanner = G.newSeason ? `<div class="event season">${DG.season(G).icon} ${esc(DG.season(G).hello)} In season: ${DG.season(G).in.map(id => byId(DG.FABRICS, id).name.toLowerCase()).join(', ')}.</div>` : '';
-    const goalBanner = DG.claimableGoals(G).length ? `<button class="event goal" data-act="view" data-arg="goals">🏆 ${DG.claimableGoals(G).length} goal${DG.claimableGoals(G).length > 1 ? 's' : ''} complete. Tap to collect your reward!</button>` : '';
+    const goalBanner = DG.claimableGoals(G).length ? `<button class="event goal" data-act="claimall">🏆 ${DG.claimableGoals(G).length} goal${DG.claimableGoals(G).length > 1 ? 's' : ''} complete. Tap to collect your reward!</button>` : '';
     const camp = G.boost && G.boost.campaigns && G.boost.campaigns.length
       ? `<div class="event teal">Today's marketing: ${G.boost.campaigns.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
     const booked = G.marketing.length ? `<div class="event soft">Booked for tomorrow: ${G.marketing.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
@@ -199,6 +199,7 @@
     };
     return `<div class="market">
       <section class="panel">
+        ${UI.lastBuy && UI.lastBuy.day === G.day ? `<button class="btn small ghost undo-buy" data-act="undobuy">↶ Undo: ${UI.lastBuy.qty}${UI.lastBuy.kind === 'fabric' ? ' m' : '×'} ${UI.lastBuy.name}</button>` : ''}
         <div class="sec-head"><h2>Fabric stalls</h2><span class="muted">Price per metre today${h ? ` · haggling −${8 * h}%` : ''}. Prices move every morning.</span></div>
         <div class="grid">${DG.FABRICS.map(fabricCard).join('')}</div>
       </section>
@@ -225,6 +226,15 @@
     </div>`;
   }
 
+  // Sew straight away, buying whatever is missing on the way; or let Mie sketch an idea.
+  function wsActions(an) {
+    const onlyMissing = an.issues.every(x => x.startsWith('Need'));
+    const sew = !an.issues.length ? '<button class="btn primary big" data-act="sew">Start sewing 🪡</button>'
+      : an.missing.length && onlyMissing ? `<button class="btn primary big" data-act="buyandsew" ${G.money < an.missingCost ? 'disabled' : ''}>Buy what's missing and sew (${kr(an.missingCost)}) 🪡</button>`
+      : '<button class="btn primary big" data-act="sew" disabled>Start sewing 🪡</button>';
+    return `<button class="btn ghost" data-act="idea">✨ Mie's idea</button>${sew}`;
+  }
+
   function attrBars(attrs, c) {
     return DG.ATTRS.map(k => {
       const w = c.weights[k] || 0, t = c.targets[k];
@@ -233,7 +243,6 @@
       return `<div class="abar ${w ? 'wanted' : ''} ${state}">
         <span class="alabel">${DG.ATTR_META[k].icon} ${DG.ATTR_META[k].label}${w ? `<i>${'♥'.repeat(w)}</i>` : ''}</span>
         <span class="atrack"><b style="width:${v * 10}%"></b>${w ? `<em style="left:${t * 10}%" title="Wish: ${t}"></em>` : ''}</span>
-        <span class="aval">${v.toFixed(1)}</span>
       </div>`;
     }).join('');
   }
@@ -326,6 +335,7 @@
         <div class="stage">${DG.renderDress(d, 'ws')}</div>
         <div class="attrs">${attrBars(an.attrs, c)}</div>
         <p class="muted small">${c.rack ? 'Careful stitching raises quality, and with it the price tag.' : `The marks show ${esc(c.name)}'s wishes. Careful stitching raises quality further.`}</p>
+        <div class="ws-actions ws-actions-left">${wsActions(an)}</div>
       </section>
       <div class="ws-right">
         <section class="panel">
@@ -342,10 +352,7 @@
           </div>
           ${an.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
           ${an.issues.length ? `<ul class="issues">${an.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="ready">Everything is ready on the cutting table.</p>'}
-          <div class="actions">
-            ${an.missing.length ? `<button class="btn" data-act="buymissing" ${G.money < an.missingCost ? 'disabled' : ''}>🧺 Buy what's missing (${kr(an.missingCost)})</button>` : ''}
-            <button class="btn primary big" data-act="sew" ${an.issues.length ? 'disabled' : ''}>Start sewing 🪡</button>
-          </div>
+          <div class="ws-actions ws-actions-sum">${wsActions(an)}</div>
         </section>
       </div>
     </div>`;
@@ -1278,8 +1285,35 @@
       case 'buyf': case 'buyi': {
         const [id, q] = arg.split(':');
         const it = name === 'buyf' ? byId(DG.FABRICS, id) : byId(DG.ITEMS, id);
-        if (buy(name === 'buyf' ? 'fabric' : 'item', id, +q)) toast(`Bought ${q}${name === 'buyf' ? ' m' : '×'} ${it.name}.`);
+        const kind = name === 'buyf' ? 'fabric' : 'item', m0 = G.money;
+        if (buy(kind, id, +q)) { toast(`Bought ${q}${name === 'buyf' ? ' m' : '×'} ${it.name}.`); UI.lastBuy = { kind, id, qty: +q, cost: m0 - G.money, day: G.day, name: it.name }; }
         break;
+      }
+      case 'undobuy': {
+        // a mis-tap at the market: the stall takes it back at the price you paid, the same day
+        const lb = UI.lastBuy;
+        UI.lastBuy = null;
+        if (!lb || lb.day !== G.day) break;
+        const inv = lb.kind === 'fabric' ? G.inv.fabrics : G.inv.items;
+        if ((inv[lb.id] || 0) < lb.qty) { toast('That has already been used.'); break; }
+        inv[lb.id] = round1(inv[lb.id] - lb.qty);
+        G.money += lb.cost; G.today.spent -= lb.cost;
+        toast(`Returned ${lb.name}.`);
+        break;
+      }
+      case 'idea': {
+        const idea = DG.suggestDesign(G, G.active);
+        if (!idea) { toast('Mie can\'t think of anything we can afford today. Maybe visit the market?'); break; }
+        Object.assign(G.design, idea);
+        toast(pick(['Mie sketched an idea. Change anything you like!', 'How about this? Tap again for another idea.', 'A little sketch from Mie. Make it your own!']));
+        sfx('good');
+        break;
+      }
+      case 'buyandsew': {
+        const an = DG.analyze(G.design, G);
+        if (G.money < an.missingCost) { toast('Not enough money for everything that is missing.'); break; }
+        an.missing.forEach(m => buy(m.kind, m.id, m.qty));
+        startSewing(); return;
       }
       case 'buymissing': {
         const an = DG.analyze(G.design, G);
@@ -1449,6 +1483,12 @@
       case 'potmarkdown': {
         const it = G.shelf[+arg];
         if (it) { it.price = Math.max(100, Math.round(it.price * 0.8 / 10) * 10); toast(`Marked down to ${kr(it.price)}.`); }
+        break;
+      }
+      case 'claimall': {
+        const ids = DG.claimableGoals(G);
+        const got = ids.reduce((a, id) => a + DG.claimGoal(G, id), 0);
+        if (got) { sfx('fanfare'); toast(ids.length === 1 ? `🏆 ${byId(DG.GOALS, ids[0]).title}: +${kr(got)}!` : `🏆 ${ids.length} goals collected: +${kr(got)}!`); }
         break;
       }
       case 'claim': {
