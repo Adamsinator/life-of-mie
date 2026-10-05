@@ -1,0 +1,11 @@
+{
+  "name": "dress-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mie's Atelier: a dress-making shop game for the browser, made for iPad.",
+  "scripts": {
+    "test": "node tests/balance.test.js",
+    "build": "node tools/build-single.js",
+    "start": "npx --yes serve -l 5173 ."
+  }
+}

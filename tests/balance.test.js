@@ -1,0 +1,78 @@
+// Balance + sanity checks for the scoring model. Run: node tests/balance.test.js
+for (const f of ['data', 'logic', 'render']) require(`../js/${f}.js`);
+const DG = globalThis.DG;
+const assert = require('assert');
+const pick = a => a[Math.floor(Math.random() * a.length)];
+
+function stateWith(upg) {
+  const G = DG.newGame();
+  Object.assign(G.upgrades, upg);
+  G.rep = 100;
+  return G;
+}
+function randomDesign(G, liked) {
+  const fabs = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
+  const main = pick(fabs);
+  const sil = pick(DG.SILHOUETTES);
+  const extras = DG.EXTRAS.filter(e => DG.isUnlocked(G, e) && Math.random() < 0.3).map(e => e.id);
+  const closures = DG.CLOSURES.filter(c => !c.item || DG.isUnlocked(G, DG.byId(DG.ITEMS, c.item)));
+  const accent = Math.random() < 0.4 ? pick(fabs) : null;
+  return {
+    main: main.id, mainColor: main.colors ? main.colors[0] : liked,
+    accent: accent && accent.id, accentColor: accent && accent.colors ? accent.colors[0] : pick(DG.COLORS).id,
+    silhouette: sil.id, length: pick(DG.LENGTHS).id, neckline: pick(DG.NECKLINES).id,
+    sleeves: pick(DG.SLEEVES).id, closure: sil.noClosure ? 'none' : pick(closures.filter(c => c.id !== 'none')).id, extras,
+  };
+}
+
+const early = stateWith({});
+const late = stateWith({ supplier: 2, embroidery: 2 });
+console.log('archetype    | budget | best S (tier0) cost | best S (all) cost | median random S');
+for (const a of DG.ARCHETYPES) {
+  const cust = { weights: a.w, targets: a.t, styles: a.styles, reqs: a.reqs.map(r => r[0]),
+    liked: a.colors ? a.colors.liked : ['sage', 'rose'], disliked: ['black'], budget: Math.round((a.budget[0] + a.budget[1]) / 2), loyal: false };
+  const run = G => {
+    let best = { S: -1 }, all = [];
+    for (let i = 0; i < 15000; i++) {
+      const d = randomDesign(G, cust.liked[0]);
+      const an = DG.analyze(d, G);
+      if (an.issues.some(x => !x.startsWith('Need'))) continue;
+      const ev = DG.evaluate(cust, d, G, 0.8);
+      all.push(ev.S);
+      // prefer higher score, then cheaper
+      if (ev.S > best.S || (ev.S === best.S && an.cost < best.cost)) best = { S: ev.S, cost: an.cost, d };
+    }
+    all.sort((x, y) => x - y);
+    return { best, median: all[all.length >> 1] };
+  };
+  const e = run(early), l = run(late);
+  console.log(`${a.id.padEnd(12)} | ${String(cust.budget).padStart(6)} | ${String(e.best.S).padStart(6)} ${String(e.best.cost).padStart(8)} | ${String(l.best.S).padStart(6)} ${String(l.best.cost).padStart(8)} | ${l.median}`);
+  assert(l.best.S >= 85, `${a.id}: a great dress must be possible`);
+  if (a.minRep <= 10) assert(e.best.S >= 80, `${a.id}: early customers must be satisfiable with starter fabrics`);
+  assert(l.best.cost < cust.budget, `${a.id}: best dress should be profitable`);
+}
+
+// render sanity: no NaN / undefined in any combination
+const G = late;
+let n = 0;
+for (const sil of DG.SILHOUETTES) for (const len of DG.LENGTHS) for (const neck of DG.NECKLINES) for (const sl of DG.SLEEVES) {
+  const d = { main: 'silk', mainColor: 'rose', accent: 'lace', accentColor: 'white', silhouette: sil.id, length: len.id,
+    neckline: neck.id, sleeves: sl.id, closure: 'pearl', extras: DG.EXTRAS.map(e => e.id) };
+  const svg = DG.renderDress(d, 't');
+  assert(!/NaN|undefined/.test(svg), `bad svg for ${sil.id}/${len.id}/${neck.id}/${sl.id}`);
+  n++;
+}
+const svg0 = DG.renderDress({ main: null, mainColor: 'white', accent: null, accentColor: 'white', silhouette: 'aline', length: 'knee', neckline: 'round', sleeves: 'none', closure: 'zipper', extras: [] }, 'x');
+assert(!/NaN|undefined/.test(svg0));
+console.log(`rendered ${n} dress combinations cleanly`);
+
+// customer generation & a full simulated week
+const S = DG.newGame();
+for (let day = 0; day < 7; day++) {
+  DG.startDay(S);
+  assert(S.queue.length >= 1);
+  for (const c of S.queue) { assert(c.text.length > 20 && c.budget > 0); assert(!/undefined|NaN/.test(c.text), c.text); }
+  DG.endDay(S);
+}
+console.log('sample request:', DG.genCustomer(S).text);
+console.log('all checks passed');

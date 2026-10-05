@@ -1,0 +1,664 @@
+// UI controller: renders views/overlays, handles input, runs the sewing mini-game.
+(function () {
+  const DG = window.DG;
+  const { byId, clamp, round1, pick } = DG;
+  const KEY = 'mies-atelier-save-v1';
+  let G = null;
+  const UI = { view: 'shop', tab: 'fabric', overlay: null, sew: null, raf: 0, confirm: null };
+
+  const kr = n => `${Math.round(n).toLocaleString('da-DK')} kr`;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // stat effects as actually applied (scaled by the balance knob)
+  const fx = d => Object.entries(d).map(([k, raw]) => {
+    const v = round1(raw * DG.BAL.delta);
+    return `<span class="fx ${v > 0 ? 'up' : 'down'}">${DG.ATTR_META[k].icon}${v > 0 ? '+' : '−'}${Math.abs(v)}</span>`;
+  }).join('');
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(G)); } catch (e) { /* storage unavailable */ } }
+  function load() {
+    try {
+      const s = localStorage.getItem(KEY);
+      if (s) { const x = JSON.parse(s); if (x && x.version === 1) return x; }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  function toast(msg) {
+    document.querySelectorAll('.toast').forEach(x => x.remove());
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add('out'), 2200);
+    setTimeout(() => t.remove(), 2700);
+  }
+
+  // ---------------- shared bits ----------------
+  function prioChips(c) {
+    return Object.entries(c.weights).sort((a, b) => b[1] - a[1]).map(([k, w]) =>
+      `<span class="pchip" title="${DG.ATTR_META[k].label}">${DG.ATTR_META[k].icon} ${DG.ATTR_META[k].label}<i>${'♥'.repeat(w)}</i></span>`).join('');
+  }
+
+  function briefHtml(c, design) {
+    const reqs = c.reqs.map(r => {
+      const ok = design ? DG.REQS[r].check(design) : null;
+      return `<li class="${ok === null ? '' : ok ? 'ok' : 'no'}">${ok === null ? '•' : ok ? '✓' : '✗'} ${DG.REQS[r].short}</li>`;
+    }).join('');
+    const styles = c.styles.map(id => byId(DG.SILHOUETTES, id).name).join(', ');
+    return `<div class="brief">
+      <div class="brief-row"><span class="lbl">Wishes</span><div class="pchips">${prioChips(c)}</div></div>
+      ${c.reqs.length ? `<div class="brief-row"><span class="lbl">Must have</span><ul class="reqs">${reqs}</ul></div>` : ''}
+      <div class="brief-row"><span class="lbl">Colours</span><div class="colrow">${c.liked.map(id => DG.colorDot(id, 22)).join('')}<span class="muted small">loves</span>${c.disliked.map(id => DG.colorDot(id, 22)).join('')}<span class="muted small">dislikes</span></div></div>
+      <div class="brief-row"><span class="lbl">Fancies</span><span>${styles}</span></div>
+      <div class="brief-row"><span class="lbl">Budget</span><b>${kr(c.budget)}</b></div>
+    </div>`;
+  }
+
+  function custCard(c, arg) {
+    return `<button class="cust" data-act="openreq" data-arg="${arg}">
+      ${DG.renderAvatar(c.look, 'neutral', 64)}
+      <span class="cust-info"><span class="cust-name">${esc(c.name)} ${c.visits ? '<span class="tag">Regular</span>' : ''}</span>
+      <span class="muted">${esc(c.title)}</span><span class="pchips small">${prioChips(c)}</span></span>
+      <span class="cust-budget">${kr(c.budget)}</span>
+    </button>`;
+  }
+
+  const eligibleTitles = () => DG.ARCHETYPES.filter(a => a.minRep <= G.rep).map(a => a.title);
+
+  // ---------------- top bar ----------------
+  function topbar() {
+    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['upgrades', '⭐', 'Upgrades']];
+    return `<header class="topbar">
+      <div class="brand"><span class="brand-script">Mie's</span><span class="brand-word">Atelier</span></div>
+      <div class="hud">
+        <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
+        <div class="hud-item"><span class="lbl">Bank</span><b class="${G.money < 100 ? 'low' : ''}">${kr(G.money)}</b></div>
+        <div class="hud-item rep"><span class="lbl">Reputation</span><b>${Math.round(G.rep)}</b><span class="repbar"><i style="width:${clamp(G.rep, 0, 100)}%"></i></span></div>
+      </div>
+      <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${id === 'workshop' && G.active ? '<i class="dot"></i>' : ''}</button>`).join('')}
+        <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">☰</span><span>Menu</span></button></nav>
+    </header>`;
+  }
+
+  // ---------------- views ----------------
+  function mieLine() {
+    if (G.active) return `${G.active.name}'s dress won't sew itself! Off to the workshop.`;
+    if (G.queue.length === 1) return 'One customer is waiting. Tap her to hear what she wants.';
+    if (G.queue.length > 1) return `${G.queue.length} customers are waiting. Who should I help first?`;
+    return 'Everyone has been helped. Time to close up and put the kettle on.';
+  }
+
+  function viewShop() {
+    const ev = G.market.event;
+    const evText = !ev ? '' : ev.type === 'sale' ? `Market news: ${byId(DG.FABRICS, ev.fabric).name} is 30% off today.`
+      : ev.type === 'buzz' ? 'Fashion Week buzz: customers bring 20% bigger budgets today.'
+        : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
+    const queue = G.queue.map((c, i) => custCard(c, i)).join('');
+    return `<div class="shop-grid">
+      <section class="panel mie-panel">
+        <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
+        ${ev ? `<div class="event">${esc(evText)}</div>` : ''}
+        <dl class="stats">
+          <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
+          <div><dt>Avg. satisfaction</dt><dd>${G.stats.served ? Math.round(G.stats.totalS / G.stats.served) + '%' : '–'}</dd></div>
+          <div><dt>Rent tonight</dt><dd>${kr(DG.rent(G))}</dd></div>
+          <div><dt>Regulars</dt><dd>${G.known.length}</dd></div>
+        </dl>
+        <button class="btn ghost wide" data-act="endday">${UI.confirm === 'endday' ? `Tap again: ${G.queue.length} will leave (−rep)` : 'Close shop for today 🌙'}</button>
+      </section>
+      <section class="panel">
+        ${G.active ? `<h2>Current order</h2>${custCard(G.active, 'active')}<button class="btn primary wide" data-act="view" data-arg="workshop">Go to the workshop ✂️</button>` : ''}
+        <h2>${G.queue.length ? 'Waiting in the shop' : 'Nobody waiting'}</h2>
+        <div class="queue">${queue || `<p class="muted">${G.active ? 'Finish the current order, then close the shop for the day.' : 'All customers have been served. Close the shop to start a new day.'}</p>`}</div>
+      </section>
+    </div>`;
+  }
+
+  function viewMarket() {
+    const h = DG.upgradeLevel(G, 'haggle');
+    const fabricCard = f => {
+      const locked = !DG.isUnlocked(G, f);
+      const p = DG.fabricPrice(G, f.id);
+      const ch = (G.market.mult[f.id] || 1) / (G.market.prev[f.id] || 1) - 1;
+      const sale = G.market.event && G.market.event.type === 'sale' && G.market.event.fabric === f.id;
+      const arrow = sale ? '<span class="trend sale">SALE −30%</span>'
+        : ch > 0.02 ? `<span class="trend up">▲ ${Math.round(ch * 100)}%</span>`
+          : ch < -0.02 ? `<span class="trend down">▼ ${Math.round(-ch * 100)}%</span>` : '<span class="trend flat">●</span>';
+      return `<article class="card fabric ${locked ? 'locked' : ''}">
+        <div class="card-top">${DG.swatchSVG(f.id, null, 'mk' + f.id, 56)}<div class="card-title"><b>${f.name}</b><span class="muted small">${f.desc}</span></div></div>
+        <div class="mini-stats">${DG.ATTRS.map(k => `<div title="${DG.ATTR_META[k].label}"><span>${DG.ATTR_META[k].icon}</span><i><b style="width:${f.s[k] * 10}%"></b></i></div>`).join('')}</div>
+        <div class="price-row"><span class="price">${kr(p)}<small>/m</small></span>${arrow}<span class="own">Own ${round1(G.inv.fabrics[f.id] || 0)} m</span></div>
+        ${locked ? `<div class="lock">🔒 Supplier network level ${f.tier}</div>`
+          : `<div class="buy-row"><button class="btn small" data-act="buyf" data-arg="${f.id}:1">+1 m</button><button class="btn small" data-act="buyf" data-arg="${f.id}:3">+3 m</button><button class="btn small" data-act="buyf" data-arg="${f.id}:5">+5 m</button></div>`}
+      </article>`;
+    };
+    const itemCard = it => {
+      const locked = !DG.isUnlocked(G, it);
+      const lockText = it.needs ? `🔒 Embroidery machine level ${it.needs.embroidery}` : `🔒 Supplier network level ${it.tier}`;
+      return `<article class="card item ${locked ? 'locked' : ''}">
+        <div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">Own ${G.inv.items[it.id] || 0}</span></div></div>
+        <div class="price-row"><span class="price">${kr(DG.itemPrice(G, it.id))}</span></div>
+        ${locked ? `<div class="lock">${lockText}</div>` : `<div class="buy-row"><button class="btn small" data-act="buyi" data-arg="${it.id}:1">+1</button><button class="btn small" data-act="buyi" data-arg="${it.id}:3">+3</button></div>`}
+      </article>`;
+    };
+    return `<div class="market">
+      <section class="panel">
+        <div class="sec-head"><h2>Fabric stalls</h2><span class="muted">Price per metre today${h ? ` · haggling −${8 * h}%` : ''}. Prices move every morning.</span></div>
+        <div class="grid">${DG.FABRICS.map(fabricCard).join('')}</div>
+      </section>
+      <section class="panel">
+        <div class="sec-head"><h2>Notions</h2><span class="muted">Each dress uses one of each notion you add.</span></div>
+        <div class="grid items">${DG.ITEMS.map(itemCard).join('')}</div>
+      </section>
+    </div>`;
+  }
+
+  function attrBars(attrs, c) {
+    return DG.ATTRS.map(k => {
+      const w = c.weights[k] || 0, t = c.targets[k];
+      const v = attrs[k];
+      const state = !w ? '' : v >= t ? 'met' : v >= t * 0.8 ? 'close' : 'short';
+      return `<div class="abar ${w ? 'wanted' : ''} ${state}">
+        <span class="alabel">${DG.ATTR_META[k].icon} ${DG.ATTR_META[k].label}${w ? `<i>${'♥'.repeat(w)}</i>` : ''}</span>
+        <span class="atrack"><b style="width:${v * 10}%"></b>${w ? `<em style="left:${t * 10}%" title="Wish: ${t}"></em>` : ''}</span>
+        <span class="aval">${v.toFixed(1)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function chip(act, arg, on, inner, extra = '') {
+    return `<button class="chip ${on ? 'on' : ''}" data-act="${act}" data-arg="${arg}" ${extra}>${inner}</button>`;
+  }
+
+  function colorRow(key, fabric, current, c) {
+    const allowed = fabric && fabric.colors ? DG.COLORS.filter(x => fabric.colors.includes(x.id)) : DG.COLORS;
+    return `<div class="colors">${allowed.map(col => {
+      const mark = c.liked.includes(col.id) ? '♥' : c.disliked.includes(col.id) ? '✕' : '';
+      return `<button class="color ${current === col.id ? 'on' : ''}" style="--c:${col.hex}" data-act="set" data-arg="${key}:${col.id}" aria-label="${col.name}" title="${col.name}"><span>${mark}</span></button>`;
+    }).join('')}</div>`;
+  }
+
+  function tabFabric(d, c) {
+    const fabs = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
+    const fm = byId(DG.FABRICS, d.main), fa = byId(DG.FABRICS, d.accent);
+    const fabChip = (key, f) => chip('set', `${key}:${f.id}`, d[key] === f.id,
+      `${DG.swatchSVG(f.id, d[key] === f.id ? d[key === 'main' ? 'mainColor' : 'accentColor'] : null, `${key}${f.id}`, 34)}<span class="chip-txt"><b>${f.name}</b><small>${round1(G.inv.fabrics[f.id] || 0)} m · ${kr(DG.fabricPrice(G, f.id))}/m</small></span>`);
+    return `<h3>Main fabric</h3><div class="chips">${fabs.map(f => fabChip('main', f)).join('')}</div>
+      <h3>Main colour <small>♥ = ${esc(c.name)} loves it, ✕ = dislikes</small></h3>${colorRow('mainColor', fm, d.mainColor, c)}
+      <h3>Accent fabric <small>used for sleeves, collar, pockets and ruffles</small></h3>
+      <div class="chips">${chip('set', 'accent:', !d.accent, '<span class="chip-txt"><b>No accent</b><small>use main fabric</small></span>')}${fabs.map(f => fabChip('accent', f)).join('')}</div>
+      ${d.accent ? `<h3>Accent colour</h3>${colorRow('accentColor', fa, d.accentColor, c)}` : ''}`;
+  }
+
+  function thumb(over, uid) {
+    return `<span class="thumb">${DG.renderDress(Object.assign({}, G.design, over), uid)}</span>`;
+  }
+
+  function tabShape(d) {
+    return `<h3>Silhouette</h3><div class="chips thumbs">${DG.SILHOUETTES.map(s => chip('set', `silhouette:${s.id}`, d.silhouette === s.id,
+      `${thumb({ silhouette: s.id }, 's' + s.id)}<span class="chip-txt"><b>${s.name}</b><small>${fx(s.d)}</small></span>`)).join('')}</div>
+      <h3>Length</h3><div class="chips">${DG.LENGTHS.map(l => chip('set', `length:${l.id}`, d.length === l.id,
+        `<span class="chip-txt"><b>${l.name}</b><small>${fx(l.d) || '&nbsp;'}</small></span>`)).join('')}</div>`;
+  }
+
+  function tabDetails(d) {
+    const sil = byId(DG.SILHOUETTES, d.silhouette);
+    return `<h3>Neckline</h3><div class="chips thumbs">${DG.NECKLINES.map(n => chip('set', `neckline:${n.id}`, d.neckline === n.id,
+        `${thumb({ neckline: n.id, extras: [] }, 'n' + n.id)}<span class="chip-txt"><b>${n.name}</b><small>${fx(n.d)}</small></span>`)).join('')}</div>
+      <h3>Sleeves</h3><div class="chips thumbs">${DG.SLEEVES.map(s => chip('set', `sleeves:${s.id}`, d.sleeves === s.id,
+        `${thumb({ sleeves: s.id, extras: [] }, 'v' + s.id)}<span class="chip-txt"><b>${s.name}</b><small>${fx(s.d)}</small></span>`)).join('')}</div>
+      <h3>Closure ${sil.noClosure ? '<small>a wrap dress ties itself shut, so a closure is optional</small>' : '<small>every dress except a wrap needs one</small>'}</h3>
+      <div class="chips">${DG.CLOSURES.map(cl => {
+        const it = cl.item ? byId(DG.ITEMS, cl.item) : null;
+        const locked = it && !DG.isUnlocked(G, it);
+        const stock = it ? `own ${G.inv.items[it.id] || 0}` : '';
+        return chip('set', `closure:${cl.id}`, d.closure === cl.id,
+          `${cl.hex ? `<span class="btn-dot" style="--c:${cl.hex}"></span>` : ''}<span class="chip-txt"><b>${cl.name}</b><small>${locked ? '🔒 locked' : stock} ${fx(cl.d)}</small></span>`, locked ? 'disabled' : '');
+      }).join('')}</div>`;
+  }
+
+  function tabExtras(d) {
+    return `<h3>Extras <small>more than three decorations makes a dress look over-done</small></h3>
+      <div class="chips">${DG.EXTRAS.map(e => {
+        const it = e.item ? byId(DG.ITEMS, e.item) : null;
+        const locked = (e.needs && !DG.isUnlocked(G, e)) || (it && !DG.isUnlocked(G, it));
+        const use = it ? `own ${G.inv.items[it.id] || 0} ${it.name.toLowerCase()}` : e.m ? `${e.m} m fabric` : 'free';
+        return chip('toggle', e.id, d.extras.includes(e.id),
+          `<span class="ex-ic">${e.icon}</span><span class="chip-txt"><b>${e.name}</b><small>${locked ? '🔒 needs embroidery machine' : use}</small><small>${fx(e.d)}</small></span>`, locked ? 'disabled' : '');
+      }).join('')}</div>`;
+  }
+
+  function viewWorkshop() {
+    const c = G.active;
+    if (!c) {
+      return `<div class="empty panel">${DG.renderAvatar(DG.MIE_LOOK, 'neutral', 110)}<h2>No order on the table</h2>
+        <p class="muted">Accept a customer's order in the shop, then come back here to design and sew the dress.</p>
+        <button class="btn primary" data-act="view" data-arg="shop">Back to the shop</button></div>`;
+    }
+    const d = G.design;
+    const an = DG.analyze(d, G);
+    const fm = byId(DG.FABRICS, d.main), fa = byId(DG.FABRICS, d.accent);
+    const tabs = [['fabric', 'Fabric'], ['shape', 'Shape'], ['details', 'Details'], ['extras', 'Extras']];
+    const body = { fabric: tabFabric, shape: tabShape, details: tabDetails, extras: tabExtras }[UI.tab](d, c);
+    const margin = c.budget - an.cost;
+    return `<div class="ws">
+      <section class="panel ws-left">
+        <div class="brief-mini">${DG.renderAvatar(c.look, 'neutral', 56)}
+          <div class="bm-txt"><b>${esc(c.name)}</b><span class="muted small">${esc(c.title)}</span></div>
+          <button class="btn small ghost" data-act="openreq" data-arg="active">Read request</button></div>
+        <div class="pchips">${prioChips(c)}</div>
+        ${c.reqs.length ? `<ul class="reqs inline">${c.reqs.map(r => { const ok = DG.REQS[r].check(d); return `<li class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${DG.REQS[r].short}</li>`; }).join('')}</ul>` : ''}
+        <div class="stage">${DG.renderDress(d, 'ws')}</div>
+        <div class="attrs">${attrBars(an.attrs, c)}</div>
+        <p class="muted small">The marks show ${esc(c.name)}'s wishes. Careful stitching raises quality further.</p>
+      </section>
+      <div class="ws-right">
+        <section class="panel">
+          <div class="tabs" role="tablist">${tabs.map(([id, l]) => `<button role="tab" class="tab ${UI.tab === id ? 'on' : ''}" data-act="tab" data-arg="${id}">${l}</button>`).join('')}</div>
+          <div class="tabbody">${body}</div>
+        </section>
+        <section class="panel summary">
+          <div class="sum-grid">
+            <div><span class="lbl">Main fabric</span><b>${an.mainM} m</b><span class="muted small">${fm ? fm.name : 'none chosen'}</span></div>
+            ${fa ? `<div><span class="lbl">Accent</span><b>${an.accentM} m</b><span class="muted small">${fa.name}</span></div>` : ''}
+            <div><span class="lbl">Materials</span><b>${kr(an.cost)}</b><span class="muted small">at today's prices</span></div>
+            <div><span class="lbl">Budget</span><b>${kr(c.budget)}</b><span class="small ${margin < 0 ? 'bad' : 'good'}">${margin < 0 ? 'over budget' : `${kr(margin)} margin`}</span></div>
+          </div>
+          ${an.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
+          ${an.issues.length ? `<ul class="issues">${an.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="ready">Everything is ready on the cutting table.</p>'}
+          <div class="actions">
+            ${an.missing.length ? `<button class="btn" data-act="buymissing" ${G.money < an.missingCost ? 'disabled' : ''}>🧺 Buy what's missing (${kr(an.missingCost)})</button>` : ''}
+            <button class="btn primary big" data-act="sew" ${an.issues.length ? 'disabled' : ''}>Start sewing 🪡</button>
+          </div>
+        </section>
+      </div>
+    </div>`;
+  }
+
+  function viewUpgrades() {
+    return `<div class="panel"><div class="sec-head"><h2>Upgrade the atelier</h2><span class="muted">Each upgrade level adds 10 kr to the daily rent.</span></div>
+      <div class="grid upg">${DG.UPGRADES.map(u => {
+        const lvl = DG.upgradeLevel(G, u.id), max = u.costs.length;
+        const cost = u.costs[lvl];
+        return `<article class="card upgrade">
+          <div class="card-top"><span class="item-ic">${u.icon}</span><div class="card-title"><b>${u.name}</b><span class="pips">${Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</span></div></div>
+          <p class="small">${u.desc}</p>
+          ${lvl >= max ? '<div class="lock done">Fully upgraded ✓</div>'
+            : `<button class="btn primary" data-act="upgrade" data-arg="${u.id}" ${G.money < cost ? 'disabled' : ''}>Buy level ${lvl + 1}: ${kr(cost)}</button>`}
+        </article>`;
+      }).join('')}</div>
+      <h3>Who visits the shop</h3>
+      <ul class="arche-list">${DG.ARCHETYPES.map(a => `<li class="${a.minRep <= G.rep ? 'on' : ''}"><b>${a.title}</b><span class="muted small">${a.minRep <= G.rep ? 'visiting' : `from reputation ${a.minRep}`} · ${kr(a.budget[0])} to ${kr(a.budget[1])}</span></li>`).join('')}</ul>
+    </div>`;
+  }
+
+  // ---------------- overlays ----------------
+  function ovIntro() {
+    return `<div class="overlay"><div class="sheet intro">
+      <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'ecstatic', 120)}<div>
+        <h1><span class="brand-script">Mie's</span> Atelier</h1>
+        <p>Mie has just opened a tiny dress shop on a cobbled street in Copenhagen. She has a sewing machine, a dress form, 400 kr in the bank and big dreams.</p></div></div>
+      <ol class="howto">
+        <li><b>Meet customers.</b> Each one has wishes: quality, workwear, creativity, exclusivity, elegance or comfort, plus favourite colours, must-haves and a budget.</li>
+        <li><b>Shop the market.</b> Buy fabric by the metre and notions like buttons, zippers and lace. Prices change every day.</li>
+        <li><b>Design the dress.</b> Pick fabrics, colours, silhouette, length, neckline, sleeves, closure and extras. The bars show how close you are.</li>
+        <li><b>Sew it.</b> Tap in time with the needle. Neat stitches mean better quality.</li>
+        <li><b>Get paid and grow.</b> Happy customers pay in full, tip and come back. Spend the money on upgrades and unlock fancier clients.</li>
+      </ol>
+      <button class="btn primary big wide" data-act="closeov">Open the shop</button>
+    </div></div>`;
+  }
+
+  function ovReq(arg) {
+    const isActive = arg === 'active';
+    const c = isActive ? G.active : G.queue[+arg];
+    if (!c) return '';
+    return `<div class="overlay dismissable"><div class="sheet req">
+      <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2>${esc(c.name)}</h2><span class="muted">${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}</span></div></div>
+      <div class="bubble big">${esc(c.text)}</div>
+      ${briefHtml(c, isActive ? G.design : null)}
+      <div class="actions">
+        ${isActive ? '<button class="btn primary" data-act="closeov">Back to work</button>'
+          : `<button class="btn ghost" data-act="decline" data-arg="${arg}">Decline (−1 rep)</button>
+             <button class="btn" data-act="closeov">Not yet</button>
+             <button class="btn primary" data-act="accept" data-arg="${arg}" ${G.active ? 'disabled' : ''}>Accept order</button>`}
+      </div>
+      ${G.active && !isActive ? '<p class="muted small center">Finish your current order before taking a new one.</p>' : ''}
+    </div></div>`;
+  }
+
+  function ovSew() {
+    return `<div class="overlay"><div class="sheet sew">
+      <h2>Sewing ${esc(G.active.name)}'s dress</h2>
+      <p class="muted">Tap <b>Stitch</b> when the needle is over the green. The gold centre is a perfect stitch.</p>
+      <div class="sew-stage">${DG.renderDress(G.design, 'sew')}</div>
+      <div class="track"><div class="zone" id="zone"><div class="sweet"></div></div><div class="needle" id="needle"></div></div>
+      <div class="sdots" id="sdots">${'<i></i>'.repeat(5)}</div>
+      <div class="sfb" id="sfb">Five stitches. Steady hands!</div>
+      <button class="btn primary huge" data-act="stitch">Stitch!</button>
+    </div></div>`;
+  }
+
+  function ovResult(o) {
+    const { ev, cust, design } = o;
+    const mood = ['angry', 'angry', 'sad', 'neutral', 'happy', 'ecstatic'][ev.stars];
+    const colorWord = id => cust.liked.includes(id) ? 'a favourite' : cust.disliked.includes(id) ? 'disliked' : 'neutral';
+    const profit = ev.pay + ev.tip - ev.cost;
+    return `<div class="overlay"><div class="sheet result">
+      <div class="res-top">
+        <div class="res-dress">${DG.renderDress(design, 'res')}</div>
+        <div class="res-say">
+          <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble">${esc(o.quote)} ${esc(o.line)}</div></div>
+          <div class="score"><span class="pct">${ev.S}%</span><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="muted">satisfaction</span></div>
+        </div>
+      </div>
+      <div class="res-grid">
+        <div>
+          <h3>What ${esc(cust.name)} judged</h3>
+          <table class="rtable"><tbody>
+            ${ev.rows.sort((a, b) => b.w - a.w).map(r => `<tr><td>${DG.ATTR_META[r.k].icon} ${DG.ATTR_META[r.k].label} <i class="hearts">${'♥'.repeat(r.w)}</i></td><td class="num">${r.v.toFixed(1)} / ${r.t}</td><td>${r.v >= r.t ? '✓' : r.fit > 0.7 ? '~' : '✗'}</td></tr>`).join('')}
+            <tr><td>🎨 Colour</td><td class="num">${byId(DG.COLORS, design.mainColor).name}</td><td>${colorWord(design.mainColor) === 'a favourite' ? '♥' : colorWord(design.mainColor) === 'disliked' ? '✗' : '~'}</td></tr>
+            <tr><td>👗 Silhouette</td><td class="num">${byId(DG.SILHOUETTES, design.silhouette).name}</td><td>${ev.St === 1 ? '♥' : '~'}</td></tr>
+            ${cust.reqs.map(r => `<tr><td>📌 ${DG.REQS[r].short}</td><td></td><td>${ev.failed.includes(r) ? '✗ −15' : '✓'}</td></tr>`).join('')}
+            <tr><td>🪡 Stitching</td><td class="num">${Math.round(ev.craft * 100)}%</td><td>${ev.craft >= 0.8 ? '✓' : ev.craft >= 0.5 ? '~' : '✗'}</td></tr>
+          </tbody></table>
+        </div>
+        <div>
+          <h3>The books</h3>
+          <table class="rtable money"><tbody>
+            <tr><td>Payment</td><td class="num">${kr(ev.pay)}</td></tr>
+            <tr><td>Tip</td><td class="num">${kr(ev.tip)}</td></tr>
+            <tr><td>Materials used</td><td class="num">−${kr(ev.cost)}</td></tr>
+            <tr class="tot"><td>Profit</td><td class="num ${profit < 0 ? 'bad' : 'good'}">${kr(profit)}</td></tr>
+            <tr><td>Reputation</td><td class="num ${ev.repDelta < 0 ? 'bad' : 'good'}">${ev.repDelta > 0 ? '+' : ''}${ev.repDelta}</td></tr>
+          </tbody></table>
+          <p class="muted small">${ev.S >= 55 ? `${esc(cust.name)} will probably come back.` : ev.S >= 40 ? `${esc(cust.name)} is unlikely to come back.` : `${esc(cust.name)} will never set foot in the shop again.`}</p>
+        </div>
+      </div>
+      <button class="btn primary big wide" data-act="resultdone">Back to the shop</button>
+    </div></div>`;
+  }
+
+  function ovDayEnd(o) {
+    const t = o.res.today || { income: 0, spent: 0, served: 0, startMoney: G.money };
+    return `<div class="overlay"><div class="sheet dayend">
+      <h2>Day ${G.day} is done 🌙</h2>
+      <table class="rtable money"><tbody>
+        <tr><td>Dresses delivered</td><td class="num">${t.served}</td></tr>
+        <tr><td>Income</td><td class="num good">${kr(t.income)}</td></tr>
+        <tr><td>Market purchases</td><td class="num">−${kr(t.spent)}</td></tr>
+        <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
+        ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num bad">${o.res.missed} (−${o.res.missed * 0.5} rep)</td></tr>` : ''}
+        <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
+      </tbody></table>
+      ${o.res.mom ? '<p class="event">Mie couldn\'t make rent, so her mum sent 300 kr. "Just this once, skat!" Next time the bank will close the shop.</p>' : ''}
+      <button class="btn primary big wide" data-act="nextday">Open the shop: day ${G.day + 1}</button>
+    </div></div>`;
+  }
+
+  function ovGameOver() {
+    return `<div class="overlay"><div class="sheet center">
+      ${DG.renderAvatar(DG.MIE_LOOK, 'sad', 120)}
+      <h2>The bank has closed the atelier</h2>
+      <p>Mie ran out of money on day ${G.day} after making ${G.stats.served} dresses. Her best one scored ${G.stats.best}%.</p>
+      <button class="btn primary big" data-act="newgame">Start over</button>
+    </div></div>`;
+  }
+
+  function ovMenu() {
+    return `<div class="overlay dismissable"><div class="sheet menu">
+      <h2>Menu</h2>
+      <p class="muted small">Your progress is saved automatically on this device.</p>
+      <button class="btn wide" data-act="howto">How to play</button>
+      <button class="btn ghost wide" data-act="newgame">${UI.confirm === 'newgame' ? 'Tap again to erase this shop and start over' : 'Start a new game'}</button>
+      <button class="btn primary wide" data-act="closeov">Close</button>
+    </div></div>`;
+  }
+
+  function overlay() {
+    const o = UI.overlay;
+    if (G.gameOver) return ovGameOver();
+    if (!o) return '';
+    switch (o.type) {
+      case 'intro': return ovIntro();
+      case 'req': return ovReq(o.arg);
+      case 'sew': return ovSew();
+      case 'result': return ovResult(o);
+      case 'dayend': return ovDayEnd(o);
+      case 'menu': return ovMenu();
+      default: return '';
+    }
+  }
+
+  // ---------------- render ----------------
+  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, upgrades: viewUpgrades };
+  function render() {
+    const app = document.getElementById('app');
+    app.innerHTML = topbar() + `<main class="view view-${UI.view}">${VIEWS[UI.view]()}</main>` + overlay();
+    document.body.classList.toggle('modal-open', !!(UI.overlay || G.gameOver));
+    if (UI.overlay && UI.overlay.type === 'sew') startSewLoop();
+  }
+
+  // ---------------- sewing mini-game ----------------
+  function placeZone() {
+    const s = UI.sew;
+    const z = document.getElementById('zone');
+    if (z) { z.style.left = `${(s.center - s.zw / 2) * 100}%`; z.style.width = `${s.zw * 100}%`; }
+  }
+  function startSewLoop() {
+    cancelAnimationFrame(UI.raf);
+    placeZone();
+    const s = UI.sew;
+    const machine = DG.upgradeLevel(G, 'machine');
+    const step = now => {
+      if (!UI.overlay || UI.overlay.type !== 'sew') return;
+      const el = document.getElementById('needle');
+      if (!el) return;
+      const dt = s.last ? Math.min(0.05, (now - s.last) / 1000) : 0;
+      s.last = now;
+      if (!s.lock) s.phase += dt * (2.1 + 0.45 * s.i) * (1 - 0.12 * machine);
+      s.pos = 0.5 + 0.47 * Math.sin(s.phase);
+      el.style.left = `${s.pos * 100}%`;
+      UI.raf = requestAnimationFrame(step);
+    };
+    UI.raf = requestAnimationFrame(step);
+  }
+  function stitch() {
+    const s = UI.sew;
+    if (!s || s.lock) return;
+    const dist = Math.abs(s.pos - s.center);
+    let sc, msg;
+    if (dist < s.zw * 0.2) { sc = 1; msg = 'Perfect! ✨'; }
+    else if (dist < s.zw / 2) { sc = 0.8; msg = 'Nice stitch'; }
+    else if (dist < s.zw) { sc = 0.45; msg = 'A bit wobbly'; }
+    else { sc = 0.1; msg = 'Oops! 😬'; }
+    s.scores.push(sc);
+    const dots = document.querySelectorAll('#sdots i');
+    if (dots[s.i]) dots[s.i].className = sc >= 1 ? 'p' : sc >= 0.8 ? 'g' : sc >= 0.45 ? 'w' : 'x';
+    const fb = document.getElementById('sfb');
+    if (fb) fb.textContent = msg;
+    s.i++;
+    if (s.i >= 5) {
+      s.lock = true;
+      const craft = s.scores.reduce((a, b) => a + b, 0) / s.scores.length;
+      setTimeout(() => finishSewing(craft), 750);
+    } else {
+      s.center = 0.2 + Math.random() * 0.6;
+      placeZone();
+    }
+  }
+
+  function startSewing() {
+    const an = DG.analyze(G.design, G);
+    if (an.issues.length) return;
+    for (const id in an.fabrics) G.inv.fabrics[id] = round1((G.inv.fabrics[id] || 0) - an.fabrics[id]);
+    for (const id in an.items) G.inv.items[id] = (G.inv.items[id] || 0) - an.items[id];
+    G.design.cost = an.cost; // value of materials consumed, at today's prices
+    G.design.sewn = true;
+    beginSewGame();
+  }
+
+  function beginSewGame() {
+    const machine = DG.upgradeLevel(G, 'machine');
+    UI.sew = { i: 0, scores: [], center: 0.2 + Math.random() * 0.6, zw: 0.16 + 0.05 * machine, phase: 0, pos: 0.5, last: 0, lock: false };
+    UI.overlay = { type: 'sew' };
+    save();
+    render();
+  }
+
+  function finishSewing(craft) {
+    const cust = G.active, design = G.design;
+    const before = eligibleTitles();
+    const ev = DG.evaluate(cust, design, G, craft);
+    ev.cost = design.cost != null ? design.cost : ev.cost;
+    G.money += ev.pay + ev.tip;
+    G.today.income += ev.pay + ev.tip;
+    G.today.served++;
+    G.rep = clamp(round1(G.rep + ev.repDelta), 0, 100);
+    G.stats.served++;
+    G.stats.totalS += ev.S;
+    G.stats.best = Math.max(G.stats.best, ev.S);
+    G.stats.earned += ev.pay + ev.tip;
+    DG.rememberCustomer(G, cust, ev.S);
+    G.active = null;
+    G.design = null;
+    UI.overlay = { type: 'result', ev, cust, design, quote: pick(DG.QUOTES[ev.stars]), line: DG.feedbackLine(cust, ev, design) };
+    const fresh = eligibleTitles().filter(t => !before.includes(t));
+    save();
+    render();
+    fresh.forEach((t, i) => setTimeout(() => toast(`New customers unlocked: ${t}!`), 400 + i * 600));
+  }
+
+  // ---------------- actions ----------------
+  function buy(kind, id, qty) {
+    const price = kind === 'fabric' ? DG.fabricPrice(G, id) : DG.itemPrice(G, id);
+    const cost = price * qty;
+    if (G.money < cost) { toast(`Not enough money: that costs ${kr(cost)}.`); return false; }
+    G.money -= cost;
+    G.today.spent += cost;
+    if (kind === 'fabric') G.inv.fabrics[id] = round1((G.inv.fabrics[id] || 0) + qty);
+    else G.inv.items[id] = (G.inv.items[id] || 0) + qty;
+    return true;
+  }
+
+  function act(name, arg) {
+    if (name !== 'endday' && name !== 'newgame') UI.confirm = null;
+    switch (name) {
+      case 'view': UI.view = arg; window.scrollTo(0, 0); break;
+      case 'tab': UI.tab = arg; break;
+      case 'menu': UI.overlay = { type: 'menu' }; break;
+      case 'howto': UI.overlay = { type: 'intro' }; break;
+      case 'closeov': UI.overlay = null; break;
+      case 'openreq': UI.overlay = { type: 'req', arg }; break;
+      case 'accept': {
+        if (G.active) return;
+        G.active = G.queue.splice(+arg, 1)[0];
+        G.design = DG.newDesign(G);
+        UI.overlay = null; UI.view = 'workshop'; UI.tab = 'fabric';
+        window.scrollTo(0, 0);
+        toast(`Order accepted: a dress for ${G.active.name}.`);
+        break;
+      }
+      case 'decline': {
+        const c = G.queue.splice(+arg, 1)[0];
+        G.rep = clamp(G.rep - 1, 0, 100);
+        UI.overlay = null;
+        toast(`${c.name} leaves a little disappointed.`);
+        break;
+      }
+      case 'buyf': case 'buyi': {
+        const [id, q] = arg.split(':');
+        const it = name === 'buyf' ? byId(DG.FABRICS, id) : byId(DG.ITEMS, id);
+        if (buy(name === 'buyf' ? 'fabric' : 'item', id, +q)) toast(`Bought ${q}${name === 'buyf' ? ' m' : '×'} ${it.name}.`);
+        break;
+      }
+      case 'buymissing': {
+        const an = DG.analyze(G.design, G);
+        if (G.money < an.missingCost) { toast('Not enough money for everything that is missing.'); break; }
+        an.missing.forEach(m => buy(m.kind, m.id, m.qty));
+        toast(`Bought the missing materials for ${kr(an.missingCost)}.`);
+        break;
+      }
+      case 'set': {
+        const i = arg.indexOf(':');
+        const key = arg.slice(0, i), val = arg.slice(i + 1) || null;
+        G.design[key] = val;
+        if (key === 'main' || key === 'accent') {
+          const f = byId(DG.FABRICS, val);
+          const ck = key === 'main' ? 'mainColor' : 'accentColor';
+          if (f && f.colors && !f.colors.includes(G.design[ck])) G.design[ck] = f.colors[0];
+        }
+        break;
+      }
+      case 'toggle': {
+        const ex = G.design.extras;
+        G.design.extras = ex.includes(arg) ? ex.filter(x => x !== arg) : ex.concat(arg);
+        break;
+      }
+      case 'sew': startSewing(); return;
+      case 'resultdone': UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0); break;
+      case 'upgrade': {
+        const u = byId(DG.UPGRADES, arg);
+        const lvl = DG.upgradeLevel(G, arg);
+        const cost = u.costs[lvl];
+        if (cost == null || G.money < cost) break;
+        G.money -= cost;
+        G.upgrades[arg] = lvl + 1;
+        toast(`${u.name} upgraded to level ${lvl + 1}!`);
+        break;
+      }
+      case 'endday': {
+        if (G.active) { toast(`Finish ${G.active.name}'s dress before closing.`); break; }
+        if (G.queue.length && UI.confirm !== 'endday') { UI.confirm = 'endday'; break; }
+        UI.confirm = null;
+        const res = DG.endDay(G);
+        UI.overlay = G.gameOver ? null : { type: 'dayend', res };
+        break;
+      }
+      case 'nextday': DG.startDay(G); UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0); break;
+      case 'newgame': {
+        if (!G.gameOver && UI.confirm !== 'newgame') { UI.confirm = 'newgame'; break; }
+        UI.confirm = null;
+        G = DG.newGame(); DG.startDay(G);
+        UI.view = 'shop'; UI.overlay = { type: 'intro' };
+        break;
+      }
+      default: return;
+    }
+    save();
+    render();
+  }
+
+  document.addEventListener('click', e => {
+    if (e.target.classList && e.target.classList.contains('dismissable')) { act('closeov'); return; }
+    const b = e.target.closest('[data-act]');
+    if (!b || b.disabled || b.dataset.act === 'stitch') return;
+    act(b.dataset.act, b.dataset.arg);
+  });
+  // pointerdown keeps the stitch button snappy on touch screens
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest('[data-act="stitch"]');
+    if (b) { e.preventDefault(); stitch(); }
+  });
+  document.addEventListener('keydown', e => {
+    if (UI.overlay && UI.overlay.type === 'sew' && (e.code === 'Space' || e.key === 'Enter')) { e.preventDefault(); stitch(); }
+    else if (e.key === 'Escape' && UI.overlay && ['req', 'menu'].includes(UI.overlay.type)) act('closeov');
+  });
+
+  // ---------------- boot ----------------
+  G = load();
+  if (!G) {
+    G = DG.newGame();
+    DG.startDay(G);
+    UI.overlay = { type: 'intro' };
+    save();
+  } else if (G.active && !G.design) {
+    G.design = DG.newDesign(G);
+  } else if (G.active && G.design.sewn) {
+    // the page was closed mid-sewing: materials are already cut, so resume the stitching
+    UI.view = 'workshop';
+    beginSewGame();
+  }
+  render();
+  window.__mie = { get state() { return G; }, act };
+})();
