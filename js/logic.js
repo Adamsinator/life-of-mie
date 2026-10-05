@@ -47,7 +47,13 @@
   };
 
   // Fills in fields added after the first release, so older saves keep working.
+  DG.SAVE_SCHEMA = 3;   // bump when ensureDefaults learns a new migration
+  // Rule for every update: only ADD fields here, never remove or reset progress.
+  // tests/fixtures holds frozen saves from earlier versions; they must keep loading intact.
   DG.ensureDefaults = function (G) {
+    G.upgrades = G.upgrades || {};
+    G.inv = G.inv || {};
+    G.stats = G.stats || { served: 0, totalS: 0, best: 0, earned: 0 };
     G.decor = G.decor || { owned: [], wallpaper: 'stripes', walls: ['stripes'] };
     G.staff = G.staff || { apprentice: false, assistant: false };
     G.marketing = G.marketing || [];   // campaigns booked today, effective tomorrow
@@ -85,7 +91,8 @@
       G.econ = 2;
     }
     G.home.loan = G.home.loan || { principal: 0, payment: 0, yearsLeft: 0 };
-    G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };             // ids of tutorial tips this player has seen
+    G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };
+    G.schema = Math.max(G.schema || 0, DG.SAVE_SCHEMA);
     return G;
   };
 

@@ -13,10 +13,22 @@
     return `<span class="fx ${v > 0 ? 'up' : 'down'}">${DG.ATTR_META[k].icon}${v > 0 ? '+' : '−'}${Math.abs(v)}</span>`;
   }).join('');
 
-  function save() { if (G) DG.Profiles.saveGame(G); }
+  let saveWarned = false;
+  function save() {
+    if (!G) return;
+    if (DG.Profiles.saveGame(G)) saveWarned = false;
+    else if (!saveWarned) { saveWarned = true; setTimeout(() => toast('Could not save on this device. Copy a save code from the menu to be safe.'), 50); }
+  }
+  // Opens the active player's save. A save that cannot be opened is moved aside rather than replaced,
+  // so an update of the game can never wipe anyone's progress.
   function load() {
-    const x = DG.Profiles.loadGame();
-    return x && x.version === 1 ? DG.ensureDefaults(x) : null;
+    let x = null;
+    try {
+      x = DG.Profiles.loadGame();
+      if (x && x.version >= 1 && typeof x.day === 'number') return DG.ensureDefaults(x);
+    } catch (e) { console.error('Could not open save', e); }
+    if (DG.Profiles.hasSave()) { DG.Profiles.rescue(); UI.rescued = true; }
+    return null;
   }
 
   let S = DG.Profiles.settings();
@@ -582,6 +594,12 @@
         <textarea class="code" id="importcode" rows="3" placeholder="Paste a code starting with MIE1:"></textarea>
         ${UI.importErr ? `<p class="bad small">${esc(UI.importErr)}</p>` : ''}
         <button class="btn wide" data-act="importcode">Import as a new player</button>
+        ${(() => {
+          const bs = DG.Profiles.backups();
+          return bs.length ? `<h3>Earlier saves</h3><p class="muted small">A copy is kept automatically on each day you play.</p>
+            <ul class="backup-list">${bs.map((b, i) => `<li><span>Day ${b.day}</span> <span class="muted small" translate="no">${new Date(b.at).toLocaleDateString(S.lang === 'da' ? 'da-DK' : 'en-GB')}</span>
+              <button class="btn small ghost" data-act="restorebackup" data-arg="${i}">${UI.confirm === 'rb-' + i ? 'Tap again to restore' : 'Restore'}</button></li>`).join('')}</ul>` : '';
+        })()}
         <h3>Start over</h3>
         <button class="btn ghost wide" data-act="newgame">${UI.confirm === 'newgame' ? 'Tap again to erase this player\'s shop and start over' : 'Start a new game for this player'}</button>`;
     } else {
@@ -1141,7 +1159,7 @@
   }
 
   function act(name, arg) {
-    if (!['endday', 'newgame', 'fire', 'deleteplayer'].includes(name)) UI.confirm = null;
+    if (!['endday', 'newgame', 'fire', 'deleteplayer', 'restorebackup'].includes(name)) UI.confirm = null;
     if (!['stitch', 'press', 'pet'].includes(name)) sfx('click');
     switch (name) {
       case 'view': UI.view = arg; window.scrollTo(0, 0); break;
@@ -1237,12 +1255,24 @@
         UI.view = 'shop'; UI.overlay = { type: 'intro' }; UI.exportCode = '';
         break;
       }
+      case 'restorebackup': {
+        if (UI.confirm !== 'rb-' + arg) { UI.confirm = 'rb-' + arg; break; }
+        UI.confirm = null;
+        const b = DG.Profiles.backupGame(+arg);
+        if (!b) { toast('That backup could not be opened.'); break; }
+        DG.Profiles.backup(DG.Profiles.active().id);   // keep the current game as a backup too
+        G = DG.ensureDefaults(b);
+        UI.view = 'shop'; UI.overlay = null;
+        toast(`Restored day ${G.day}.`);
+        break;
+      }
       case 'switchplayer': {
         save();
         DG.Profiles.switchTo(arg);
         G = load();
         if (!G) { G = DG.newGame(); DG.startDay(G); }
         UI.view = 'shop'; UI.overlay = null; UI.exportCode = '';
+        if (UI.rescued && DG.Profiles.backups().length) { UI.overlay = { type: 'menu' }; UI.menuTab = 'save'; UI.rescued = false; }
         toast(`Welcome back, ${DG.Profiles.active().name}!`);
         break;
       }
@@ -1471,11 +1501,18 @@
 
   // ---------------- boot ----------------
   applySettings();
+  // ask the browser not to clear this site's storage (Safari otherwise may after weeks without a visit)
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   G = DG.Profiles.active() ? load() : null;
   if (DG.Profiles.active() && !G) {
     G = DG.newGame();
     DG.startDay(G);
     UI.overlay = { type: 'intro' };
+    if (UI.rescued && DG.Profiles.backups().length) {
+      // the save could not be opened: it is kept aside, and the earlier copies are one tap away
+      UI.overlay = { type: 'menu' }; UI.menuTab = 'save';
+      setTimeout(() => toast('Your saved game could not be opened, but it is kept safe. Restore an earlier save below.'), 400);
+    }
     save();
   } else if (G && G.active && !G.design) {
     G.design = DG.newDesign(G);

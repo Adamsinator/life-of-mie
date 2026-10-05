@@ -35,6 +35,16 @@ A new player gets a short introduction, then **tips from Mie** that walk through
 - **Moving to another device:** Menu → Save → *Show save code* gives a code starting with `MIE1:`. Send it to yourself, then on the other device use *Import as a new player*.
 - Saves from older versions of the game become "Player 1" automatically.
 
+### Save safety
+
+Updates of the game must never cost anyone their progress:
+
+- **Additive migrations only.** `DG.ensureDefaults` fills in fields that newer versions need; it never removes or resets progress. `G.schema` records which migrations a save has had.
+- **Backups.** Each time a game is opened, a copy of the save goes into a ring of the last 3 days played (`mies-atelier-backups-<id>`). Before a save from an older version is upgraded, an untouched copy is kept once (`mies-atelier-premigrate-<id>-<schema>`). **Menu → Save → Earlier saves** restores a backup.
+- **Nothing is overwritten on failure.** A save that cannot be opened is moved aside (`mies-atelier-rescue-<id>-<time>`) and the player is taken to the backups; a failed write shows a warning instead of failing silently.
+- **Frozen saves.** `tests/fixtures` holds real saves made by every earlier version. `tests/saves.test.js` checks that each opens with its day, money, reputation, upgrades, stock, customers, home, mortgage, wardrobe and goals intact, and plays on.
+- The game asks the browser for persistent storage. Safari may still clear website data after a long break, so on iPad, **Add to Home Screen** (which keeps storage) and an occasional save code are the safest.
+
 ## Settings
 
 Menu → Settings has these options:
@@ -149,7 +159,7 @@ Each evening SKAT is paid on the shop's profit (family spending, house purchases
 
 ## Testing
 
-- `npm test` runs balance, scoring, render and save tests.
+- `npm test` runs balance, scoring, render and save tests, including every frozen save in `tests/fixtures`.
 - `npm run sim` plays many full games with bots through the game logic and checks invariants after every step: no NaN, no negative stock, meters within range, kilns and racks not over-full, no exceptions. Add `human` (`node tests/sim.js 40 60 human`) for bots that try only a few designs.
 
 ## Scoring model
