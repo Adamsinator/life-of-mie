@@ -370,37 +370,40 @@
   }
 
   // ---------------- whole people ----------------
-  // A standing (or seated) person for the scenes: the portrait head and shoulders on top of a body with
-  // arms, a dress or trousers, legs and shoes. size = width in scene units; returns a nested <svg>.
+  // A person for the scenes: the portrait head on a slim body with long legs (about 4.5 heads tall,
+  // storybook proportions), arms, a dress or trousers and shoes. Placed by the centre x and the feet.
   //   opts: { seated, child, trousers, legs: tights colour, shoes }
-  DG.renderFigure = function (look, mood, x, y, size, opts = {}) {
-    const top = look.top || '#d6577b', td = darken(top, 0.22), skin = look.skin;
+  DG.renderFigure = function (look, mood, cx, footY, height, opts = {}) {
+    const top = look.top || '#d6577b', td = darken(top, 0.22), tl = lighten(top, 0.25), skin = look.skin;
     const trousers = opts.trousers || look.shirt || look.trousers;
-    const legsCol = opts.legs || skin, shoe = opts.shoes || '#3b2a2f';
-    const hgt = opts.child ? 196 : opts.seated ? 222 : 262;
+    const legsCol = opts.legs || skin, shoe = opts.shoes || '#3b2a2f', pants = '#3d4a5c';
+    const H = opts.child ? 176 : opts.seated ? 196 : 248;
     const b = [];
-    const arm = (sx, hx, hy) => `<path d="M${sx} 92 Q${(sx + hx) / 2} ${(92 + hy) / 2} ${hx} ${hy}" stroke="${top}" stroke-width="12" stroke-linecap="round" fill="none"/><path d="M${sx} 92 Q${(sx + hx) / 2} ${(92 + hy) / 2} ${hx} ${hy}" stroke="${td}" stroke-width="1" fill="none" opacity=".35"/><circle cx="${hx}" cy="${hy + 5}" r="5.5" fill="${skin}"/>`;
+    const arm = (sx, hx, hy) => `<path d="M${sx} 62 Q${(sx + hx) / 2 + (hx < 50 ? -4 : 4)} ${(62 + hy) / 2} ${hx} ${hy}" stroke="${top}" stroke-width="9.5" stroke-linecap="round" fill="none"/><path d="M${sx} 62 Q${(sx + hx) / 2 + (hx < 50 ? -4 : 4)} ${(62 + hy) / 2} ${hx} ${hy}" stroke="${td}" stroke-width=".8" fill="none" opacity=".4"/><circle cx="${hx}" cy="${hy + 4.5}" r="4.8" fill="${skin}"/>`;
+    const leg = (x, y0, y1, col) => `<path d="M${x - 4.8} ${y0} Q${x - 5.2} ${(y0 + y1) / 2} ${x - 3.4} ${y1} L${x + 3.4} ${y1} Q${x + 5.2} ${(y0 + y1) / 2} ${x + 4.8} ${y0} Z" fill="${col}"/>`;
+    const shoes = y => `<path d="M35 ${y} q8 -7 16 0 q-8 3 -16 0Z M49 ${y} q8 -7 16 0 q-8 3 -16 0Z" fill="${shoe}"/>`;
     if (opts.child) {
-      b.push(`<rect x="38" y="160" width="9" height="28" rx="4" fill="${legsCol}"/><rect x="53" y="160" width="9" height="28" rx="4" fill="${legsCol}"/>`);
-      b.push(`<ellipse cx="41" cy="190" rx="8" ry="4.5" fill="#d6577b"/><ellipse cx="59" cy="190" rx="8" ry="4.5" fill="#d6577b"/>`);
-      b.push(`<path d="M24 96 Q28 118 34 128 L22 166 Q50 174 78 166 L66 128 Q72 118 76 96 Z" fill="${top}" stroke="${td}" stroke-width="1"/>`);
-      b.push(arm(24, 16, 140) + arm(76, 84, 140));
+      b.push(leg(44, 112, 168, legsCol) + leg(56, 112, 168, legsCol) + `<ellipse cx="43" cy="170" rx="6.5" ry="3.6" fill="#d6577b"/><ellipse cx="57" cy="170" rx="6.5" ry="3.6" fill="#d6577b"/>`);
+      b.push(`<path d="M28 58 Q30 76 36 88 L64 88 Q70 76 72 58 Z" fill="${top}"/><path d="M36 86 L64 86 Q74 102 78 120 Q50 127 22 120 Q26 102 36 86 Z" fill="${top}" stroke="${td}" stroke-width=".8"/><path d="M40 92 Q38 106 34 120 M60 92 Q62 106 66 120" stroke="${td}" stroke-width=".8" opacity=".4" fill="none"/>`);
+      b.push(arm(30, 25, 104) + arm(70, 75, 104));
     } else if (opts.seated) {
-      b.push(`<rect x="34" y="170" width="11" height="42" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/><rect x="55" y="170" width="11" height="42" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/>`);
-      b.push(`<ellipse cx="39" cy="215" rx="10" ry="5" fill="${shoe}"/><ellipse cx="61" cy="215" rx="10" ry="5" fill="${shoe}"/>`);
-      b.push(`<path d="M20 96 Q22 120 30 138 L70 138 Q78 120 80 96 Z" fill="${top}"/>`);
-      b.push(trousers ? `<path d="M28 136 L72 136 L74 176 Q50 180 26 176 Z" fill="#3d4a5c"/>` : `<path d="M28 134 L72 134 L76 176 Q50 182 24 176 Z" fill="${top}" stroke="${td}" stroke-width="1"/>`);
-      b.push(arm(22, 30, 150) + arm(78, 70, 150));
+      const lc = trousers ? pants : legsCol;
+      b.push(leg(40, 132, 186, lc) + leg(60, 132, 186, lc) + `<g transform="translate(-4 0)">${shoes(189)}</g>`);
+      b.push(`<path d="M27 60 Q29 84 35 106 L65 106 Q71 84 73 60 Z" fill="${top}"/>`);
+      // the lap: thighs coming towards us, with two knees
+      b.push(`<path d="M30 102 L70 102 Q78 118 74 134 Q62 140 51 134 Q50 131 49 134 Q38 140 26 134 Q22 118 30 102 Z" fill="${trousers ? pants : top}" stroke="${trousers ? '#2b3442' : td}" stroke-width=".8"/>`);
+      b.push(arm(30, 38, 116) + arm(70, 62, 116));
     } else {
-      b.push(`<rect x="35" y="190" width="11" height="60" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/><rect x="54" y="190" width="11" height="60" rx="5" fill="${trousers ? '#3d4a5c' : legsCol}"/>`);
-      b.push(`<ellipse cx="40" cy="252" rx="10" ry="5" fill="${shoe}"/><ellipse cx="60" cy="252" rx="10" ry="5" fill="${shoe}"/>`);
-      if (trousers) b.push(`<path d="M30 140 L70 140 L68 246 L52 246 L50 170 L48 246 L32 246 Z" fill="#3d4a5c"/><path d="M20 96 Q22 124 30 146 L70 146 Q78 124 80 96 Z" fill="${top}"/><rect x="30" y="140" width="40" height="5" fill="#2b2b30"/>`);
-      else b.push(`<path d="M20 96 Q22 120 31 140 L69 140 Q78 120 80 96 Z" fill="${top}"/><path d="M31 138 L69 138 Q80 172 84 204 Q50 212 16 204 Q20 172 31 138 Z" fill="${top}" stroke="${td}" stroke-width="1"/><path d="M40 146 Q36 176 32 204 M60 146 Q64 176 68 204" stroke="${td}" stroke-width="1" opacity=".4" fill="none"/>`);
-      b.push(arm(21, 15, 166) + arm(79, 85, 166));
+      if (trousers) b.push(leg(43, 106, 238, pants) + leg(57, 106, 238, pants) + `<path d="M35 104 L65 104 L64 124 L36 124 Z" fill="${pants}"/>` + shoes(242));
+      else b.push(leg(43.5, 150, 238, legsCol) + leg(56.5, 150, 238, legsCol) + shoes(242));
+      b.push(`<path d="M27 60 Q29 84 35 ${trousers ? 110 : 106} L65 ${trousers ? 110 : 106} Q71 84 73 60 Z" fill="${top}"/>`);
+      if (trousers) b.push(`<rect x="35" y="106" width="30" height="4.5" fill="#2b2b30"/>`);
+      else b.push(`<path d="M35 104 L65 104 Q76 128 84 160 Q50 170 16 160 Q24 128 35 104 Z" fill="${top}" stroke="${td}" stroke-width=".8"/><path d="M43 110 Q38 134 33 164 M57 110 Q62 134 67 164" stroke="${td}" stroke-width=".9" opacity=".45" fill="none"/><path d="M39 108 Q42 134 44 166" stroke="${tl}" stroke-width="1.6" opacity=".35" fill="none"/>`);
+      b.push(arm(30, 23, 138) + arm(70, 77, 138));
     }
-    const head = DG.renderAvatar(Object.assign({}, look, { bg: 'transparent' }), mood, 100).replace(/^<svg[^>]*>/, '<svg x="0" y="0" width="100" height="100" viewBox="0 0 100 100" overflow="visible">');
-    const h = size * hgt / 100;
-    return `<svg class="figure" x="${x}" y="${y}" width="${size}" height="${h.toFixed(1)}" viewBox="0 0 100 ${hgt}" overflow="visible">${b.join('')}${head}</svg>`;
+    const head = DG.renderAvatar(Object.assign({}, look, { bg: 'transparent' }), mood, 64).replace(/^<svg[^>]*>/, '<svg x="18" y="0" width="64" height="64" viewBox="0 0 100 100" overflow="visible">');
+    const w = height * 100 / H;
+    return `<svg class="figure" x="${(cx - w / 2).toFixed(1)}" y="${(footY - height).toFixed(1)}" width="${w.toFixed(1)}" height="${height.toFixed(1)}" viewBox="0 0 100 ${H}" overflow="visible">${b.join('')}${head}</svg>`;
   };
 
   const inScene = look => Object.assign({}, look, { bg: 'transparent' });
@@ -479,14 +482,14 @@
     out.push('<rect x="338" y="118" width="62" height="36" rx="2" fill="#7a5236"/><rect x="338" y="114" width="62" height="6" rx="2" fill="#9a6b47"/><rect x="384" y="102" width="14" height="12" rx="2" fill="#2f1d2b"/><rect x="386" y="104" width="10" height="4" fill="#9db69a"/>');
     if (owned('espresso')) out.push('<rect x="342" y="100" width="14" height="14" rx="2" fill="#b9bcc2"/><rect x="345" y="96" width="8" height="5" rx="1" fill="#2f1d2b"/><rect x="346" y="108" width="5" height="5" fill="#fff"/><path d="M349 106 q2 -3 0 -6" stroke="#ccc" stroke-width=".8" fill="none"/>');
     // staff
-    const staffSlots = { apprentice: [190, 116], assistant: [296, 120] };
-    DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 30, { trousers: st.id === 'apprentice' })); });
+    const staffSlots = { apprentice: [205, 194], assistant: [311, 198] };
+    DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
     G.queue.slice(0, 5).forEach((c, i) => out.push(opts.tall
-      ? DG.renderFigure(c.look, 'neutral', 14 + i * 62, 192 + (i % 2) * 12, 46, { legs: c.look.tights, shoes: c.look.shoes })
-      : DG.renderFigure(c.look, 'neutral', 16 + i * 30, 118 + (i % 2) * 8, 30, { legs: c.look.tights, shoes: c.look.shoes })));
+      ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
+      : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
     out.push('<rect class="dusk" x="-300" y="-200" width="1000" height="700" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
@@ -703,8 +706,8 @@
     out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
-    out.push(DG.renderFigure(DG.FAMILY.adam.look, 'happy', 244, 82, 46, { seated: true }));
-    out.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 194, 82, 46, { seated: true, legs: '#3b3040' }));
+    out.push(DG.renderFigure(DG.FAMILY.adam.look, 'happy', 267, 184, 92, { seated: true }));
+    out.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 184, 92, { seated: true, legs: '#3b3040' }));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
     // toys
     if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
@@ -729,8 +732,8 @@
     // Elizabeth last, so she is in front of the furniture
     // she grows a little every year (3 years old at the start)
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
-    const ez = (opts.tall ? 46 : 30) * grow, footY = opts.tall ? 214 + 46 * 1.96 : 130 + 30 * 1.96;
-    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, opts.tall ? 120 : has('tricycle') ? 112 : 150, footY - ez * 1.96, ez, { child: true }));
+    const eh = (opts.tall ? 92 : 62) * grow, footY = opts.tall ? 306 : 190;
+    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, opts.tall ? 143 : has('tricycle') ? 127 : 165, footY, eh, { child: true }));
     return `<svg class="shop-scene home-scene" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 
