@@ -594,14 +594,25 @@
     </div></div>`;
   }
 
+  // who wrote it: a customer or the family drawn as themselves, anyone else as an envelope
+  function letterFace(m) {
+    const fam = { Adam: DG.FAMILY.adam.look, Elizabeth: DG.FAMILY.elizabeth.look, Mie: DG.mieLook(G) }[m.from];
+    if (m.look || fam) return DG.renderAvatar(Object.assign({}, m.look || fam, { bg: '#f5ead8' }), 'happy', 64);
+    return `<span class="avatar-q letter-ic">${m.from === 'Dexter' ? '🐈' : '✉️'}</span>`;
+  }
   function ovLetter(o) {
     const m = o.m, gf = m.gift || {};
-    const gift = gf.money ? `She tucked ${kr(gf.money)} into the envelope.` : gf.happy ? 'She sent a little something for Elizabeth.' : gf.fabric ? `She sent ${gf.m} m of ${byId(DG.FABRICS, gf.fabric).name.toLowerCase()} she didn't need.` : gf.charm ? 'She sent a keepsake for the shop wall (+1 charm).' : '';
+    const gifts = [];
+    if (gf.money) gifts.push(`💰 ${kr(gf.money)} in the envelope.`);
+    if (gf.fabric) gifts.push(`🧵 ${gf.m} m ${byId(DG.FABRICS, gf.fabric).name.toLowerCase()} for the shelf.`);
+    if (gf.items) gifts.push(`🪡 ${gf.n} × ${byId(DG.ITEMS, gf.items).name.toLowerCase()}.`);
+    if (gf.charm) gifts.push('🖼️ A keepsake for the shop wall (+1 charm).');
+    if (gf.happy) gifts.push('🏡 It made the whole family smile.');
     return `<div class="overlay"><div class="sheet letter-sheet">
       <div class="paper">
-        <div class="letter-head">${DG.renderAvatar(m.look || DG.randomLook(), 'happy', 64)}<div><span class="muted small">A letter from</span><h2 translate="no">${esc(m.from)}</h2>${m.title ? `<span class="muted small">${esc(m.title)}</span>` : ''}</div></div>
+        <div class="letter-head">${letterFace(m)}<div><span class="muted small">${m.story || /^[A-Z][a-zæøå]+$/.test(m.from) ? 'A letter from' : 'In the post'}</span><h2 ${m.story || m.look || /^[A-Z][a-zæøå]+$/.test(m.from) ? 'translate="no"' : ''}>${esc(m.from)}</h2>${m.title ? `<span class="muted small">${esc(m.title)}</span>` : ''}</div></div>
         <p class="letter-text">${esc(m.text)}</p>
-        ${gift ? `<p class="letter-gift">🎁 ${gift}</p>` : ''}
+        ${gifts.map(x => `<p class="letter-gift">${x}</p>`).join('')}
       </div>
       <button class="btn primary big wide" data-act="keepmail" data-arg="${m.id}">Keep it in the album</button>
     </div></div>`;
@@ -946,8 +957,8 @@
   // ---------------- album: life stories, the lookbook, letters and goals ----------------
   function viewAlbum() {
     const t = UI.albumTab || 'stories';
-    const tabs = [['stories', '📖 Stories'], ['lookbook', '👗 Lookbook'], ['letters', '💌 Letters'], ['goals', '🏆 Goals']];
-    const body = t === 'lookbook' ? lookbookHtml() : t === 'letters' ? lettersHtml() : t === 'goals' ? viewGoals() : storiesHtml();
+    const tabs = [['stories', '📖 Stories'], ['lookbook', '👗 Lookbook'], ['collections', '🧵 Collections'], ['letters', '💌 Letters'], ['goals', '🏆 Goals']];
+    const body = t === 'lookbook' ? lookbookHtml() : t === 'collections' ? collectionsHtml() : t === 'letters' ? lettersHtml() : t === 'goals' ? viewGoals() : storiesHtml();
     return `<div class="tabs album-tabs">${tabs.map(([id, l]) => `<button class="tab ${t === id ? 'on' : ''}" data-act="albumtab" data-arg="${id}">${l}${(id === 'goals' && DG.claimableGoals(G).length) || (id === 'letters' && DG.mailToday(G).length) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}</div>${body}`;
   }
   function storiesHtml() {
@@ -976,6 +987,24 @@
         <figcaption><b translate="no">${esc(e.name)}</b><span class="muted small">${esc(e.title)}${e.story ? ' 📖' : ''}</span><span class="stars small-stars">${'★'.repeat(starsOf(e.S))}${'☆'.repeat(5 - starsOf(e.S))}</span></figcaption></figure>`).join('')}</div>`
         : '<p class="muted">Your first four-star dress will be the first page.</p>'}
     </section>`;
+  }
+  function collectionsHtml() {
+    const C = G.collections;
+    const chip = (set, id) => {
+      const have = C[set].includes(id);
+      if (set === 'fabrics') return `<span class="coll-item ${have ? 'have' : ''}" title="${byId(DG.FABRICS, id).name}">${DG.swatchSVG(id, null, 'co' + id, 34)}</span>`;
+      if (set === 'colours') return `<span class="coll-item ${have ? 'have' : ''}" title="${byId(DG.COLORS, id).name}">${DG.colorDot(id, 26)}</span>`;
+      if (set === 'silhouettes') return `<span class="coll-item word ${have ? 'have' : ''}">${byId(DG.SILHOUETTES, id).name}</span>`;
+      if (set === 'shapes') return `<span class="coll-item word ${have ? 'have' : ''}">${byId(DG.POT_SHAPES, id).name}</span>`;
+      const se = byId(DG.SEASONS, id);
+      return `<span class="coll-item word ${have ? 'have' : ''}">${se.icon} ${se.name}</span>`;
+    };
+    return `<section class="panel"><div class="sec-head"><h2>Collections</h2><span class="muted">Little sets to complete at your own pace. Each finished set hangs a framed keepsake on the shop wall.</span></div>
+      <div class="collections">${DG.COLLECTIONS.map(col => {
+        const all = col.all(), n = all.filter(x => C[col.id].includes(x)).length, done = C.done.includes(col.id);
+        return `<article class="coll ${done ? 'done' : ''}"><div class="coll-head"><span class="coll-ic">${col.icon}</span><div><b>${col.title}</b><span class="muted small">${col.desc}</span></div><span class="coll-n">${done ? '🖼️' : `${n}/${all.length}`}</span></div>
+          <div class="coll-items">${all.map(id => chip(col.id, id)).join('')}</div></article>`;
+      }).join('')}</div></section>`;
   }
   function lettersHtml() {
     const waiting = DG.mailToday(G);
@@ -1290,7 +1319,7 @@
     G.stats.earned += ev.pay + ev.tip;
     DG.rememberCustomer(G, cust, ev.S);
     const beforeGoals = DG.claimableGoals(G).length;
-    DG.recordDress(G, cust, ev.S);
+    DG.recordDress(G, cust, ev.S, design);
     if (cust.story) DG.storyDelivered(G, cust, ev.S, design);
     if (DG.addToLookbook(G, cust, ev.S, design)) setTimeout(() => toast(cust.story ? '📖 A new page in her story' : '👗 Added to the lookbook'), 900);
     const newGoals = DG.claimableGoals(G).length - beforeGoals;

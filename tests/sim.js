@@ -80,7 +80,7 @@ function sew(G, cust, design, skill) {
   G.rep = DG.clamp(DG.round1(G.rep + ev.repDelta), 0, 100);
   G.stats.served++; G.stats.totalS += ev.S; G.stats.best = Math.max(G.stats.best, ev.S);
   DG.rememberCustomer(G, cust, ev.S);
-  DG.recordDress(G, cust, ev.S);
+  DG.recordDress(G, cust, ev.S, design);
   if (cust.story) DG.storyDelivered(G, cust, ev.S, design);
   DG.addToLookbook(G, cust, ev.S, design);
   return ev;

@@ -110,6 +110,8 @@ Calibration (best of N random designs, by stitching skill): a careless pick (N=4
 - They drop by now and then for the next chapter (about half the days a chapter is due), some only once the shop is well known. A whole story unfolds over a couple of in-game years (`DG.STORY_PACE`).
 - After each chapter a **letter** arrives the next morning, warmer if the dress was four stars or more, often with a little gift: money, fabric, something for Elizabeth or a keepsake for the shop wall (+1 charm).
 - **Album** (in the top bar): *Stories* shows each woman's chapters with her dresses, *Lookbook* keeps every four-star dress and every story dress (60 at most, story dresses are never dropped), *Letters* keeps the post, and *Goals* lives here too.
+- **Collections** (Album → Collections): every fabric, every colour, every silhouette at four stars, every pot shape fired, and a five-star dress in each season. A finished set brings a framed keepsake for the shop wall (+1 charm) and a reward in the post.
+- **Little surprises:** about every third morning there is something in the post: kanelsnegle from the baker, a thank-you note (sometimes with a tip) from a happy customer, a fabric sample, a drawing in the letterbox, a note from Adam, seasonal cards and invitations, or a sock from Dexter.
 - Story texts are written in English and Danish side by side.
 
 ## Prices

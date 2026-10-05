@@ -371,3 +371,26 @@ console.log('all checks passed');
   assert(!G.known.some(k => String(k.cid).startsWith('story-')));
   console.log(`v1.9 story checks passed (${n} chapters)`);
 }
+{
+  // collections: a finished set sends a keepsake and a reward in tomorrow's post, once
+  const G = DG.newGame(); DG.startDay(G);
+  DG.FABRICS.forEach(f => DG.collect(G, 'fabrics', f.id));
+  assert(G.collections.done.includes('fabrics'));
+  const m = G.mail.find(x => /Fabric library/.test(x.title));
+  assert(m && m.gift.charm === 1 && m.gift.money > 0);
+  assert(!DG.collect(G, 'fabrics', DG.FABRICS[0].id), 'no double counting');
+  assert.strictEqual(G.mail.filter(x => /Fabric library/.test(x.title)).length, 1);
+  // the four-star silhouette and five-star season sets only count good dresses
+  const c = DG.genCustomer(G), d = DG.suggestDesign(G, c);
+  DG.recordDress(G, c, 70, d); assert.strictEqual(G.collections.silhouettes.length, 0);
+  DG.recordDress(G, c, 85, d); assert.deepStrictEqual(G.collections.silhouettes, [d.silhouette]);
+  // daily surprises: about a third of mornings, never the same twice in a row, gifts are valid
+  let n = 0, last = -1, same = 0;
+  for (let i = 0; i < 300; i++) {
+    G.day = 10 + i; G.mail = [];
+    const s = DG.dailySurprise(G);
+    if (s) { n++; if (G.lastSurprise === last) same++; last = G.lastSurprise; const gf = s.gift || {}; if (gf.items) assert(DG.ITEMS.some(it => it.id === gf.items)); if (gf.fabric) assert(DG.FABRICS.some(f => f.id === gf.fabric)); }
+  }
+  assert(n > 60 && n < 140, `surprises ${n}`); assert.strictEqual(same, 0);
+  console.log(`v1.9 collection and surprise checks passed (${n} surprises in 300 days)`);
+}

@@ -240,8 +240,42 @@
     if (gf.happy) G.home.happy = Math.min(100, G.home.happy + gf.happy);
     if (gf.fabric) G.inv.fabrics[gf.fabric] = Math.round(((G.inv.fabrics[gf.fabric] || 0) + gf.m) * 10) / 10;
     if (gf.charm) G.keepsakes = (G.keepsakes || 0) + gf.charm;
+    if (gf.items) G.inv.items[gf.items] = (G.inv.items[gf.items] || 0) + gf.n;
     G.letters.unshift({ from: m.from, text: m.text, day: m.day, title: m.title || '', story: m.story || null });
     if (G.letters.length > 60) G.letters.pop();
+    return m;
+  };
+
+  // ---------- little surprises in the morning post ----------
+  // when: optional condition; gift as for letters. {name} is a recent happy customer.
+  const SURPRISES = [
+    { from: T('The baker next door', 'Bageren ved siden af'), text: T('Kanelsnegle on the doorstep, still warm. "For the busiest shop on the street."', 'Kanelsnegle på trappen, stadig lune. "Til den travleste butik på gaden."'), gift: { happy: 3 } },
+    { from: 'Dexter', text: T('Dexter has left you a present by the door: one sock, slightly chewed. He looks very proud.', 'Dexter har lagt en gave ved døren: én sok, lettere tygget. Han ser meget stolt ud.') },
+    { from: T('A fabric merchant', 'En stofhandler'), text: T('A sample from a weaver in Jutland: "Try this, and tell your customers about us."', 'En prøve fra en væver i Jylland: "Prøv det her, og fortæl dine kunder om os."'), gift: { fabric: 'linen', m: 2 } },
+    { from: '{name}', happy: true, text: T('Thank you for my dress. I wore it again yesterday and three people asked about it. Here is a little something for the tip jar.', 'Tak for min kjole. Jeg havde den på igen i går, og tre mennesker spurgte til den. Her er en lille ting til drikkepengekrukken.'), gift: { money: 400 } },
+    { from: '{name}', happy: true, text: T('I just wanted to say: I feel like myself in your dress. That is rare. Thank you.', 'Jeg ville bare sige: Jeg føler mig som mig selv i din kjole. Det er sjældent. Tak.'), gift: { happy: 2 } },
+    { from: '{name}', happy: true, text: T('Flowers for the shop window, from a very happy customer.', 'Blomster til butiksvinduet fra en meget glad kunde.'), gift: { happy: 2 } },
+    { from: T('A little girl', 'En lille pige'), text: T('A drawing in the letterbox: a princess in a dress with nine bows. "For Mie. Make this one next."', 'En tegning i postkassen: en prinsesse i en kjole med ni sløjfer. "Til Mie. Lav den her næste gang."') },
+    { from: 'Adam', text: T('A note on the kitchen table: "Coffee is in the thermos. You are amazing. A."', 'En seddel på køkkenbordet: "Kaffen er i termokanden. Du er fantastisk. A."'), gift: { happy: 3 } },
+    { from: 'Elizabeth', text: T('Elizabeth has "helped" by sorting all the buttons by how much she likes them.', 'Elizabeth har "hjulpet" ved at sortere alle knapperne efter, hvor godt hun kan lide dem.') },
+    { from: T('The button lady at the market', 'Knapdamen på markedet'), text: T('"I found a jar of old wooden buttons. They should be in a dress, not in my cellar."', '"Jeg fandt et glas med gamle træknapper. De skal sidde i en kjole, ikke ligge i min kælder."'), gift: { items: 'btn_wood', n: 2 } },
+    { from: T('A Christmas card', 'Et julekort'), when: G => DG.season(G).id === 'winter', text: T('"Glædelig jul from the whole street. The shop window makes our winter brighter."', '"Glædelig jul fra hele gaden. Butiksvinduet gør vores vinter lysere."'), gift: { happy: 3 } },
+    { from: T('The neighbours', 'Naboerne'), when: G => DG.season(G).id === 'summer', text: T('An invitation to the street party on Saturday. There will be a long table, flags and far too much cake.', 'En invitation til gadefest på lørdag. Der bliver langbord, flag og alt for meget kage.'), gift: { happy: 4 } },
+    { from: T('A postcard', 'Et postkort'), when: G => DG.season(G).id === 'spring', text: T('A postcard of the cherry trees at Bispebjerg, from a customer who moved away. "I still wear your dress."', 'Et postkort med kirsebærtræerne på Bispebjerg fra en kunde, der er flyttet. "Jeg går stadig med din kjole."') },
+    { from: T('A bag of apples', 'En pose æbler'), when: G => DG.season(G).id === 'autumn', text: T('Someone left a bag of apples by the door with a note: "From our garden, for the family."', 'Nogen har stillet en pose æbler ved døren med en seddel: "Fra vores have, til familien."'), gift: { happy: 3 } },
+  ];
+  DG.SURPRISES = SURPRISES;
+  // About every third morning there is something small in the post.
+  DG.dailySurprise = function (G, rnd = Math.random) {
+    if (G.day < 2 || rnd() > 0.33) return null;
+    const happy = G.known.filter(k => k.lastS >= 80);
+    const pool = SURPRISES.filter((x, i) => (!x.when || x.when(G)) && (!x.happy || happy.length) && i !== G.lastSurprise);
+    const x = pool[Math.floor(rnd() * pool.length)];
+    if (!x) return null;
+    const who = x.happy ? happy[Math.floor(rnd() * happy.length)] : null;
+    const m = { id: 'm' + G.nextId++, from: who ? who.name : x.from, look: who ? who.look : null, day: G.day, text: x.text, gift: x.gift || null };
+    G.mail.push(m);
+    G.lastSurprise = SURPRISES.indexOf(x);   // not the same one twice in a row
     return m;
   };
 

@@ -102,6 +102,7 @@
     G.letters = G.letters || [];
     G.lookbook = G.lookbook || [];
     G.keepsakes = G.keepsakes || 0;
+    G.collections = G.collections || { fabrics: [], colours: [], silhouettes: [], shapes: [], seasons: [], done: [] };
     G.returning = G.returning || [];
     if (G.gameOver) { G.gameOver = false; if (G.money < DG.HELP_FLOOR) G.money = DG.HELP_FLOOR; }
     G.schema = Math.max(G.schema || 0, DG.SAVE_SCHEMA);
@@ -438,6 +439,7 @@
     // someone from the stories may drop by for the next chapter of her life
     const sc = DG.storyArrival && DG.storyArrival(G);
     if (sc) { if (G.queue.length >= n && G.queue.length > 1) G.queue.pop(); G.queue.unshift(sc); }
+    if (DG.dailySurprise) DG.dailySurprise(G);
   };
 
   // SKAT on daily profit; an accountant raises the tax-free amount and lowers the rate.
@@ -701,6 +703,27 @@
     return '';
   };
 
+  // ---------- collections: little sets to complete, each with a keepsake for the shop ----------
+  DG.COLLECTIONS = [
+    { id: 'fabrics', icon: '🧵', title: 'Fabric library', desc: 'Sew a dress in every fabric.', all: () => DG.FABRICS.map(f => f.id), reward: 6000 },
+    { id: 'colours', icon: '🌈', title: 'Every colour of the rainbow', desc: 'Sew a dress in every colour.', all: () => DG.COLORS.map(c => c.id), reward: 5000 },
+    { id: 'silhouettes', icon: '👗', title: 'The silhouette book', desc: 'Four stars or more in every silhouette.', all: () => DG.SILHOUETTES.map(x => x.id), reward: 8000 },
+    { id: 'shapes', icon: '🏺', title: 'The potter\'s shelf', desc: 'Fire every pot shape in the kiln.', all: () => DG.POT_SHAPES.map(x => x.id), reward: 5000 },
+    { id: 'seasons', icon: '🍂', title: 'Four seasons of five stars', desc: 'A five-star dress in every season.', all: () => DG.SEASONS.map(x => x.id), reward: 8000 },
+  ];
+  DG.collect = function (G, set, id) {
+    const c = G.collections;
+    if (!c || !id || !c[set] || c[set].includes(id)) return false;
+    c[set].push(id);
+    const col = byId(DG.COLLECTIONS, set);
+    if (col && !c.done.includes(set) && col.all().every(x => c[set].includes(x))) {
+      c.done.push(set);
+      // a finished collection: a framed keepsake for the shop and a little reward, in tomorrow's post
+      G.mail.push({ id: 'm' + G.nextId++, from: 'Mie', day: G.day + 1, title: col.title, text: `Collection complete: ${col.title}! A framed keepsake goes up on the shop wall.`, gift: { charm: 1, money: col.reward } });
+    }
+    return true;
+  };
+
   // ---------- lookbook: the dresses worth remembering ----------
   DG.addToLookbook = function (G, cust, S, design) {
     if (S < 80 && !cust.story) return false;
@@ -711,8 +734,14 @@
   };
 
   // ---------- stats & goals ----------
-  DG.recordDress = function (G, cust, S) {
+  DG.recordDress = function (G, cust, S, design) {
     const st = G.stats;
+    if (design) {
+      DG.collect(G, 'fabrics', design.main);
+      DG.collect(G, 'colours', design.mainColor);
+      if (S >= 80) DG.collect(G, 'silhouettes', design.silhouette);
+      if (S >= 92) DG.collect(G, 'seasons', DG.season(G).id);
+    }
     st.byArche[cust.arche] = (st.byArche[cust.arche] || 0) + 1;
     if (S >= 75) st.happy++;
     if (cust.arche === 'bride') st.brideBest = Math.max(st.brideBest, S);
@@ -814,6 +843,7 @@
       if (G.shelf.length < DG.shelfCapacity(G)) {
         G.shelf.push(it); fired.push(it);
         if (it.pot.shape === 'teapot') G.stats.teapots++;
+        DG.collect(G, 'shapes', it.pot.shape);
         if (it.pot.paint && it.pot.paint.length) G.stats.painted++;
       } else keep.push(Object.assign(it, { crack: 0 }));  // fired fine, waits for shelf space
     });

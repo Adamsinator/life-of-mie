@@ -496,6 +496,12 @@
     'A little sketch from Mie. Make it your own!': 'En lille skitse fra Mie. Gør den til din egen!',
     "Mie can't think of anything we can afford today. Maybe visit the market?": 'Mie kan ikke komme i tanke om noget, vi har råd til i dag. Måske et smut på markedet?',
     '🏆 {0} goals collected: +{1} kr!': '🏆 {0} mål hentet: +{1} kr!', 'That has already been used.': 'Det er allerede brugt.',
+    'Collections': 'Samlinger', 'Little sets to complete at your own pace. Each finished set hangs a framed keepsake on the shop wall.': 'Små samlinger, du kan fuldende i dit eget tempo. Hver færdig samling hænger et indrammet minde op på butikkens væg.',
+    'Fabric library': 'Stofbiblioteket', 'Sew a dress in every fabric.': 'Sy en kjole i hvert stof.', 'Every colour of the rainbow': 'Alle regnbuens farver', 'Sew a dress in every colour.': 'Sy en kjole i hver farve.',
+    'The silhouette book': 'Silhuetbogen', 'Four stars or more in every silhouette.': 'Fire stjerner eller mere i hver silhuet.', "The potter's shelf": 'Keramikerens hylde', 'Fire every pot shape in the kiln.': 'Brænd hver krukkeform i ovnen.',
+    'Four seasons of five stars': 'Fire årstider med fem stjerner', 'A five-star dress in every season.': 'En femstjernet kjole i hver årstid.',
+    '{0} kr in the envelope.': '{0} kr i kuverten.', 'A keepsake for the shop wall (+{0} charm).': 'Et minde til butikkens væg (+{0} charme).', 'It made the whole family smile.': 'Det fik hele familien til at smile.',
+    'In the post': 'I posten',
     'Album': 'Album', 'Stories': 'Historier', 'Lookbook': 'Lookbook', 'Letters': 'Breve', 'Life stories': 'Livshistorier',
     'Some customers come back as their lives move on: first dates, weddings, babies, big moments. Their dresses and letters are kept here.': 'Nogle kunder kommer igen, efterhånden som livet går videre: første dates, bryllupper, babyer, store øjeblikke. Deres kjoler og breve gemmes her.',
     'Next chapter': 'Næste kapitel', 'When the shop is better known': 'Når butikken er mere kendt', 'She will drop by one of these days': 'Hun kigger forbi en af dagene',
@@ -539,6 +545,8 @@
 
   // Sentences with names or other words inside. $1, $2 … are translated too when possible.
   const P = [
+    [/^([\d.,]+) m (.+) for the shelf\.$/, '$1 m $2 til hylden.'], [/^(\d+) × (.+)\.$/, '$1 × $2.'],
+    [/^Collection complete: (.+)! A framed keepsake goes up on the shop wall\.$/, 'Samlingen er fuldendt: $1! Et indrammet minde kommer op på butikkens væg.'],
     [/^(.+) · (\d+) of (\d+) chapters$/, '$1 · $2 af $3 kapitler'], [/^📖 Chapter (\d+): (.+)$/, '📖 Kapitel $1: $2'], [/^· (.+)$/, '· $1'],
     [/^She sent (\d+) m of (.+) she didn't need\.$/, 'Hun har sendt $1 m $2, som hun ikke skulle bruge.'],
     [/^↶ Undo: (\d+) m (.+)$/, '↶ Fortryd: $1 m $2'], [/^↶ Undo: (\d+)× (.+)$/, '↶ Fortryd: $1× $2'], [/^Returned (.+)\.$/, '$1 er leveret tilbage.'],

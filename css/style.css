@@ -614,3 +614,15 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .event.mail { background: #fffaf0; border-color: #ecdcc4; color: #3a2a20; }
 .stories { align-items: start; }
 .tab-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--rose); margin-left: 6px; vertical-align: 2px; }
+.collections { display: grid; gap: 12px; }
+.coll { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.coll.done { border-color: var(--gold); background: var(--gold-soft); }
+.coll-head { display: flex; gap: 12px; align-items: center; }
+.coll-head > div { display: flex; flex-direction: column; flex: 1; }
+.coll-ic { font-size: 1.6rem; }
+.coll-n { font-weight: 800; color: var(--muted); }
+.coll-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.coll-item { opacity: .25; filter: grayscale(1); display: inline-flex; align-items: center; }
+.coll-item.have { opacity: 1; filter: none; }
+.coll-item.word { font-size: .8rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--paper); }
+.coll-item.word.have { background: var(--teal); color: var(--on-accent); }
