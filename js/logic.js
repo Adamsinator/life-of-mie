@@ -42,8 +42,27 @@
       nextId: 1,
     };
     DG.FABRICS.forEach(f => { G.market.mult[f.id] = 1; G.market.prev[f.id] = 1; });
+    return DG.ensureDefaults(G);
+  };
+
+  // Fills in fields added after the first release, so older saves keep working.
+  DG.ensureDefaults = function (G) {
+    G.decor = G.decor || { owned: [], wallpaper: 'stripes', walls: ['stripes'] };
+    G.staff = G.staff || { apprentice: false, assistant: false };
+    G.marketing = G.marketing || [];   // campaigns booked today, effective tomorrow
+    G.boost = G.boost || null;         // today's effects from yesterday's campaigns
+    G.rack = G.rack || [];
+    G.lastRackSales = G.lastRackSales || [];
     return G;
   };
+
+  DG.charm = function (G) {
+    const d = G.decor;
+    const items = d.owned.reduce((a, id) => a + (byId(DG.DECOR, id) || { charm: 0 }).charm, 0);
+    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm;
+  };
+  DG.wages = G => DG.STAFF.reduce((a, st) => a + (G.staff[st.id] ? st.wage : 0), 0);
+  DG.rackCapacity = G => 2 + DG.upgradeLevel(G, 'display');
 
   // ---------- unlocks & prices ----------
   DG.isUnlocked = function (G, thing) {
@@ -112,9 +131,10 @@
     return parts.join(' ');
   }
 
-  DG.genCustomer = function (G) {
+  DG.genCustomer = function (G, opts = {}) {
     const display = DG.upgradeLevel(G, 'display');
-    const eligible = DG.ARCHETYPES.filter(a => a.minRep <= G.rep);
+    let eligible = DG.ARCHETYPES.filter(a => a.minRep <= G.rep);
+    if (opts.topTier) eligible = eligible.slice(-3);
     // Higher-tier archetypes get more likely as the shop window improves.
     const weights = eligible.map(a => 1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0));
     let r = Math.random() * weights.reduce((x, y) => x + y, 0);
@@ -141,7 +161,8 @@
 
     const loyal = base.visits > 0 && base.lastS >= 85;
     const ev = G.market.event;
-    let budget = randInt(arche.budget[0], arche.budget[1]) * (1 + 0.08 * display) * (loyal ? 1.1 : 1) * (ev && ev.type === 'buzz' ? 1.2 : 1);
+    let budget = randInt(arche.budget[0], arche.budget[1]) * (1 + 0.08 * display) * (loyal ? 1.1 : 1) * (ev && ev.type === 'buzz' ? 1.2 : 1)
+      * (1 + 0.01 * DG.charm(G)) * ((G.boost && G.boost.budget) || 1);
     budget = Math.round(budget / 10) * 10;
 
     const targets = {};
@@ -166,6 +187,7 @@
 
   // ---------- days ----------
   DG.rent = G => 35 + 10 * Object.values(G.upgrades).reduce((a, b) => a + b, 0);
+  DG.dailyCosts = G => DG.rent(G) + DG.wages(G);
 
   DG.startDay = function (G) {
     G.day += 1;
@@ -178,27 +200,47 @@
     else if (r < 0.33) G.market.event = { type: 'rain' };
     else G.market.event = null;
 
-    const cap = 2 + DG.upgradeLevel(G, 'display');
+    // yesterday's marketing campaigns take effect today
+    const booked = G.marketing || [];
+    G.boost = { campaigns: booked.slice(), budget: booked.includes('newspaper') ? 1.15 : 1 };
+    G.marketing = [];
+    const extra = (booked.includes('flyers') ? 1 : 0) + (booked.includes('newspaper') ? 1 : 0) + (booked.includes('show') ? 2 : 0);
+
+    const cap = 2 + DG.upgradeLevel(G, 'display') + (G.staff.assistant ? 1 : 0);
     let n = 1 + Math.floor(G.rep / 20) + (Math.random() < 0.3 ? 1 : 0);
     if (G.market.event && G.market.event.type === 'rain') n -= 1;
-    n = clamp(n, 1, cap);
+    n = clamp(n, 1, cap) + extra;   // campaigns may exceed the usual cap
     G.today = { income: 0, spent: 0, served: 0, seen: [], startMoney: G.money };
     G.queue = [];
-    for (let i = 0; i < n; i++) G.queue.push(DG.genCustomer(G));
+    for (let i = 0; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
   };
+
+  DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
     const rent = DG.rent(G);
+    const wages = DG.wages(G);
     const missed = G.queue.length;
-    G.money -= rent;
-    G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
+    // walk-in shoppers browse the ready-to-wear rack
+    const p = DG.rackSaleChance(G);
+    const sold = [];
+    G.rack = G.rack.filter(item => {
+      if (Math.random() < p) { sold.push(item); return false; }
+      return true;
+    });
+    const rackIncome = sold.reduce((a, it) => a + it.price, 0);
+    G.money += rackIncome;
+    if (G.today) G.today.income += rackIncome;
+    G.lastRackSales = sold;
+    G.money -= rent + wages;
+    if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
     G.queue = [];
     let mom = false;
     if (G.money < 0) {
       if (!G.momUsed) { G.money += 300; G.momUsed = true; mom = true; }
       else G.gameOver = true;
     }
-    return { rent, missed, mom, today: G.today };
+    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant };
   };
 
   // ---------- design ----------
@@ -223,8 +265,9 @@
     const fa = design.accent ? byId(DG.FABRICS, design.accent) : null;
 
     const trimM = slv.m + (neck.m || 0) + exs.reduce((a, e) => a + (e.m || 0), 0);
-    const mainM = round1(sil.m * len.mult + (fa ? 0 : trimM));
-    const accentM = fa ? round1(trimM) : 0;
+    const save = G.staff && G.staff.apprentice ? 0.9 : 1;   // careful pattern cutting
+    const mainM = round1((sil.m * len.mult + (fa ? 0 : trimM)) * save);
+    const accentM = fa ? round1(trimM * save) : 0;
 
     const wAcc = fa && accentM > 0 ? 0.25 : 0;
     const attrs = {};
@@ -291,7 +334,7 @@
   };
 
   // ---------- scoring ----------
-  // S = 100(0.65·A + 0.15·C + 0.10·St + 0.10·k) − 15·(failed reqs) + 3·fitting + loyalty
+  // S = 100(0.65·A + 0.15·C + 0.10·St + 0.10·k) − 15·(failed reqs) + 3·fitting + loyalty + charm/4
   // A = Σ w_i (min(a_i/t_i, 1))^p / Σ w_i, p = DG.BAL.fitExp
   DG.evaluate = function (cust, design, G, craft) {
     const an = DG.analyze(design, G);
@@ -315,7 +358,8 @@
     const failed = cust.reqs.filter(r => !DG.REQS[r].check(design));
     const fitting = DG.upgradeLevel(G, 'fitting');
 
-    let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0);
+    let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0)
+      + 0.25 * DG.charm(G);
     S = Math.round(clamp(S, 0, 100));
 
     const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
@@ -325,6 +369,24 @@
     const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
 
     return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost };
+  };
+
+  // ---------- ready-to-wear rack ----------
+  // Walk-in shoppers want a generally appealing dress: price = 0.9·materials + 18·appeal,
+  // appeal = mean of the dress's three best stats (after stitching).
+  DG.RACK_SHOPPER = {
+    rack: true, name: 'the rack', title: 'Ready-to-wear', cid: 'rack', oid: 'rack',
+    weights: {}, targets: {}, styles: [], reqs: [], liked: [], disliked: [], budget: 0, visits: 0,
+  };
+  DG.rackItem = function (design, G, craft) {
+    const an = DG.analyze(design, G);
+    const attrs = Object.assign({}, an.attrs);
+    attrs.quality = clamp(round1(attrs.quality * (0.85 + 0.25 * craft)), 0, 10);
+    const top3 = DG.ATTRS.map(k => attrs[k]).sort((a, b) => b - a).slice(0, 3);
+    const appeal = round1(top3.reduce((a, b) => a + b, 0) / 3);
+    const cost = design.cost != null ? design.cost : an.cost;
+    const price = Math.round((0.9 * cost + 18 * appeal) / 10) * 10;
+    return { design: Object.assign({}, design), appeal, cost, price, attrs };
   };
 
   // Complaint/praise line from the result.

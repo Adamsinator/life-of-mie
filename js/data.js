@@ -138,6 +138,43 @@
     { id: 'fitting',    name: 'Cozy fitting room',  icon: '🛋️', costs: [450, 1100],      desc: '+3 satisfaction per level, and happy customers tip more.' },
   ];
 
+  // Decor: bought once, shown in the shop scene. Charm raises satisfaction (+0.25 each) and budgets (+1% each).
+  DG.DECOR = [
+    { id: 'plant',      name: 'Monstera plant',   icon: '🪴', cost: 120, charm: 1, desc: 'A big green friend by the door.' },
+    { id: 'windowbox',  name: 'Window flowers',   icon: '🌷', cost: 150, charm: 1, desc: 'Tulips under the shop window.' },
+    { id: 'rug',        name: 'Persian rug',      icon: '🟥', cost: 180, charm: 1, desc: 'Soft underfoot, lovely to look at.' },
+    { id: 'mirror',     name: 'Gilded mirror',    icon: '🪞', cost: 260, charm: 2, desc: 'Customers love seeing themselves in your work.' },
+    { id: 'gallery',    name: 'Sketch gallery',   icon: '🖼️', cost: 300, charm: 2, desc: "Framed sketches of Mie's best designs." },
+    { id: 'espresso',   name: 'Espresso machine', icon: '☕', cost: 350, charm: 2, desc: 'A cup of coffee makes every fitting nicer.' },
+    { id: 'armchair',   name: 'Velvet armchair',  icon: '🛋️', cost: 420, charm: 2, desc: 'Somewhere for husbands and friends to wait.' },
+    { id: 'neon',       name: 'Neon sign',        icon: '💡', cost: 500, charm: 2, desc: "A glowing pink “Mie's” above the door." },
+    { id: 'chandelier', name: 'Crystal chandelier', icon: '✨', cost: 750, charm: 3, desc: 'Pure sparkle. The gala crowd notices.' },
+  ];
+  DG.WALLPAPERS = [
+    { id: 'stripes',   name: 'Candy stripes', cost: 0,   charm: 0 },
+    { id: 'botanical', name: 'Botanical',     cost: 280, charm: 1 },
+    { id: 'damask',    name: 'Damask',        cost: 320, charm: 1 },
+    { id: 'midnight',  name: 'Midnight gold', cost: 450, charm: 2 },
+  ];
+
+  // Staff: one-off hiring fee + daily wage paid with the rent.
+  DG.STAFF = [
+    { id: 'apprentice', name: 'Oskar, apprentice', icon: '🧑‍🎓', fee: 300, wage: 50,
+      look: { skin: '#efc3a0', hair: '#e2c27a', style: 4, top: '#9db69a', bg: '#e2ecdf', glasses: false, earrings: false },
+      desc: 'Cuts patterns so carefully that every dress uses 10% less fabric, and steadies the fabric so the stitch zone is wider.' },
+    { id: 'assistant', name: 'Lise, shop assistant', icon: '💁‍♀️', fee: 400, wage: 70,
+      look: { skin: '#a06a44', hair: '#1c1c1c', style: 3, top: '#d6577b', bg: '#f5dfe4', glasses: true, earrings: true },
+      desc: 'Room for one more customer each day. Customers you could not help leave with a voucher, so no reputation is lost.' },
+  ];
+
+  // Marketing: paid today, takes effect tomorrow.
+  DG.MARKETING = [
+    { id: 'flyers',    name: 'Flyers on Strøget',     icon: '📄', cost: 80,   minRep: 0,  desc: '+1 customer tomorrow.' },
+    { id: 'newspaper', name: 'Ad in the local paper', icon: '📰', cost: 220,  minRep: 0,  desc: '+1 customer and 15% bigger budgets tomorrow.' },
+    { id: 'influencer',name: 'Influencer shout-out',  icon: '📱', cost: 550,  minRep: 15, desc: "Tomorrow's first customer is one of the fanciest types you have unlocked." },
+    { id: 'show',      name: 'Host a fashion show',   icon: '💃', cost: 1200, minRep: 35, desc: '+4 reputation right away and +2 customers tomorrow.' },
+  ];
+
   DG.REQS = {
     pockets:     { short: 'Pockets',              text: 'It needs pockets!',                                  check: d => d.extras.includes('pockets') },
     longsleeves: { short: 'Long sleeves',         text: 'Long sleeves, please. I get cold.',                  check: d => d.sleeves === 'long' || d.sleeves === 'bell' },

@@ -4,7 +4,7 @@
   const { byId, clamp, round1, pick } = DG;
   const KEY = 'mies-atelier-save-v1';
   let G = null;
-  const UI = { view: 'shop', tab: 'fabric', overlay: null, sew: null, raf: 0, confirm: null };
+  const UI = { view: 'shop', tab: 'fabric', upTab: 'equipment', overlay: null, sew: null, raf: 0, confirm: null };
 
   const kr = n => `${Math.round(n).toLocaleString('da-DK')} kr`;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -18,7 +18,7 @@
   function load() {
     try {
       const s = localStorage.getItem(KEY);
-      if (s) { const x = JSON.parse(s); if (x && x.version === 1) return x; }
+      if (s) { const x = JSON.parse(s); if (x && x.version === 1) return DG.ensureDefaults(x); }
     } catch (e) { /* ignore */ }
     return null;
   }
@@ -55,6 +55,10 @@
   }
 
   function custCard(c, arg) {
+    if (c.rack) {
+      return `<div class="cust rackcard"><span class="rack-ic">👗</span><span class="cust-info"><span class="cust-name">Ready-to-wear dress</span>
+        <span class="muted">For the rack. Walk-in shoppers buy in the evening.</span></span></div>`;
+    }
     return `<button class="cust" data-act="openreq" data-arg="${arg}">
       ${DG.renderAvatar(c.look, 'neutral', 64)}
       <span class="cust-info"><span class="cust-name">${esc(c.name)} ${c.visits ? '<span class="tag">Regular</span>' : ''}</span>
@@ -82,6 +86,7 @@
 
   // ---------------- views ----------------
   function mieLine() {
+    if (G.active && G.active.rack) return 'A dress for the rack is on the cutting table. Let\'s finish it!';
     if (G.active) return `${G.active.name}'s dress won't sew itself! Off to the workshop.`;
     if (G.queue.length === 1) return 'One customer is waiting. Tap her to hear what she wants.';
     if (G.queue.length > 1) return `${G.queue.length} customers are waiting. Who should I help first?`;
@@ -94,15 +99,30 @@
       : ev.type === 'buzz' ? 'Fashion Week buzz: customers bring 20% bigger budgets today.'
         : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
     const queue = G.queue.map((c, i) => custCard(c, i)).join('');
-    return `<div class="shop-grid">
+    const camp = G.boost && G.boost.campaigns && G.boost.campaigns.length
+      ? `<div class="event teal">Today's marketing: ${G.boost.campaigns.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
+    const booked = G.marketing.length ? `<div class="event soft">Booked for tomorrow: ${G.marketing.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
+    const cap = DG.rackCapacity(G);
+    const rack = `<section class="panel rack-panel">
+        <div class="sec-head"><h2>Ready-to-wear rack</h2><span class="muted">${G.rack.length} of ${cap} hangers · each dress has a ${Math.round(DG.rackSaleChance(G) * 100)}% chance to sell every evening</span></div>
+        ${G.rack.length ? `<div class="rack">${G.rack.map((it, i) => `<div class="rack-item"><span class="thumb">${DG.renderDress(it.design, 'rk' + i)}</span><b>${kr(it.price)}</b>
+          <button class="btn small ghost" data-act="markdown" data-arg="${i}" ${it.price <= 50 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>`
+          : '<p class="muted">Nothing on the rack yet. Sew a dress without an order to use up leftover fabric and earn money while you sleep.</p>'}
+        <button class="btn wide" data-act="rackorder" ${G.active || G.rack.length >= cap ? 'disabled' : ''}>✂️ Sew a dress for the rack</button>
+        ${G.active && !G.active.rack ? '<p class="muted small">Finish the current order first.</p>' : ''}
+      </section>`;
+    return `<div class="scene-wrap">${DG.renderShop(G)}</div>
+    <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
-        ${ev ? `<div class="event">${esc(evText)}</div>` : ''}
+        ${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
           <div><dt>Avg. satisfaction</dt><dd>${G.stats.served ? Math.round(G.stats.totalS / G.stats.served) + '%' : '–'}</dd></div>
-          <div><dt>Rent tonight</dt><dd>${kr(DG.rent(G))}</dd></div>
+          <div><dt>Rent${DG.wages(G) ? ' + wages' : ''} tonight</dt><dd>${kr(DG.dailyCosts(G))}</dd></div>
+          <div><dt>Shop charm</dt><dd>✨ ${DG.charm(G)}</dd></div>
           <div><dt>Regulars</dt><dd>${G.known.length}</dd></div>
+          <div><dt>Reputation</dt><dd>${Math.round(G.rep)}</dd></div>
         </dl>
         <button class="btn ghost wide" data-act="endday">${UI.confirm === 'endday' ? `Tap again: ${G.queue.length} will leave (−rep)` : 'Close shop for today 🌙'}</button>
       </section>
@@ -111,6 +131,7 @@
         <h2>${G.queue.length ? 'Waiting in the shop' : 'Nobody waiting'}</h2>
         <div class="queue">${queue || `<p class="muted">${G.active ? 'Finish the current order, then close the shop for the day.' : 'All customers have been served. Close the shop to start a new day.'}</p>`}</div>
       </section>
+      ${rack}
     </div>`;
   }
 
@@ -232,8 +253,9 @@
     const c = G.active;
     if (!c) {
       return `<div class="empty panel">${DG.renderAvatar(DG.MIE_LOOK, 'neutral', 110)}<h2>No order on the table</h2>
-        <p class="muted">Accept a customer's order in the shop, then come back here to design and sew the dress.</p>
-        <button class="btn primary" data-act="view" data-arg="shop">Back to the shop</button></div>`;
+        <p class="muted">Accept a customer's order in the shop, or sew a dress for the ready-to-wear rack.</p>
+        <div class="actions center"><button class="btn primary" data-act="view" data-arg="shop">Back to the shop</button>
+        <button class="btn" data-act="rackorder" ${G.rack.length >= DG.rackCapacity(G) ? 'disabled' : ''}>✂️ Sew for the rack</button></div></div>`;
     }
     const d = G.design;
     const an = DG.analyze(d, G);
@@ -243,14 +265,16 @@
     const margin = c.budget - an.cost;
     return `<div class="ws">
       <section class="panel ws-left">
-        <div class="brief-mini">${DG.renderAvatar(c.look, 'neutral', 56)}
+        ${c.rack ? `<div class="brief-mini"><span class="rack-ic">👗</span><div class="bm-txt"><b>Dress for the rack</b><span class="muted small">No customer: walk-in shoppers pay for a dress whose three best stats are high.</span></div>
+          <button class="btn small ghost" data-act="cancelrack">Cancel</button></div>`
+        : `<div class="brief-mini">${DG.renderAvatar(c.look, 'neutral', 56)}
           <div class="bm-txt"><b>${esc(c.name)}</b><span class="muted small">${esc(c.title)}</span></div>
           <button class="btn small ghost" data-act="openreq" data-arg="active">Read request</button></div>
-        <div class="pchips">${prioChips(c)}</div>
+        <div class="pchips">${prioChips(c)}</div>`}
         ${c.reqs.length ? `<ul class="reqs inline">${c.reqs.map(r => { const ok = DG.REQS[r].check(d); return `<li class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${DG.REQS[r].short}</li>`; }).join('')}</ul>` : ''}
         <div class="stage">${DG.renderDress(d, 'ws')}</div>
         <div class="attrs">${attrBars(an.attrs, c)}</div>
-        <p class="muted small">The marks show ${esc(c.name)}'s wishes. Careful stitching raises quality further.</p>
+        <p class="muted small">${c.rack ? 'Careful stitching raises quality, and with it the price tag.' : `The marks show ${esc(c.name)}'s wishes. Careful stitching raises quality further.`}</p>
       </section>
       <div class="ws-right">
         <section class="panel">
@@ -262,7 +286,8 @@
             <div><span class="lbl">Main fabric</span><b>${an.mainM} m</b><span class="muted small">${fm ? fm.name : 'none chosen'}</span></div>
             ${fa ? `<div><span class="lbl">Accent</span><b>${an.accentM} m</b><span class="muted small">${fa.name}</span></div>` : ''}
             <div><span class="lbl">Materials</span><b>${kr(an.cost)}</b><span class="muted small">at today's prices</span></div>
-            <div><span class="lbl">Budget</span><b>${kr(c.budget)}</b><span class="small ${margin < 0 ? 'bad' : 'good'}">${margin < 0 ? 'over budget' : `${kr(margin)} margin`}</span></div>
+            ${c.rack ? `<div><span class="lbl">Est. price tag</span><b>${kr(DG.rackItem(d, G, 0.8).price)}</b><span class="muted small">with good stitching</span></div>`
+              : `<div><span class="lbl">Budget</span><b>${kr(c.budget)}</b><span class="small ${margin < 0 ? 'bad' : 'good'}">${margin < 0 ? 'over budget' : `${kr(margin)} margin`}</span></div>`}
           </div>
           ${an.notes.map(n => `<p class="note">${esc(n)}</p>`).join('')}
           ${an.issues.length ? `<ul class="issues">${an.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="ready">Everything is ready on the cutting table.</p>'}
@@ -276,7 +301,53 @@
   }
 
   function viewUpgrades() {
-    return `<div class="panel"><div class="sec-head"><h2>Upgrade the atelier</h2><span class="muted">Each upgrade level adds 10 kr to the daily rent.</span></div>
+    const tabs = [['equipment', 'Equipment'], ['decor', 'Decor'], ['staff', 'Staff'], ['marketing', 'Marketing']];
+    const body = { equipment: upEquipment, decor: upDecor, staff: upStaff, marketing: upMarketing }[UI.upTab]();
+    return `<div class="scene-wrap small">${DG.renderShop(G)}</div>
+      <div class="panel"><div class="tabs" role="tablist">${tabs.map(([id, l]) => `<button role="tab" class="tab ${UI.upTab === id ? 'on' : ''}" data-act="uptab" data-arg="${id}">${l}</button>`).join('')}</div>
+      <div class="tabbody">${body}</div></div>`;
+  }
+
+  function upDecor() {
+    const charm = DG.charm(G);
+    return `<div class="sec-head"><h2>Decorate the shop</h2><span class="muted">Charm ✨ ${charm}: +${(charm * 0.25).toFixed(2)} satisfaction and +${charm}% customer budgets. Decor never costs rent.</span></div>
+      <div class="grid upg">${DG.DECOR.map(dc => {
+        const own = G.decor.owned.includes(dc.id);
+        return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${dc.icon}</span><div class="card-title"><b>${dc.name}</b><span class="muted small">✨ +${dc.charm} charm</span></div></div>
+          <p class="small">${dc.desc}</p>
+          ${own ? '<div class="lock done">In the shop ✓</div>' : `<button class="btn primary" data-act="buydecor" data-arg="${dc.id}" ${G.money < dc.cost ? 'disabled' : ''}>Buy: ${kr(dc.cost)}</button>`}</article>`;
+      }).join('')}</div>
+      <h3>Wallpaper <small>only the wallpaper on the wall counts towards charm</small></h3>
+      <div class="chips">${DG.WALLPAPERS.map(w => {
+        const own = G.decor.walls.includes(w.id), on = G.decor.wallpaper === w.id;
+        return `<button class="chip ${on ? 'on' : ''}" data-act="wallpaper" data-arg="${w.id}" ${!own && G.money < w.cost ? 'disabled' : ''}><span class="chip-txt"><b>${w.name}</b><small>${on ? 'on the wall' : own ? 'owned: tap to hang' : kr(w.cost)} · ✨ +${w.charm}</small></span></button>`;
+      }).join('')}</div>`;
+  }
+
+  function upStaff() {
+    return `<div class="sec-head"><h2>Hire help</h2><span class="muted">A one-off hiring fee, then wages every evening with the rent. You can let staff go at any time.</span></div>
+      <div class="grid upg">${DG.STAFF.map(st => {
+        const hired = G.staff[st.id];
+        return `<article class="card ${hired ? 'owned' : ''}"><div class="card-top">${DG.renderAvatar(st.look, hired ? 'happy' : 'neutral', 56)}<div class="card-title"><b>${st.name}</b><span class="muted small">Wage ${kr(st.wage)} / day</span></div></div>
+          <p class="small">${st.desc}</p>
+          ${hired ? `<button class="btn ghost" data-act="fire" data-arg="${st.id}">${UI.confirm === 'fire-' + st.id ? 'Tap again to let them go' : 'Let go'}</button>`
+            : `<button class="btn primary" data-act="hire" data-arg="${st.id}" ${G.money < st.fee ? 'disabled' : ''}>Hire: ${kr(st.fee)}</button>`}</article>`;
+      }).join('')}</div>`;
+  }
+
+  function upMarketing() {
+    return `<div class="sec-head"><h2>Marketing</h2><span class="muted">Campaigns are paid today and work tomorrow. Book as many as you like.</span></div>
+      <div class="grid upg">${DG.MARKETING.map(m => {
+        const booked = G.marketing.includes(m.id), locked = G.rep < m.minRep;
+        return `<article class="card ${booked ? 'owned' : ''} ${locked ? 'locked' : ''}"><div class="card-top"><span class="item-ic">${m.icon}</span><div class="card-title"><b>${m.name}</b><span class="muted small">${kr(m.cost)}</span></div></div>
+          <p class="small">${m.desc}</p>
+          ${booked ? '<div class="lock done">Booked for tomorrow ✓</div>' : locked ? `<div class="lock">🔒 Reputation ${m.minRep}</div>`
+            : `<button class="btn primary" data-act="campaign" data-arg="${m.id}" ${G.money < m.cost ? 'disabled' : ''}>Book: ${kr(m.cost)}</button>`}</article>`;
+      }).join('')}</div>`;
+  }
+
+  function upEquipment() {
+    return `<div class="sec-head"><h2>Equipment and shop</h2><span class="muted">Each upgrade level adds 10 kr to the daily rent.</span></div>
       <div class="grid upg">${DG.UPGRADES.map(u => {
         const lvl = DG.upgradeLevel(G, u.id), max = u.costs.length;
         const cost = u.costs[lvl];
@@ -288,8 +359,7 @@
         </article>`;
       }).join('')}</div>
       <h3>Who visits the shop</h3>
-      <ul class="arche-list">${DG.ARCHETYPES.map(a => `<li class="${a.minRep <= G.rep ? 'on' : ''}"><b>${a.title}</b><span class="muted small">${a.minRep <= G.rep ? 'visiting' : `from reputation ${a.minRep}`} · ${kr(a.budget[0])} to ${kr(a.budget[1])}</span></li>`).join('')}</ul>
-    </div>`;
+      <ul class="arche-list">${DG.ARCHETYPES.map(a => `<li class="${a.minRep <= G.rep ? 'on' : ''}"><b>${a.title}</b><span class="muted small">${a.minRep <= G.rep ? 'visiting' : `from reputation ${a.minRep}`} · ${kr(a.budget[0])} to ${kr(a.budget[1])}</span></li>`).join('')}</ul>`;
   }
 
   // ---------------- overlays ----------------
@@ -329,7 +399,7 @@
 
   function ovSew() {
     return `<div class="overlay"><div class="sheet sew">
-      <h2>Sewing ${esc(G.active.name)}'s dress</h2>
+      <h2>${G.active.rack ? 'Sewing a dress for the rack' : `Sewing ${esc(G.active.name)}'s dress`}</h2>
       <p class="muted">Tap <b>Stitch</b> when the needle is over the green. The gold centre is a perfect stitch.</p>
       <div class="sew-stage">${DG.renderDress(G.design, 'sew')}</div>
       <div class="track"><div class="zone" id="zone"><div class="sweet"></div></div><div class="needle" id="needle"></div></div>
@@ -379,6 +449,17 @@
     </div></div>`;
   }
 
+  function ovRackDone(o) {
+    const it = o.item;
+    return `<div class="overlay"><div class="sheet center">
+      <div class="res-dress small-dress">${DG.renderDress(it.design, 'rackres')}</div>
+      <h2>On the rack for ${kr(it.price)}</h2>
+      <p>Stitching ${Math.round(o.craft * 100)}% · appeal ${it.appeal.toFixed(1)} / 10 · materials ${kr(it.cost)}</p>
+      <p class="muted small">Walk-in shoppers browse the rack every evening. Each dress has a ${Math.round(DG.rackSaleChance(G) * 100)}% chance to sell per night. Charm and a better shop window raise the odds.</p>
+      <button class="btn primary big wide" data-act="resultdone">Back to the shop</button>
+    </div></div>`;
+  }
+
   function ovDayEnd(o) {
     const t = o.res.today || { income: 0, spent: 0, served: 0, startMoney: G.money };
     return `<div class="overlay"><div class="sheet dayend">
@@ -386,9 +467,11 @@
       <table class="rtable money"><tbody>
         <tr><td>Dresses delivered</td><td class="num">${t.served}</td></tr>
         <tr><td>Income</td><td class="num good">${kr(t.income)}</td></tr>
-        <tr><td>Market purchases</td><td class="num">−${kr(t.spent)}</td></tr>
+        <tr><td>Purchases</td><td class="num">−${kr(t.spent)}</td></tr>
+        ${o.res.sold && o.res.sold.length ? `<tr><td>Rack sales (${o.res.sold.length} dress${o.res.sold.length > 1 ? 'es' : ''}, included in income)</td><td class="num good">${kr(o.res.rackIncome)}</td></tr>` : ''}
         <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
-        ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num bad">${o.res.missed} (−${o.res.missed * 0.5} rep)</td></tr>` : ''}
+        ${o.res.wages ? `<tr><td>Staff wages</td><td class="num">−${kr(o.res.wages)}</td></tr>` : ''}
+        ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
       </tbody></table>
       ${o.res.mom ? '<p class="event">Mie couldn\'t make rent, so her mum sent 300 kr. "Just this once, skat!" Next time the bank will close the shop.</p>' : ''}
@@ -424,6 +507,7 @@
       case 'req': return ovReq(o.arg);
       case 'sew': return ovSew();
       case 'result': return ovResult(o);
+      case 'rackdone': return ovRackDone(o);
       case 'dayend': return ovDayEnd(o);
       case 'menu': return ovMenu();
       default: return '';
@@ -500,7 +584,7 @@
 
   function beginSewGame() {
     const machine = DG.upgradeLevel(G, 'machine');
-    UI.sew = { i: 0, scores: [], center: 0.2 + Math.random() * 0.6, zw: 0.16 + 0.05 * machine, phase: 0, pos: 0.5, last: 0, lock: false };
+    UI.sew = { i: 0, scores: [], center: 0.2 + Math.random() * 0.6, zw: 0.16 + 0.05 * machine + (G.staff.apprentice ? 0.04 : 0), phase: 0, pos: 0.5, last: 0, lock: false };
     UI.overlay = { type: 'sew' };
     save();
     render();
@@ -508,6 +592,17 @@
 
   function finishSewing(craft) {
     const cust = G.active, design = G.design;
+    if (cust.rack) {
+      const item = DG.rackItem(design, G, craft);
+      delete item.design.sewn;
+      G.rack.push(item);
+      G.active = null;
+      G.design = null;
+      UI.overlay = { type: 'rackdone', item, craft };
+      save();
+      render();
+      return;
+    }
     const before = eligibleTitles();
     const ev = DG.evaluate(cust, design, G, craft);
     ev.cost = design.cost != null ? design.cost : ev.cost;
@@ -542,7 +637,7 @@
   }
 
   function act(name, arg) {
-    if (name !== 'endday' && name !== 'newgame') UI.confirm = null;
+    if (name !== 'endday' && name !== 'newgame' && name !== 'fire') UI.confirm = null;
     switch (name) {
       case 'view': UI.view = arg; window.scrollTo(0, 0); break;
       case 'tab': UI.tab = arg; break;
@@ -596,6 +691,63 @@
         break;
       }
       case 'sew': startSewing(); return;
+      case 'uptab': UI.upTab = arg; break;
+      case 'rackorder': {
+        if (G.active || G.rack.length >= DG.rackCapacity(G)) break;
+        G.active = Object.assign({}, DG.RACK_SHOPPER);
+        G.design = DG.newDesign(G);
+        UI.view = 'workshop'; UI.tab = 'fabric';
+        window.scrollTo(0, 0);
+        break;
+      }
+      case 'cancelrack': if (G.active && G.active.rack && !G.design.sewn) { G.active = null; G.design = null; UI.view = 'shop'; } break;
+      case 'markdown': {
+        const it = G.rack[+arg];
+        if (it) { it.price = Math.max(50, Math.round(it.price * 0.8 / 10) * 10); toast(`Marked down to ${kr(it.price)}.`); }
+        break;
+      }
+      case 'buydecor': {
+        const dc = byId(DG.DECOR, arg);
+        if (G.decor.owned.includes(arg) || G.money < dc.cost) break;
+        G.money -= dc.cost; G.today.spent += dc.cost;
+        G.decor.owned.push(arg);
+        toast(`${dc.name} added to the shop. Charm is now ${DG.charm(G)}.`);
+        break;
+      }
+      case 'wallpaper': {
+        const w = byId(DG.WALLPAPERS, arg);
+        if (!G.decor.walls.includes(arg)) {
+          if (G.money < w.cost) break;
+          G.money -= w.cost; G.today.spent += w.cost;
+          G.decor.walls.push(arg);
+        }
+        G.decor.wallpaper = arg;
+        break;
+      }
+      case 'hire': {
+        const st = byId(DG.STAFF, arg);
+        if (G.staff[arg] || G.money < st.fee) break;
+        G.money -= st.fee; G.today.spent += st.fee;
+        G.staff[arg] = true;
+        toast(`${st.name.split(',')[0]} starts today!`);
+        break;
+      }
+      case 'fire': {
+        if (UI.confirm !== 'fire-' + arg) { UI.confirm = 'fire-' + arg; break; }
+        UI.confirm = null;
+        G.staff[arg] = false;
+        toast(`${byId(DG.STAFF, arg).name.split(',')[0]} has left the atelier.`);
+        break;
+      }
+      case 'campaign': {
+        const m = byId(DG.MARKETING, arg);
+        if (G.marketing.includes(arg) || G.money < m.cost || G.rep < m.minRep) break;
+        G.money -= m.cost; G.today.spent += m.cost;
+        G.marketing.push(arg);
+        if (arg === 'show') G.rep = clamp(G.rep + 4, 0, 100);
+        toast(`${m.name} booked for tomorrow.`);
+        break;
+      }
       case 'resultdone': UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0); break;
       case 'upgrade': {
         const u = byId(DG.UPGRADES, arg);
@@ -608,7 +760,7 @@
         break;
       }
       case 'endday': {
-        if (G.active) { toast(`Finish ${G.active.name}'s dress before closing.`); break; }
+        if (G.active) { toast(G.active.rack ? 'Finish the rack dress before closing.' : `Finish ${G.active.name}'s dress before closing.`); break; }
         if (G.queue.length && UI.confirm !== 'endday') { UI.confirm = 'endday'; break; }
         UI.confirm = null;
         const res = DG.endDay(G);

@@ -317,3 +317,20 @@ button { font: inherit; color: inherit; touch-action: manipulation; user-select:
   .cust { grid-template-columns: auto 1fr; }
   .cust-budget { grid-column: 2; }
 }
+
+/* ---------- shop scene, rack, purchases (v1.1) ---------- */
+.scene-wrap { max-width: 1180px; margin: 0 auto 16px; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--panel); }
+.scene-wrap.small { max-width: 760px; }
+.shop-scene { display: block; width: 100%; height: auto; }
+.shop-scene .avatar { border-radius: 0; }
+.shop-grid > .rack-panel { grid-column: 1 / -1; }
+.rack { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.rack-item { display: grid; justify-items: center; gap: 6px; padding: 8px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; font-variant-numeric: tabular-nums; }
+.rack-item .thumb, .rack-item .thumb .dress-svg { height: 110px; }
+.rack-ic { font-size: 2.2rem; width: 56px; text-align: center; flex: none; }
+.cust.rackcard { cursor: default; grid-template-columns: auto 1fr; }
+.event.teal { background: var(--teal-soft); border-color: var(--teal); }
+.event.soft { background: var(--paper); border-color: var(--line); font-weight: 600; }
+.card.owned { border-color: var(--teal); background: var(--teal-soft); }
+.small-dress { width: 180px; }
+.actions.center { justify-content: center; }

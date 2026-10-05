@@ -76,3 +76,49 @@ for (let day = 0; day < 7; day++) {
 }
 console.log('sample request:', DG.genCustomer(S).text);
 console.log('all checks passed');
+
+// ---- v1.1: decor, staff, marketing, rack ----
+{
+  const old = DG.newGame();
+  delete old.decor; delete old.staff; delete old.marketing; delete old.rack; delete old.boost;
+  DG.ensureDefaults(old);
+  assert.deepStrictEqual(old.rack, []);
+  assert.strictEqual(DG.charm(old), 0);
+
+  const G2 = DG.newGame();
+  DG.startDay(G2);
+  G2.decor.owned = ['plant', 'mirror'];
+  G2.decor.wallpaper = 'midnight';
+  assert.strictEqual(DG.charm(G2), 1 + 2 + 2);
+
+  // apprentice cuts 10% less fabric
+  const d = DG.newDesign(G2); d.main = 'cotton';
+  const before = DG.analyze(d, G2).mainM;
+  G2.staff.apprentice = true;
+  assert(Math.abs(DG.analyze(d, G2).mainM - DG.round1(before * 0.9)) <= 0.1, 'apprentice saves fabric');
+
+  // marketing adds customers the next day
+  const base = DG.newGame(); base.rep = 0;
+  let n0 = 0, n1 = 0;
+  for (let i = 0; i < 200; i++) {
+    const a = DG.newGame(); DG.startDay(a); DG.startDay(a); n0 += a.queue.length;
+    const b = DG.newGame(); DG.startDay(b); b.marketing = ['flyers', 'show']; DG.startDay(b); n1 += b.queue.length;
+  }
+  assert(Math.abs((n1 - n0) / 200 - 3) < 0.4, `campaigns add ~3 customers (got ${(n1 - n0) / 200})`);
+
+  // wages and rack sales at day end; assistant prevents rep loss
+  G2.staff.assistant = true;
+  G2.rack = [DG.rackItem(d, G2, 1)];
+  const repBefore = G2.rep, moneyBefore = G2.money;
+  const res = DG.endDay(G2);
+  assert.strictEqual(res.wages, 120);
+  assert.strictEqual(G2.rep, repBefore, 'assistant keeps reputation');
+  assert.strictEqual(G2.money, moneyBefore + res.rackIncome - res.rent - res.wages + (res.mom ? 300 : 0));
+
+  // a rack dress should earn less than serving a real customer of similar spend
+  const it = DG.rackItem(d, G2, 0.8);
+  console.log(`rack: cotton A-line costs ${it.cost} kr, tagged ${it.price} kr, sells with p=${DG.rackSaleChance(G2).toFixed(2)}/night`);
+  assert(it.price > it.cost && it.price < it.cost + 200);
+  assert(!/NaN|undefined/.test(DG.renderShop(G2)));
+  console.log('v1.1 checks passed');
+}
