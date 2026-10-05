@@ -5,6 +5,7 @@
   "description": "Mie's Atelier: a dress-making shop game for the browser, made for iPad.",
   "scripts": {
     "test": "node tests/balance.test.js",
+    "sim": "node tests/sim.js 40 60",
     "build": "node tools/build-single.js",
     "start": "npx --yes serve -l 5173 ."
   }

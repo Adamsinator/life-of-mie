@@ -231,3 +231,22 @@ console.log('all checks passed');
   assert.strictEqual(DG.Profiles.settings().minigames, 'full');
   console.log('v1.3 checks passed');
 }
+
+// ---- v1.4: seasonal outings, SKAT, family dreams ----
+{
+  const G = DG.newGame(); G.money = 5000;
+  G.day = 3;  // spring
+  assert(!DG.canDoActivity(G, 'beach'), 'no beach in spring');
+  assert(DG.canDoActivity(G, 'badminton'));
+  G.day = 10; assert(DG.canDoActivity(G, 'beach'), 'beach in summer');
+  G.day = 24; assert(DG.canDoActivity(G, 'movie') && !DG.canDoActivity(G, 'beach'), 'movie night in winter only');
+  assert.strictEqual(DG.skat(1500), 0); assert.strictEqual(DG.skat(4000), 800);
+  const T = DG.newGame(); DG.startDay(T); T.money = 10000; T.today.income = 5000; T.today.spent = 0;
+  const m0 = T.money, res = DG.endDay(T);
+  assert.strictEqual(res.tax, DG.skat(5000 - res.rent - res.wages));
+  assert.strictEqual(T.money, m0 - res.rent - res.wages - res.tax);
+  const H = DG.newGame(); DG.startDay(H); H.money = 2e5; assert(DG.buyHomeItem(H, 'summerhouse'));
+  H.home.happy = 52; H.home.catFood = 0; DG.endDayHome(H); assert.strictEqual(H.home.happy, 50, 'summer house floor');
+  assert(DG.claimableGoals(H).includes('dream'));
+  console.log('v1.4 checks passed');
+}

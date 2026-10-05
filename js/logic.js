@@ -67,12 +67,14 @@
     st.seasons = st.seasons || [];
     st.painted = st.painted || 0;
     G.home = G.home || { happy: 70, items: [], catFood: 7, did: {}, event: null };
+    G.tips = G.tips || [];             // ids of tutorial tips this player has seen
     return G;
   };
 
   // ---------- Mie's home ----------
   // Happiness drops 10/day, 1 less per toy owned (min 3), plus 8 more if Dexter has no food.
-  DG.homeDecay = G => Math.max(3, 10 - G.home.items.length);
+  DG.homeDecay = G => Math.max(3, 10 - G.home.items.reduce((a, id) => a + ((byId(DG.HOME_ITEMS, id) || {}).decay || 1), 0));
+  DG.homeFloor = G => (G.home.items.includes('summerhouse') ? 50 : 0);   // the summer house keeps spirits up
   DG.homeMood = function (G) {
     const h = G.home.happy;
     if (h >= 75) return { id: 'happy', label: 'Happy and rested', sat: 2, zone: 0.02 };
@@ -81,6 +83,7 @@
   };
   DG.canDoActivity = function (G, id) {
     const a = byId(DG.ACTIVITIES, id);
+    if (a.seasons && !a.seasons.includes(DG.season(G).id)) return false;
     if (a.free) return G.home.did[id] !== G.day;
     return G.home.did.outing !== G.day && G.money >= a.cost;
   };
@@ -112,7 +115,7 @@
     const hungry = h.catFood <= 0;
     if (!hungry) h.catFood -= 1;
     const drop = DG.homeDecay(G) + (hungry ? 8 : 0);
-    h.happy = clamp(h.happy - drop, 0, 100);
+    h.happy = clamp(h.happy - drop, DG.homeFloor(G), 100);
     h.event = pick(DG.HOME_EVENTS);
     return { drop, hungry, event: h.event, happy: h.happy };
   };
@@ -235,8 +238,8 @@
 
     const loyal = base.visits > 0 && base.lastS >= 85;
     const ev = G.market.event;
-    let budget = randInt(arche.budget[0], arche.budget[1]) * (1 + 0.08 * display) * (loyal ? 1.1 : 1) * (ev && ev.type === 'buzz' ? 1.2 : 1)
-      * (1 + 0.01 * DG.charm(G)) * ((G.boost && G.boost.budget) || 1);
+    let budget = randInt(arche.budget[0], arche.budget[1]) * (1 + 0.05 * display) * (loyal ? 1.1 : 1) * (ev && ev.type === 'buzz' ? 1.2 : 1)
+      * (1 + 0.005 * DG.charm(G)) * ((G.boost && G.boost.budget) || 1);
     budget = Math.round(budget / 10) * 10;
 
     const targets = {};
@@ -282,8 +285,8 @@
     G.marketing = [];
     const extra = (booked.includes('flyers') ? 1 : 0) + (booked.includes('newspaper') ? 1 : 0) + (booked.includes('show') ? 2 : 0);
 
-    const cap = 2 + DG.upgradeLevel(G, 'display') + (G.staff.assistant ? 1 : 0) + 2 * DG.upgradeLevel(G, 'floor');
-    let n = 1 + Math.floor(G.rep / 20) + (Math.random() < 0.3 ? 1 : 0) + DG.upgradeLevel(G, 'floor');
+    const cap = 2 + DG.upgradeLevel(G, 'display') + (G.staff.assistant ? 1 : 0) + DG.upgradeLevel(G, 'floor');
+    let n = 1 + Math.floor(G.rep / 25) + (Math.random() < 0.3 ? 1 : 0) + DG.upgradeLevel(G, 'floor');
     if (G.market.event && G.market.event.type === 'rain') n -= 1;
     n = clamp(n, 1, cap) + extra;   // campaigns may exceed the usual cap
     G.today = { income: 0, spent: 0, served: 0, seen: [], startMoney: G.money };
@@ -291,6 +294,9 @@
     for (let i = 0; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
   };
 
+  DG.SKAT_FREE = 2000;
+  DG.SKAT_RATE = 0.4;
+  DG.skat = profit => Math.round(Math.max(0, profit - DG.SKAT_FREE) * DG.SKAT_RATE);
   DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
@@ -314,6 +320,11 @@
     if (G.today) G.today.income += pottery.income;
     const home = DG.endDayHome(G);
     G.money -= rent + wages;
+    // SKAT: 40% of the day's profit above 2.000 kr
+    const t = G.today || { income: 0, spent: 0 };
+    const profit = t.income - t.spent - rent - wages;
+    const tax = DG.skat(profit);
+    G.money -= tax;
     if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
     G.queue = [];
     let mom = false;
@@ -322,7 +333,7 @@
       else G.gameOver = true;
     }
     DG.updateGoals(G);
-    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    return { rent, wages, tax, profit, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
@@ -381,7 +392,7 @@
     // fabric needed per id (main and accent may be the same fabric)
     const fabrics = {};
     if (fm) fabrics[fm.id] = mainM;
-    if (fa) fabrics[fa.id] = round1((fabrics[fa.id] || 0) + accentM);
+    if (fa && accentM > 0) fabrics[fa.id] = round1((fabrics[fa.id] || 0) + accentM);
 
     let cost = 0;
     for (const id in fabrics) cost += fabrics[id] * DG.fabricPrice(G, id);
@@ -452,7 +463,7 @@
     const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
     const pay = Math.round(cust.budget * base);
     const tip = S >= 85 ? Math.round(cust.budget * (S - 85) / 100 * (1 + 0.5 * fitting)) : 0;
-    const repDelta = round1((S - 65) / 8);
+    const repDelta = round1((S - 70) / 12);
     const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
 
     return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj, moodAdj: DG.homeMood(G).sat };

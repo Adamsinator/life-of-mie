@@ -33,6 +33,8 @@
     const t = document.createElement('div');
     t.className = 'toast';
     t.textContent = msg;
+    const bar = document.querySelector('.topbar');   // sit just below the top bar so money stays visible
+    if (bar) t.style.top = `${Math.max(10, bar.getBoundingClientRect().bottom + 8)}px`;
     document.body.appendChild(t);
     setTimeout(() => t.classList.add('out'), 2200);
     setTimeout(() => t.remove(), 2700);
@@ -338,7 +340,7 @@
 
   function upDecor() {
     const charm = DG.charm(G);
-    return `<div class="sec-head"><h2>Decorate the shop</h2><span class="muted">Charm ✨ ${charm}: +${(charm * 0.25).toFixed(2)} satisfaction and +${charm}% customer budgets. Decor never costs rent.</span></div>
+    return `<div class="sec-head"><h2>Decorate the shop</h2><span class="muted">Charm ✨ ${charm}: +${(charm * 0.25).toFixed(2)} satisfaction and +${(charm * 0.5).toFixed(1)}% customer budgets. Decor never costs rent.</span></div>
       <div class="grid upg">${DG.DECOR.map(dc => {
         const own = G.decor.owned.includes(dc.id);
         return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${dc.icon}</span><div class="card-title"><b>${dc.name}</b><span class="muted small">✨ +${dc.charm} charm</span></div></div>
@@ -518,6 +520,7 @@
         ${o.res.pottery && (o.res.pottery.fired.length || o.res.pottery.cracked.length) ? `<tr><td>Kiln: ${o.res.pottery.fired.length} fired${o.res.pottery.cracked.length ? `, ${o.res.pottery.cracked.length} cracked 💔` : ' perfectly'}</td><td class="num">${kr(o.res.pottery.fired.reduce((a, it) => a + it.price, 0))} to shelf</td></tr>` : ''}
         <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
         ${o.res.wages ? `<tr><td>Staff wages</td><td class="num">−${kr(o.res.wages)}</td></tr>` : ''}
+        ${o.res.tax ? `<tr><td>SKAT (40% of profit above ${kr(DG.SKAT_FREE)})</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
         ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
       </tbody></table>
@@ -546,6 +549,7 @@
       body = `<div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
         ${slider('music', 'Music')}${slider('sfx', 'Sound effects')}
         <div class="set-row"><span class="lbl">Animations</span>${seg('anim', [[true, 'On'], [false, 'Off']])}</div>
+        <div class="set-row"><span class="lbl">Tips</span>${seg('tips', [[true, 'On'], [false, 'Off']])}</div>
         <div class="set-row"><span class="lbl">Mini-games</span>${seg('minigames', [['full', 'Full'], ['quick', 'Quick']])}</div>
         <p class="muted small">Full: cut, stitch and iron each dress; knead clay before the wheel. Quick: only the stitching and the wheel. Painting pots is always included.</p>`;
     } else if (t === 'players') {
@@ -558,7 +562,7 @@
           <div class="pl-rename"><input class="text-in small" id="rn-${p.id}" value="${esc(p.name)}" maxlength="24" aria-label="Rename ${esc(p.name)}"><button class="btn small" data-act="renameplayer" data-arg="${p.id}">Rename</button></div>
         </li>`).join('')}</ul>
         <h3>New player</h3>
-        <div class="inline-form"><input class="text-in" id="newname" maxlength="24" placeholder="Name" autocomplete="off"><button class="btn primary" data-act="newplayer">Create</button></div>`;
+        <div class="inline-form"><input class="text-in" id="newname" maxlength="24" value="Mie" autocomplete="off"><button class="btn primary" data-act="newplayer">Create</button></div>`;
     } else if (t === 'save') {
       body = `<p>Your game saves automatically on this device after every move. There is no account and no server, so nothing leaves the device unless you copy a save code.</p>
         <button class="btn primary wide" data-act="savenow">💾 Save now</button>
@@ -572,9 +576,7 @@
         <h3>Start over</h3>
         <button class="btn ghost wide" data-act="newgame">${UI.confirm === 'newgame' ? 'Tap again to erase this player\'s shop and start over' : 'Start a new game for this player'}</button>`;
     } else {
-      body = `<button class="btn wide" data-act="howto">📖 How to play</button>
-        <p class="small">Tips: read each customer's wishes and must-haves, check the season, keep the family happy, and collect rewards on the Goals screen.</p>
-        <p class="muted small">Mie's Atelier is made with plain HTML, CSS and JavaScript. Music and sounds are generated live in the browser.</p>`;
+      body = helpHtml();
     }
     return `<div class="overlay dismissable"><div class="sheet menu-sheet">
       <div class="menu-head"><h2>Menu</h2><button class="btn small" data-act="closeov" aria-label="Close menu">✕</button></div>
@@ -754,7 +756,9 @@
     const acts = DG.ACTIVITIES.map(a => {
       const done = a.free ? h.did[a.id] === G.day : h.did.outing === G.day;
       const can = DG.canDoActivity(G, a.id);
-      return `<button class="chip" data-act="activity" data-arg="${a.id}" ${can ? '' : 'disabled'}><span class="ex-ic">${a.icon}</span><span class="chip-txt"><b>${a.name}</b><small>${done ? 'done today ✓' : a.free ? 'free · once a day' : `${kr(a.cost)} · one outing a day`} · ❤️ +${a.joy}</small></span></button>`;
+      const offSeason = a.seasons && !a.seasons.includes(DG.season(G).id);
+      const when = offSeason ? `${a.seasons.map(id => byId(DG.SEASONS, id).name.toLowerCase()).join('/')} only` : done ? 'done today ✓' : a.free ? 'free · once a day' : `${kr(a.cost)} · one outing a day`;
+      return `<button class="chip" data-act="activity" data-arg="${a.id}" ${can ? '' : 'disabled'}><span class="ex-ic">${a.icon}</span><span class="chip-txt"><b>${a.name}</b><small>${when} · ❤️ +${a.joy}</small></span></button>`;
     }).join('');
     const items = who => DG.HOME_ITEMS.filter(i => i.who === who).map(it => {
       const own = h.items.includes(it.id);
@@ -776,6 +780,7 @@
         ${h.event ? `<p class="event soft">Last night: ${esc(h.event)}</p>` : ''}
       </section>
       <section class="panel">
+        <h2>Family dreams</h2><div class="grid upg">${items('family')}</div>
         <h2>Toys for Elizabeth</h2><div class="grid upg">${items('elizabeth')}</div>
         <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
       </section>
@@ -800,6 +805,77 @@
       }).join('')}</div></div>`;
   }
 
+  // ---------------- guided tips ----------------
+  // Shown once per player, in order, when their condition first holds. The target gets a pulsing highlight.
+  const ov = () => UI.overlay && UI.overlay.type;
+  const TIPS = [
+    { id: 'welcome', when: () => UI.view === 'shop' && !ov() && G.stats.served === 0 && G.queue.length && !G.active, target: '.queue .cust',
+      title: 'Welcome to the atelier!', text: 'Mie makes dresses to order. Make customers happy, earn money and grow the shop. Customers wait here. Tap one to hear what she wants.' },
+    { id: 'request', when: () => ov() === 'req' && UI.overlay.arg !== 'active', target: '.brief',
+      title: 'Read the wishes', text: 'Hearts show what matters most. Missing a must-have costs 15 points. Loved colours and favourite silhouettes count too. Tap Accept order when you are ready.' },
+    { id: 'workshop', when: () => UI.view === 'workshop' && G.active && !G.active.rack && !ov(), target: '.attrs',
+      title: 'Design the dress', text: 'Use the tabs to pick fabric, colour, shape, details and extras. The bars show the dress; the black marks are the customer\'s wishes. Reach them without spending the whole budget.' },
+    { id: 'buy', when: () => UI.view === 'workshop' && G.active && !ov() && DG.analyze(G.design, G).missing.length, target: '[data-act=buymissing]',
+      title: 'Missing materials', text: 'Mie doesn\'t have everything yet. Tap here to buy exactly what is missing at today\'s prices, or shop in the Market.' },
+    { id: 'sew', when: () => UI.view === 'workshop' && G.active && !ov() && !DG.analyze(G.design, G).issues.length, target: '[data-act=sew]',
+      title: 'Ready to sew', text: 'Start sewing. You cut the pattern, stitch it and iron it in three quick mini-games. Neat work raises quality.' },
+    { id: 'result', when: () => ov() === 'result', target: '.res-grid',
+      title: 'How did it go?', text: 'Satisfaction sets the payment, tip and reputation. Higher reputation brings more customers and fancier ones with bigger budgets.' },
+    { id: 'endday', when: () => UI.view === 'shop' && !ov() && !G.active && !G.queue.length && G.stats.served > 0, target: '[data-act=endday]',
+      title: 'End of the day', text: 'Everyone has been helped. Close the shop: rent is paid, the night passes and a new day begins with new customers.' },
+    { id: 'market', when: () => UI.view === 'market' && !ov(), target: '.grid',
+      title: 'The market', text: 'Fabric is sold by the metre. Prices change every morning (the arrows), and the six small bars show what each fabric is good at.' },
+    { id: 'home', when: () => G.day >= 2 && UI.view === 'shop' && !ov(), target: '[data-act=view][data-arg=home]',
+      title: 'Mie\'s family', text: 'Upstairs live Adam, Elizabeth (3) and Dexter the cat. A happy family makes Mie work better, so visit them every day.' },
+    { id: 'homeview', when: () => UI.view === 'home' && !ov(), target: '.happy',
+      title: 'Family happiness', text: 'Play with Elizabeth and pet Dexter every day for free. Toys and outings help too. And don\'t forget Dexter\'s cat food!' },
+    { id: 'upgrades', when: () => UI.view === 'upgrades' && !ov(), target: '.view-upgrades .tabs',
+      title: 'Grow the shop', text: 'Spend money on equipment, expansions, decor (charm makes customers happier), staff and marketing.' },
+    { id: 'rack', when: () => G.day >= 3 && UI.view === 'shop' && !ov() && !G.active, target: '.rack-panel',
+      title: 'Ready-to-wear rack', text: 'Leftover fabric? Sew a dress without an order and hang it on the rack. Walk-in shoppers buy in the evening.' },
+    { id: 'season', when: () => G.day > DG.SEASON_LENGTH && UI.view === 'shop' && !ov(), target: '.hud-item:nth-child(2)',
+      title: 'A new season', text: 'Every 7 days the season changes. It changes who visits and which fabrics are in season (+3) or off-season (−4).' },
+    { id: 'goals', when: () => DG.claimableGoals(G).length && !ov(), target: '[data-act=view][data-arg=goals]',
+      title: 'Goal complete!', text: 'You reached a goal. Collect the cash reward on the Goals screen.' },
+    { id: 'potteryad', when: () => !DG.upgradeLevel(G, 'pottery') && G.money >= 800 && UI.view === 'shop' && !ov(), target: '[data-act=view][data-arg=studio]',
+      title: 'A pottery corner?', text: 'With some savings Mie could start making pottery too. Buy the pottery studio under Upgrades → Expansion.' },
+    { id: 'pottery', when: () => UI.view === 'studio' && DG.upgradeLevel(G, 'pottery') && !ov(), target: '.pot-stage',
+      title: 'The pottery corner', text: 'Pick shape, clay, glaze and decoration. Then knead, throw on the wheel and paint if you like. The kiln fires pots overnight.' },
+    { id: 'lowhappy', when: () => G.home.happy < 35 && !ov(), target: '[data-act=view][data-arg=home]',
+      title: 'Mie misses her family', text: 'Family happiness is low, so Mie is distracted at work. Spend time at home.' },
+  ];
+  function currentTip() {
+    if (!S.tips || !G || G.gameOver) return null;
+    if (ov() && !['req', 'result'].includes(ov())) return null;
+    for (const t of TIPS) {
+      if (G.tips.includes(t.id)) continue;
+      try { if (t.when()) return t; } catch (e) { /* ignore */ }
+    }
+    return null;
+  }
+  function coachHtml(t) {
+    return `<aside class="coach" role="status">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 48)}<div class="coach-txt"><b>${t.title}</b><span>${t.text}</span></div>
+      <div class="coach-act"><button class="btn small primary" data-act="tipok" data-arg="${t.id}">Got it</button><button class="btn small ghost" data-act="tipsoff">No more tips</button></div></aside>`;
+  }
+
+  function helpHtml() {
+    const topics = [
+      ['🎯 The goal', 'Run Mie\'s dress atelier in Copenhagen. Make customers happy, earn money, raise your reputation and grow the shop, while keeping the family upstairs happy. There is no end: aim for the Goals and a bride\'s dress.'],
+      ['👗 Customers and scoring', 'Each customer has wishes (hearts 1–3) across quality, workwear, creativity, exclusivity, elegance and comfort, plus must-haves, colours and favourite silhouettes. Satisfaction = 65% wishes + 15% colour + 10% silhouette + 10% craft, −15 per missed must-have, plus small bonuses for charm, season and Mie\'s mood. 75%+ pays the full budget; 85%+ adds a tip.'],
+      ['🧺 Market and seasons', 'Fabric is sold per metre and prices move every morning. In-season fabric costs 12% more but gives +3 satisfaction; off-season fabric is 15% cheaper but gives −4. Seasons change every 7 days.'],
+      ['✂️ Workshop and sewing', 'Pick fabrics, colours, shape, details and extras. The bars show the dress and the black marks the wishes. Sewing is cut → stitch → iron (or only stitch in Quick mode). Better craft means higher quality.'],
+      ['👗 Ready-to-wear rack', 'Sew without an order to use leftover fabric. Rack dresses sell to walk-ins in the evening; charm and a bigger shop window help. You can mark them down.'],
+      ['🏺 Pottery', 'Buy the studio under Upgrades → Expansion. Knead (fewer cracks), throw on the wheel (holding keeps the pressure in the green), optionally paint, and the kiln fires overnight. Pots sell from the shelf and add charm.'],
+      ['🏡 Home and family', 'Family happiness drops every night. Above 75 Mie works better, below 30 worse. Play with Elizabeth and pet Dexter daily, buy toys, go on outings (some only in summer or winter) and keep Dexter fed.'],
+      ['⭐ Upgrades', 'Equipment improves work, expansions add pottery and an upstairs floor, decor adds charm, staff help every day for a wage, and marketing brings more or richer customers tomorrow.'],
+      ['🏆 Goals', '18 milestones with cash rewards. Collect them on the Goals screen.'],
+      ['💾 Saving', 'The game saves automatically on this device. Menu → Save can make a save code to move your game to another device. Each player has their own shop.'],
+    ];
+    return `<button class="btn wide" data-act="howto">📖 Show the introduction</button>
+      <button class="btn wide" data-act="replaytips">💡 Replay the tips</button>
+      <div class="help">${topics.map(([h, t], i) => `<details ${i ? '' : 'open'}><summary>${h}</summary><p>${t}</p></details>`).join('')}</div>`;
+  }
+
   // ---------------- render ----------------
   const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, home: viewHome, upgrades: viewUpgrades, goals: viewGoals };
   function render() {
@@ -811,6 +887,13 @@
     const ovType = G.gameOver ? 'gameover' : UI.overlay && UI.overlay.type;
     if (ovType && ovType === UI.lastOverlay) app.querySelectorAll('.overlay, .sheet').forEach(el => el.classList.add('still'));
     UI.lastOverlay = ovType;
+    const tip = currentTip();
+    document.body.classList.toggle('has-coach', !!tip);
+    if (tip) {
+      app.insertAdjacentHTML('beforeend', coachHtml(tip));
+      const el = app.querySelector(tip.target);
+      if (el) el.classList.add('coach-target');
+    }
     document.body.classList.toggle('modal-open', !!(UI.overlay || G.gameOver));
     if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
@@ -835,9 +918,9 @@
     return `<div class="welcome"><div class="panel center">
       ${DG.renderAvatar(DG.MIE_LOOK, 'ecstatic', 120)}
       <h1><span class="brand-script">Mie's</span> Atelier</h1>
-      <p>Welcome! Who is playing? Each player gets their own shop, saved on this device.</p>
+      <p>Welcome! You play as Mie, a dressmaker with her own little shop in Copenhagen. Keep the name or type your own. Each player gets their own shop, saved on this device.</p>
       <label class="lbl" for="firstname">Your name</label>
-      <input id="firstname" class="text-in" maxlength="24" placeholder="e.g. Adam" autocomplete="off">
+      <input id="firstname" class="text-in" maxlength="24" value="Mie" autocomplete="off">
       <button class="btn primary big wide" data-act="firstplayer">Start playing</button>
       <p class="muted small">Have a save code from another device? Start, then open Menu → Save → Import.</p>
     </div></div>`;
@@ -1050,6 +1133,9 @@
       case 'sew': startSewing(); return;
       case 'uptab': UI.upTab = arg; break;
       case 'menutab': UI.menuTab = arg; UI.importErr = ''; break;
+      case 'tipok': if (!G.tips.includes(arg)) G.tips.push(arg); break;
+      case 'tipsoff': S.tips = false; DG.Profiles.saveSettings(S); toast('Tips are off. Turn them on again in Menu → Settings.'); break;
+      case 'replaytips': G.tips = []; S.tips = true; DG.Profiles.saveSettings(S); UI.overlay = null; UI.view = 'shop'; toast('Tips will show again as you play.'); break;
       case 'setting': {
         const i = arg.indexOf(':');
         const key = arg.slice(0, i), raw = arg.slice(i + 1);

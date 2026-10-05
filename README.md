@@ -10,9 +10,13 @@ No build step and no dependencies. It is plain HTML, CSS and JavaScript.
 - **On iPad:** host it on GitHub Pages (Settings → Pages → deploy from `main`, root folder), open it in Safari, then choose *Share → Add to Home Screen*. It then opens full screen like an app.
 - **Single file:** `npm run build` writes `dist/mies-atelier.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
 
+## Getting started
+
+A new player gets a short introduction, then **tips from Mie** that walk through the first order: reading wishes, designing, buying materials, sewing, the result and closing the shop. More tips appear as new things become relevant (market, family, rack, seasons, goals, pottery). Each tip shows once with the relevant button highlighted. They can be switched off in Settings and replayed from **Menu → Help**, which also has help topics for every part of the game.
+
 ## Players and saving
 
-- On first start you type your name. That creates a **player**, and each player has their own shop. Add, rename, switch or delete players under **Menu → Players**.
+- On first start you choose a name (it defaults to **Mie**). That creates a **player**, and each player has their own shop. Add, rename, switch or delete players under **Menu → Players**.
 - The game **saves automatically** after every move, in this browser on this device (`localStorage`). There is no account and no server. **Menu → Save → Save now** is there for peace of mind.
 - **Moving to another device:** Menu → Save → *Show save code* gives a code starting with `MIE1:`. Send it to yourself, then on the other device use *Import as a new player*.
 - Saves from older versions of the game become "Player 1" automatically.
@@ -51,7 +55,7 @@ Besides fabric and notions, the **Upgrades** screen has five tabs: Equipment, Ex
 | Tab | What you buy | Effect |
 |---|---|---|
 | Equipment | Sewing machine, shop window, supplier network, embroidery machine, market haggling, fitting room | Better stitching, more and richer customers, premium fabrics, embroidery and beading, cheaper market, higher satisfaction. Each level adds 10 kr to the daily rent. |
-| Decor | Plant, window flowers, rug, mirror, sketch gallery, espresso machine, armchair, neon sign, chandelier, and four wallpapers | Each item appears in the shop scene and adds **charm**. Every charm point gives +0.25 satisfaction, +1% customer budgets and a better chance of rack sales. |
+| Decor | Plant, window flowers, rug, mirror, sketch gallery, espresso machine, armchair, neon sign, chandelier, and four wallpapers | Each item appears in the shop scene and adds **charm**. Every charm point gives +0.25 satisfaction, +0.5% customer budgets and a better chance of rack sales. |
 | Staff | Oskar the apprentice (300 kr + 50 kr/day), Lise the shop assistant (400 kr + 70 kr/day) | Oskar: 10% less fabric per dress and a wider stitch zone. Lise: one more customer per day, and no reputation loss for customers you could not help. |
 | Marketing | Flyers, newspaper ad, influencer shout-out, fashion show | Paid today, works tomorrow: extra customers, bigger budgets, a guaranteed high-end client, or an immediate reputation boost. |
 
@@ -86,15 +90,25 @@ The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, th
   - Above 75, Mie is happy and rested: +2 satisfaction on every dress and a wider stitch zone.
   - Below 30, she misses her family: −3 satisfaction.
 - **Every day:** play with Elizabeth and pet Dexter (tap him, he purrs). Both are free, once a day each.
-- **Outings:** ice cream in Nyhavn, Copenhagen Zoo, date night with Adam, a family day at Tivoli. One outing per day.
+- **Outings:** badminton with Adam, ice cream in Nyhavn, a beach day at Amager Strand (summer only), movie night with popcorn (winter only), Copenhagen Zoo, date night with Adam, a family day at Tivoli. One outing per day.
 - **Shopping:** toys for Elizabeth (crayons, teddy bear, wooden train, puppet theatre, tricycle, dollhouse) and things for Dexter (feather wand, scratching post, cat bed, cat tower). They all appear in the scene.
+- **Family dreams** for the long game: a new kitchen (9.000 kr), a garden with a swing (25.000 kr) and a **summer house in Skagen** (150.000 kr, after which happiness never drops below 50).
 - **Cat food** lasts 7 days. A hungry Dexter says "Mjav!".
 - Each evening brings a little story from home.
 
 ## Upstairs floor and goals
 
-- **Upstairs floor** (2.500 kr, +40 kr/day rent): +2 customers per day and +2 rack hangers.
+- **Upstairs floor** (2.500 kr, +40 kr/day rent): +1 customer per day (and room for one more) and +2 rack hangers.
 - **Goals:** 16 milestones with cash rewards, such as your first dress, 5 workwear dresses, a 95% masterpiece, a teapot that survives the kiln, all four seasons, and a bride's dress. Goals stay complete once reached. Collect the rewards on the Goals screen.
+
+## SKAT
+
+Each evening, 40% of the day's profit above 2.000 kr goes to tax. Early days are untouched; it stops a booming shop from turning money meaningless.
+
+## Testing
+
+- `npm test` runs balance, scoring, render and save tests.
+- `npm run sim` plays many full games with bots through the game logic and checks invariants after every step: no NaN, no negative stock, meters within range, kilns and racks not over-full, no exceptions. Add `human` (`node tests/sim.js 40 60 human`) for bots that try only a few designs.
 
 ## Scoring model
 
@@ -106,7 +120,7 @@ $$S = 100\,(0.65A + 0.15C + 0.10\,\mathrm{Style} + 0.10\,k) - 15\cdot\#\text{mis
 
 Here $C$ is the colour match (loved = 1, neutral = 0.55, disliked = 0, with the accent colour counting 30%). Style is 1 if the silhouette is one the customer fancies, otherwise 0.5. $k \in [0,1]$ is the stitching accuracy. Quality is also multiplied by $0.85 + 0.25k$.
 
-Payment is the full budget for $S \ge 75$. Between 40 and 75 it falls linearly to 40% of the budget, and below 40 it is 40%. A tip of $\text{budget}\cdot(S-85)/100$ is added for $S > 85$. Reputation changes by $(S-65)/8$.
+Payment is the full budget for $S \ge 75$. Between 40 and 75 it falls linearly to 40% of the budget, and below 40 it is 40%. A tip of $\text{budget}\cdot(S-85)/100$ is added for $S > 85$. Reputation changes by $(S-70)/12$.
 
 Fabric prices follow a mean-reverting AR(1) in log space: $\ln m_{t+1} = 0.65 \ln m_t + 0.1\,\varepsilon_t$, clamped to $[0.7, 1.45]$.
 

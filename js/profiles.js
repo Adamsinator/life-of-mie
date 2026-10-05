@@ -11,7 +11,7 @@
   const set = (k, v) => { try { g.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
   const del = k => { try { g.localStorage.removeItem(k); } catch (e) { /* ignore */ } };
 
-  const DEFAULT_SETTINGS = { theme: 'auto', music: 0.3, sfx: 0.7, anim: true, minigames: 'full' };
+  const DEFAULT_SETTINGS = { theme: 'auto', music: 0.3, sfx: 0.7, anim: true, minigames: 'full', tips: true };
 
   // unicode-safe base64
   const b64e = str => g.btoa(unescape(encodeURIComponent(str)));

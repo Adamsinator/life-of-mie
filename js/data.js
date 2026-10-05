@@ -137,7 +137,7 @@
     { id: 'haggle',     name: 'Market haggling',    icon: '🤝', costs: [300, 700, 1400], desc: '8% off everything at the market, per level.' },
     { id: 'fitting',    name: 'Cozy fitting room',  icon: '🛋️', costs: [450, 1100],      desc: '+3 satisfaction per level, and happy customers tip more.' },
     { id: 'pottery',    name: 'Pottery studio',     icon: '🏺', costs: [600, 1500], group: 'expansion', desc: 'Level 1: a potter\'s wheel and a small kiln for 3 pots. Level 2: an electric kiln for 5 pots, half as many cracks, and 2 more shelf spaces.' },
-    { id: 'floor',      name: 'Upstairs floor',     icon: '🏠', costs: [2500],      group: 'expansion', desc: 'Opens the first floor: +2 customers per day and +2 rack hangers.' },
+    { id: 'floor',      name: 'Upstairs floor',     icon: '🏠', costs: [2500],      group: 'expansion', desc: 'Opens the first floor: +1 customer per day, room for 1 more, and +2 rack hangers.' },
   ];
 
   // ---------------- seasons (7 days each, starting in spring) ----------------
@@ -203,6 +203,9 @@
     { id: 'puppets',   who: 'elizabeth', name: 'Puppet theatre',    icon: '🎭', cost: 300, joy: 12, desc: 'Starring Dexter, against his will.' },
     { id: 'tricycle',  who: 'elizabeth', name: 'Tricycle',          icon: '🚲', cost: 350, joy: 12, desc: 'Fast. Too fast, says Adam.' },
     { id: 'dollhouse', who: 'elizabeth', name: 'Dollhouse',         icon: '🏠', cost: 450, joy: 15, desc: 'With a tiny atelier on the ground floor.' },
+    { id: 'kitchen',   who: 'family',    name: 'New kitchen',             icon: '🍳', cost: 9000,  joy: 20, decay: 2, desc: 'Adam finally gets his dream oven. Æbleskiver every Sunday.' },
+    { id: 'garden',    who: 'family',    name: 'Garden with a swing',     icon: '🌳', cost: 25000, joy: 25, decay: 2, desc: 'A courtyard garden with a swing for Elizabeth and sun spots for Dexter.' },
+    { id: 'summerhouse', who: 'family',  name: 'Summer house in Skagen',  icon: '🏡', cost: 150000, joy: 40, decay: 3, desc: 'The family dream. Happiness never drops below 50 again.' },
     { id: 'feather',   who: 'dexter',    name: 'Feather wand',      icon: '🪶', cost: 40,  joy: 4,  desc: 'Dexter pretends not to care. He cares.' },
     { id: 'scratch',   who: 'dexter',    name: 'Scratching post',   icon: '🪵', cost: 150, joy: 6,  desc: 'Saves the sofa. Mostly.' },
     { id: 'catbed',    who: 'dexter',    name: 'Cat bed',           icon: '🛏️', cost: 200, joy: 8,  desc: 'He still sleeps on the fabric pile.' },
@@ -213,6 +216,9 @@
   DG.ACTIVITIES = [
     { id: 'play',     name: 'Play with Elizabeth', icon: '🧩', cost: 0,   joy: 8,  free: true },
     { id: 'pet',      name: 'Pet Dexter',          icon: '🐈', cost: 0,   joy: 4,  free: true },
+    { id: 'badminton', name: 'Badminton with Adam', icon: '🏸', cost: 60, joy: 12 },
+    { id: 'beach',    name: 'Beach day at Amager Strand', icon: '🏖️', cost: 50, joy: 22, seasons: ['summer'] },
+    { id: 'movie',    name: 'Movie night with popcorn', icon: '🍿', cost: 40, joy: 16, seasons: ['winter'] },
     { id: 'icecream', name: 'Ice cream in Nyhavn', icon: '🍦', cost: 80,  joy: 10 },
     { id: 'zoo',      name: 'Copenhagen Zoo',      icon: '🦒', cost: 250, joy: 18 },
     { id: 'date',     name: 'Date night with Adam',icon: '🕯️', cost: 300, joy: 20 },
@@ -250,6 +256,7 @@
     { id: 'day30',    title: 'One month in',        desc: 'Keep the atelier open for 30 days.',               target: 30,   reward: 1000, prog: G => G.day },
     { id: 'family',   title: 'Happy home',          desc: 'Get family happiness to 90.',                      target: 90,   reward: 300,  prog: G => Math.floor(G.home.happy) },
     { id: 'artist',   title: 'Potter and painter',  desc: 'Fire a hand-painted pot.',                        target: 1,    reward: 250,  prog: G => G.stats.painted },
+    { id: 'dream',    title: 'Sommerhus!',          desc: 'Buy the family summer house in Skagen.',          target: 1,    reward: 2000, prog: G => (G.home.items.includes('summerhouse') ? 1 : 0) },
     { id: 'bride',    title: 'Say yes to the dress',desc: "Make a bride's dress that scores 85% or more.",   target: 85,   reward: 1500, prog: G => G.stats.brideBest },
   ];
 

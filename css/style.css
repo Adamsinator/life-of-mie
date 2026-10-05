@@ -304,7 +304,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; user-select:
 .dayend { max-width: 480px; display: grid; gap: 14px; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 80;
+  position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 80; pointer-events: none;
   transform: translateX(-50%); background: var(--bar); color: #fff; padding: 12px 18px; border-radius: 12px;
   font-weight: 700; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); animation: rise .2s ease-out; transition: opacity .4s;
   max-width: calc(100vw - 32px); text-align: center;
@@ -450,3 +450,27 @@ input[type="range"] { width: 100%; accent-color: var(--teal); min-height: 32px; 
 
 .overlay.still, .sheet.still { animation: none; }
 @media (max-width: 560px) { .sname { display: none; } .hud-item.rep .repbar { display: none; } .hud { gap: 10px; } }
+
+/* ---------- guided tips & help (v1.4) ---------- */
+.coach {
+  position: fixed; z-index: 70; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(560px, calc(100vw - 24px));
+  display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center;
+  background: var(--card); color: var(--ink); border: 2px solid var(--gold); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(30, 10, 25, .35); animation: coachin .3s ease-out;
+}
+@keyframes coachin { from { transform: translate(-50%, 20px); opacity: 0; } }
+.coach-txt { display: flex; flex-direction: column; gap: 2px; font-size: .92rem; min-width: 0; }
+.coach-txt b { font-family: var(--f-display); font-size: 1.05rem; }
+.coach-act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+.coach-target { outline: 3px solid var(--gold) !important; outline-offset: 3px; border-radius: 12px; animation: glow 1.4s ease-in-out infinite; }
+@keyframes glow { 50% { outline-color: transparent; } }
+body.has-coach .overlay { padding-bottom: 190px; }
+body.has-coach .view { padding-bottom: 200px; }
+.help { display: grid; gap: 6px; }
+.help details { border: 1.5px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--card); }
+.help summary { font-weight: 800; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.help p { margin: 6px 0 4px; font-size: .92rem; }
+/* tab bars wrap instead of overflowing on narrow screens */
+.tabs { flex-wrap: wrap; }
+.tab { flex: 1 1 auto; padding: 0 10px; white-space: nowrap; }
