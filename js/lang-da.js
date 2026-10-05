@@ -491,7 +491,7 @@
     'Dansk': 'Dansk', 'English': 'English', 'the rack': 'stativet', 'Wish: {0}': 'Ønske: {0}', 'Name': 'Navn',
 
     // ---- v1.8 cozy ----
-    'Year {0}': 'År {0}', 'Purse': 'Pung', 'Reputation {0} of {1}': 'Omdømme {0} af {1}', '{0} of {1} stars': '{0} af {1} stjerner',
+    'Ambience': 'Stemning', 'Year {0}': 'År {0}', 'Purse': 'Pung', 'Reputation {0} of {1}': 'Omdømme {0} af {1}', '{0} of {1} stars': '{0} af {1} stjerner',
     'Happy customers': 'Glade kunder', 'Tap again: she pops back tomorrow': 'Tryk igen: hun kigger forbi i morgen', 'Tap again: they pop back tomorrow': 'Tryk igen: de kigger forbi i morgen',
     'Kindly decline': 'Sig venligt nej tak',
     'Over the moon': 'I den syvende himmel', 'Delighted': 'Begejstret', 'Happy': 'Glad', 'Pleased enough': 'Godt tilfreds', 'A polite smile': 'Et høfligt smil',

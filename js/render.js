@@ -361,11 +361,16 @@
     out.push(`<defs>${wallpaperDef(G.decor.wallpaper)}
       <pattern id="planks" width="60" height="12" patternUnits="userSpaceOnUse"><rect width="60" height="12" fill="#c49466"/><path d="M0 11.5H60M22 0V12" stroke="#a87a50" stroke-width="1"/></pattern>
       <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.12)}"/></linearGradient>
-      <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8" stop-opacity=".7"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient></defs>`);
+      <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8" stop-opacity=".7"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient>
+      <linearGradient id="duskSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d3a6e"/><stop offset=".6" stop-color="#b26a8a"/><stop offset="1" stop-color="#f3a56e"/></linearGradient>
+      <linearGradient id="duskRoom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3060" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a4a" stop-opacity=".25"/></linearGradient>
+      <radialGradient id="lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>`);
     // wall, skirting, floor
     out.push('<rect width="400" height="150" fill="url(#wp)"/><rect y="146" width="400" height="6" fill="#fffaf5"/><rect y="152" width="400" height="58" fill="url(#planks)"/>');
     // window with awning and display dresses
-    out.push('<rect x="14" y="34" width="112" height="98" rx="3" fill="#fffaf5"/><rect x="20" y="40" width="100" height="86" fill="url(#glass)"/>');
+    out.push('<rect x="14" y="34" width="112" height="98" rx="3" fill="#fffaf5"/><rect x="20" y="40" width="100" height="86" fill="url(#glass)"/>'
+      // evening sky fades in once everyone has been helped
+      + '<g class="dusk-sky"><rect x="20" y="40" width="100" height="86" fill="url(#duskSky)"/><circle cx="96" cy="54" r="5" fill="#fff4cf"/><circle cx="40" cy="50" r=".8" fill="#fff"/><circle cx="60" cy="58" r=".7" fill="#fff"/><circle cx="76" cy="46" r=".8" fill="#fff"/></g>');
     const winCols = ['#d6577b', '#1e7a58', '#34437f', '#d6a22a'];
     for (let i = 0; i <= display; i++) out.push(miniDress(36 + i * (68 / Math.max(1, display)), 84, winCols[i], 1.05));
     // weather outside the window
@@ -386,7 +391,7 @@
     out.push(awn);
     if (owned('windowbox')) out.push('<rect x="16" y="130" width="108" height="10" rx="2" fill="#7a5236"/>' + [24, 36, 48, 60, 72, 84, 96, 108, 118].map((x, i) => `<path d="M${x} 130 V122" stroke="#4d7a3e" stroke-width="1.4"/><ellipse cx="${x}" cy="120" rx="3.2" ry="4.2" fill="${['#d6577b', '#f0c443', '#bf2630', '#f1b9c2'][i % 4]}"/>`).join(''));
     // door with sign
-    out.push('<rect x="134" y="52" width="44" height="100" rx="2" fill="#2f6f73"/><rect x="140" y="60" width="32" height="40" fill="url(#glass)" opacity=".85"/><circle cx="170" cy="108" r="2.4" fill="#e9c35a"/><rect x="143" y="70" width="26" height="11" rx="2" fill="#fff"/><text x="156" y="78.5" font-size="7" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#c44d6c">ÅBEN</text>');
+    out.push('<rect x="134" y="52" width="44" height="100" rx="2" fill="#2f6f73"/><rect x="140" y="60" width="32" height="40" fill="url(#glass)" opacity=".85"/><rect class="dusk-sky" x="140" y="60" width="32" height="40" fill="url(#duskSky)" opacity=".85"/><circle cx="170" cy="108" r="2.4" fill="#e9c35a"/><rect x="143" y="70" width="26" height="11" rx="2" fill="#fff"/><text x="156" y="78.5" font-size="7" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#c44d6c">ÅBEN</text>');
     if (owned('neon')) out.push('<rect x="122" y="8" width="68" height="34" rx="6" fill="#2f1d2b"/><text x="156" y="32" font-size="17" text-anchor="middle" font-family="Pacifico, cursive" fill="#ff8fb4" style="filter:drop-shadow(0 0 3px #ff5c9a)">Mie\'s</text>');
     if (owned('plant')) out.push('<path d="M186 152 l4 -18 h16 l4 18Z" fill="#c26a45"/><g fill="#3f7a4a"><path d="M198 134 Q180 120 184 104 Q196 112 198 134Z"/><path d="M198 134 Q214 118 212 100 Q200 110 198 134Z"/><path d="M198 134 Q198 112 204 96 Q190 104 198 134Z"/><path d="M198 134 Q176 132 172 118 Q188 120 198 134Z"/></g>');
     if (owned('gallery')) out.push([[300, 28, 22, 28], [328, 22, 26, 34], [360, 30, 22, 24]].map(([x, y, w, h], i) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fffaf5" stroke="#c99a2e" stroke-width="2.5"/>${miniDress(x + w / 2, y + 4, ['#d6577b', '#34437f', '#1e7a58'][i], h / 46)}`).join(''));
@@ -425,7 +430,10 @@
     // waiting customers
     G.queue.slice(0, 5).forEach((c, i) => out.push(DG.renderAvatar(inScene(c.look), 'neutral', 40).replace('<svg', `<svg x="${18 + i * 30}" y="${148 + (i % 2) * 8}"`)));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 0 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
-    return `<svg class="shop-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
+    // evening: warm light over the room and lamps glowing (CSS fades it in and out)
+    out.push('<rect class="dusk" width="400" height="210" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
+    const evening = G.day > 0 && G.today && !G.queue.length && !G.active;
+    return `<svg class="shop-scene${evening ? ' evening' : ''}" viewBox="0 0 400 210" role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
   };
 
   // ---------------- pottery ----------------

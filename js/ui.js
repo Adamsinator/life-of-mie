@@ -38,7 +38,7 @@
     r.classList.toggle('no-anim', !S.anim);
     DG.setLang(S.lang);
     document.title = S.lang === 'da' ? 'Mies liv' : 'Life of Mie';
-    DG.Audio.setVolumes(S.music, S.sfx);
+    DG.Audio.setVolumes(S.music, S.sfx, S.ambient);
   }
   const sfx = n => DG.Audio.play(n);
   // the game's name: "Life of Mie" / "Mies liv"
@@ -584,7 +584,7 @@
     if (t === 'settings') {
       body = `<div class="set-row"><span class="lbl">Language / Sprog</span>${seg('lang', [['en', 'English'], ['da', 'Dansk']])}</div>
         <div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
-        ${slider('music', 'Music')}${slider('sfx', 'Sound effects')}
+        ${slider('music', 'Music')}${slider('sfx', 'Sound effects')}${slider('ambient', 'Ambience')}
         <div class="set-row"><span class="lbl">Animations</span>${seg('anim', [[true, 'On'], [false, 'Off']])}</div>
         <div class="set-row"><span class="lbl">Tips</span>${seg('tips', [[true, 'On'], [false, 'Off']])}</div>
         <div class="set-row"><span class="lbl">Mini-games</span>${seg('minigames', [['full', 'Full'], ['quick', 'Quick']])}</div>
@@ -1042,6 +1042,16 @@
     DG.i18nSkipPending();
   }
 
+  // what you hear in the background: the season's weather, and quiet once the day's work is done
+  function ambienceKind() {
+    if (!G || !G.day) return null;
+    const se = DG.season(G).id;
+    if (UI.view === 'home') return se === 'winter' ? 'fire' : 'night';
+    if (G.market.event && G.market.event.type === 'rain') return 'rain';
+    if (!G.queue.length && !G.active) return se === 'winter' ? 'fire' : 'night';
+    return { spring: 'birds', summer: 'birds', autumn: 'wind', winter: 'fire' }[se] || 'birds';
+  }
+
   function render() {
     const app = document.getElementById('app');
     if (UI.mgCleanup) { UI.mgCleanup(); UI.mgCleanup = null; }
@@ -1057,6 +1067,7 @@
       if (el) el.classList.add('coach-target');
     }
     document.body.classList.toggle('modal-open', !!UI.overlay);
+    DG.Audio.ambience(ambienceKind());
     if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
     mountMiniGame();

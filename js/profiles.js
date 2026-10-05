@@ -16,7 +16,7 @@
   const setRaw = (k, v) => { try { g.localStorage.setItem(k, v); return true; } catch (e) { return false; } };
   const summary = raw => { try { const x = JSON.parse(raw); if (typeof x.day === 'number') return { day: x.day, money: Math.round(x.money) }; } catch (e) { /* damaged */ } return { day: null, money: null }; };
 
-  const DEFAULT_SETTINGS = { lang: /^da\b/i.test((g.navigator && g.navigator.language) || '') ? 'da' : 'en', theme: 'auto', music: 0.3, sfx: 0.7, anim: true, minigames: 'full', tips: true };
+  const DEFAULT_SETTINGS = { lang: /^da\b/i.test((g.navigator && g.navigator.language) || '') ? 'da' : 'en', theme: 'auto', music: 0.3, sfx: 0.7, ambient: 0.5, anim: true, minigames: 'full', tips: true };
 
   // unicode-safe base64
   const b64e = str => g.btoa(unescape(encodeURIComponent(str)));

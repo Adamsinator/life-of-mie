@@ -90,6 +90,7 @@ There is no way to lose and nothing runs on a clock:
 - **Gentle reputation.** A weak dress costs at most 0.6 reputation, and every customer may return.
 - **Fewer numbers.** The top bar shows the season and day, the purse, and reputation as 1–5 stars. Results and evenings use stars and words, with the numbers one tap away. All money details are in **Home → Accounts** (the last 60 days are kept in `G.ledger`).
 - Mini-game timers are relaxed (cut 20 s, iron 12 s, knead 7 s).
+- **Sound and light.** A slow music box with a wandering melody and a soft room reverb. An ambience layer (its own volume under Settings) plays birds in spring and summer, wind in autumn, a crackling fire in winter, and rain on rainy days; when the day's work is done it goes quiet, and the shop fades into evening light with lamps glowing.
 
 ## Prices
 

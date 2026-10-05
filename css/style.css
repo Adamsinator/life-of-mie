@@ -565,3 +565,8 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .table-scroll { max-height: 360px; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .ledger-days th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 4px 6px; position: sticky; top: 0; background: var(--panel); }
 .ledger-days th.num { text-align: right; }
+/* the shop at dusk, once everyone has been helped */
+.shop-scene .dusk, .shop-scene .dusk-sky, .shop-scene .lamp-glow { opacity: 0; transition: opacity 2.5s ease-in-out; }
+.shop-scene.evening .dusk { opacity: 1; }
+.shop-scene.evening .dusk-sky { opacity: 1; }
+.shop-scene.evening .lamp-glow { opacity: .9; }

@@ -1,8 +1,8 @@
-// Synthesised sound effects and a gentle music-box loop (Web Audio, no audio files).
+// Synthesised sound effects, a gentle music box and ambient sounds of the season (Web Audio, no audio files).
 (function (g) {
   const DG = (g.DG = g.DG || {});
-  let ctx = null, sfxGain = null, musicGain = null, musicTimer = 0, step = 0;
-  const vol = { music: 0.4, sfx: 0.7 };
+  let ctx = null, sfxGain = null, musicGain = null, ambGain = null, reverb = null, musicTimer = 0, step = 0;
+  const vol = { music: 0.4, sfx: 0.7, ambient: 0.5 };
 
   function ensure() {
     if (!ctx) {
@@ -11,8 +11,17 @@
       ctx = new AC();
       sfxGain = ctx.createGain();
       musicGain = ctx.createGain();
+      ambGain = ctx.createGain();
       sfxGain.connect(ctx.destination);
+      // the music box sits in a small room: a soft, short reverb
+      reverb = ctx.createConvolver();
+      const len = Math.floor(ctx.sampleRate * 1.8), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+      reverb.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.35;
       musicGain.connect(ctx.destination);
+      musicGain.connect(reverb); reverb.connect(wet); wet.connect(ctx.destination);
+      ambGain.connect(ctx.destination);
       apply();
     }
     if (ctx.state === 'suspended') ctx.resume();
@@ -21,7 +30,8 @@
   function apply() {
     if (!ctx) return;
     sfxGain.gain.value = vol.sfx * 0.6;
-    musicGain.gain.value = vol.music * 0.25;
+    musicGain.gain.value = vol.music * 0.22;
+    ambGain.gain.value = vol.ambient * 0.5;
   }
 
   function tone(freq, dur, type = 'sine', v = 0.3, when = 0, dest, slide = 0) {
@@ -57,26 +67,82 @@
     crack: () => { tone(1200, 0.05, 'square', 0.08, 0, null, 0.3); tone(400, 0.2, 'sawtooth', 0.06, 0.05, null, 0.5); },
   };
 
-  // I–vi–IV–V in C as a music-box arpeggio
+  // A slow music box: I–vi–IV–V in C, a soft bass note, and a melody that wanders over the chord
+  // (it rests now and then, so it never feels like a loop).
   const CHORDS = [[523, 659, 784], [440, 523, 659], [349, 440, 523], [392, 494, 587]];
+  const PENTA = [523, 587, 659, 784, 880, 1047];
+  let mel = 2;
   function musicTick() {
     if (!ctx || vol.music <= 0) return;
-    const chord = CHORDS[Math.floor(step / 8) % 4];
-    const n = chord[[0, 1, 2, 1, 0, 2, 1, 2][step % 8]];
-    tone(n, 0.5, 'sine', 0.22, 0, musicGain);
-    if (step % 8 === 0) tone(chord[0] / 2, 1.4, 'triangle', 0.12, 0, musicGain);
+    const bar = Math.floor(step / 8), beat = step % 8, chord = CHORDS[bar % 4];
+    if (beat === 0) tone(chord[0] / 2, 2.4, 'triangle', 0.1, 0, musicGain);
+    if (beat % 2 === 0) tone(chord[[0, 1, 2, 1][beat / 2]], 0.9, 'sine', 0.13, 0, musicGain);
+    if (Math.random() < (beat % 2 ? 0.35 : 0.55)) {
+      mel = Math.max(0, Math.min(PENTA.length - 1, mel + [-1, -1, 0, 1, 1, 2, -2][Math.floor(Math.random() * 7)]));
+      tone(PENTA[mel] * (bar % 8 < 4 ? 1 : 0.5), 0.7, 'sine', 0.09, 0.02, musicGain);
+    }
     step++;
+  }
+
+  // ---- ambience: birds, rain, wind or a crackling fire, depending on season and weather ----
+  let noiseBuf = null, ambKind = null, ambNodes = [], ambTimer = 0;
+  const noise = () => {
+    if (!noiseBuf) { noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true; return src;
+  };
+  function bed(type, freq, q, level, lfo) {   // a steady filtered-noise bed (rain, wind)
+    const src = noise(), f = ctx.createBiquadFilter(), gn = ctx.createGain();
+    f.type = type; f.frequency.value = freq; f.Q.value = q; gn.gain.value = 0;
+    gn.gain.linearRampToValueAtTime(level, ctx.currentTime + 2);
+    src.connect(f); f.connect(gn); gn.connect(ambGain); src.start();
+    ambNodes.push(src, gn);
+    if (lfo) { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = lfo; og.gain.value = level * 0.6; o.connect(og); og.connect(gn.gain); o.start(); ambNodes.push(o); }
+  }
+  function chirp() {   // a little bird: two to five quick whistles
+    const base = 2600 + Math.random() * 1600, n = 2 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++) tone(base * (1 + (Math.random() - 0.5) * 0.2), 0.07 + Math.random() * 0.05, 'sine', 0.05, i * 0.11, ambGain, 1.25 + Math.random() * 0.3);
+  }
+  function crackle() {   // a log settling in the fire
+    for (let i = 0; i < 1 + Math.floor(Math.random() * 3); i++) tone(900 + Math.random() * 2500, 0.015, 'square', 0.03, i * 0.05 + Math.random() * 0.05, ambGain, 0.4);
+  }
+  function drip() { tone(1400 + Math.random() * 900, 0.05, 'sine', 0.04, 0, ambGain, 0.6); }
+  function stopAmbience() {
+    clearTimeout(ambTimer); ambTimer = 0;
+    ambNodes.forEach(n => { try { if (n.gain) { n.gain.cancelScheduledValues(ctx.currentTime); n.gain.setValueAtTime(n.gain.value, ctx.currentTime); n.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2); } else n.stop(ctx.currentTime + 1.3); } catch (e) { /* already stopped */ } });
+    ambNodes = [];
+  }
+  function startAmbience(kind) {
+    if (!ctx || vol.ambient <= 0) return;
+    const every = { birds: [3000, 9000, chirp], rain: [600, 2200, drip], wind: [8000, 15000, chirp], fire: [250, 1400, crackle], night: [5000, 12000, () => {}] }[kind];
+    if (kind === 'rain') bed('bandpass', 1400, 0.6, 0.18);
+    if (kind === 'wind') bed('lowpass', 500, 0.8, 0.12, 0.08);
+    if (kind === 'fire') bed('lowpass', 260, 0.7, 0.07);
+    if (kind === 'night') bed('lowpass', 300, 0.5, 0.03);
+    if (every) {
+      const loop = () => { if (ambKind !== kind) return; every[2](); ambTimer = setTimeout(loop, every[0] + Math.random() * (every[1] - every[0])); };
+      ambTimer = setTimeout(loop, 800);
+    }
   }
 
   DG.Audio = {
     play(name) { if (vol.sfx > 0 && SFX[name]) try { SFX[name](); } catch (e) { /* audio unavailable */ } },
-    setVolumes(music, sfx) {
-      vol.music = music; vol.sfx = sfx; apply();
+    setVolumes(music, sfx, ambient = vol.ambient) {
+      const ambWas = vol.ambient;
+      vol.music = music; vol.sfx = sfx; vol.ambient = ambient; apply();
       if (music > 0) this.startMusic(); else this.stopMusic();
+      if (ctx && (ambWas > 0) !== (ambient > 0)) { const k = ambKind; ambKind = null; this.ambience(k); }
     },
     // must be called from a user gesture (iOS)
-    unlock() { if (vol.music > 0 || vol.sfx > 0) { ensure(); if (vol.music > 0) this.startMusic(); } },
-    startMusic() { if (!ctx || musicTimer) return; musicTimer = setInterval(musicTick, 340); },
+    unlock() { if (vol.music > 0 || vol.sfx > 0 || vol.ambient > 0) { ensure(); if (vol.music > 0) this.startMusic(); const k = ambKind; ambKind = null; this.ambience(k); } },
+    startMusic() { if (!ctx || musicTimer) return; musicTimer = setInterval(musicTick, 480); },
+    // 'birds' | 'rain' | 'wind' | 'fire' | 'night' | null; only changes anything when the kind changes
+    ambience(kind) {
+      if (kind === ambKind) return;
+      ambKind = kind;
+      if (!ctx) return;   // remembered until the first touch unlocks audio
+      stopAmbience();
+      if (kind) startAmbience(kind);
+    },
     stopMusic() { clearInterval(musicTimer); musicTimer = 0; },
   };
 })(typeof window !== 'undefined' ? window : globalThis);
