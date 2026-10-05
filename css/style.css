@@ -449,6 +449,7 @@ input[type="range"] { width: 100%; accent-color: var(--teal); min-height: 32px; 
 @media (max-width: 480px) { .navbtn { font-size: .58rem; } .navbtn .ic { font-size: 1.1rem; } }
 
 .overlay.still, .sheet.still { animation: none; }
+.ov-host { display: contents; }
 @media (max-width: 560px) { .sname { display: none; } .hud-item.rep .repbar { display: none; } .hud { gap: 10px; } }
 
 /* ---------- guided tips & help (v1.4) ---------- */

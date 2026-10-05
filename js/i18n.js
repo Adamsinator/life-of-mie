@@ -14,8 +14,19 @@
   const daNum = x => (/^\d+\.\d{1,2}$/.test(x) ? x.replace('.', ',') : x);
 
   // Translate one string (English → current language). Unknown strings come back unchanged.
+  // Results are remembered, since the same labels are translated again on every screen update.
+  const memo = new Map();
   function tr(s) {
     if (I.lang === 'en' || !s) return s;
+    let r = memo.get(s);
+    if (r === undefined) {
+      r = trRaw(s);
+      if (memo.size > 20000) memo.clear();
+      memo.set(s, r);
+    }
+    return r;
+  }
+  function trRaw(s) {
     const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
     const core = m[2];
     if (!core || !/[A-Za-z]/.test(core)) return core ? m[1] + core.replace(NUM, daNum) + m[3] : s;
@@ -66,15 +77,20 @@
     }
     if (node.nodeType !== 1 || node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
     if (node.getAttribute('translate') === 'no') return;
+    // drawings: only look inside when they have text in them
+    if (node.tagName === 'svg') { if (!node.getElementsByTagName('text').length) return; }
     ATTRS.forEach(a => { const v = node.getAttribute(a); if (v) { const t = tr(v); if (t !== v) node.setAttribute(a, t); } });
     if (node.tagName === 'TEXTAREA') return;   // never touch what people type
     for (let c = node.firstChild; c; c = c.nextSibling) translateTree(c);
   }
   DG.translateTree = translateTree;
+  // drop queued mutations (used after the screen has been patched with already-translated content)
+  DG.i18nSkipPending = () => { if (observer) observer.takeRecords(); };
 
   let observer = null;
   DG.setLang = function (lang) {
     I.lang = lang === 'da' ? 'da' : 'en';
+    memo.clear();
     if (!g.document) return;
     g.document.documentElement.lang = I.lang;
     if (!observer && g.MutationObserver) {

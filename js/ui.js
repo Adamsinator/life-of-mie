@@ -960,19 +960,49 @@
 
   // ---------------- render ----------------
   const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, home: viewHome, upgrades: viewUpgrades, goals: viewGoals };
+  // ---------------- screen updates ----------------
+  // Every action re-describes the whole screen as HTML, but only the parts that changed are touched:
+  // the new HTML is built off-screen (and translated there) and then patched into the page. Untouched
+  // elements keep their state, so nothing flickers, animations don't replay and scrolling stays put.
+  const tpl = document.createElement('template');
+  const keyOf = n => n.nodeType === 1 ? n.tagName + '#' + (n.id || '') + '#' + (n.getAttribute('data-key') || '') : n.nodeType;
+  function patchNode(a, b) {
+    if (a.nodeType !== 1) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+    const aa = a.attributes, ba = b.attributes;
+    for (let i = aa.length - 1; i >= 0; i--) { const n = aa[i].name; if (!b.hasAttribute(n)) a.removeAttribute(n); }
+    for (let i = 0; i < ba.length; i++) { const { name, value } = ba[i]; if (a.getAttribute(name) !== value) a.setAttribute(name, value); }
+    morphChildren(a, b);
+  }
+  function morphChildren(live, next) {
+    let a = live.firstChild, b = next.firstChild;
+    while (b) {
+      const nb = b.nextSibling;
+      if (!a) live.appendChild(b);
+      else if (keyOf(a) === keyOf(b)) { patchNode(a, b); a = a.nextSibling; }
+      else { const na = a.nextSibling; live.replaceChild(b, a); a = na; }
+      b = nb;
+    }
+    while (a) { const na = a.nextSibling; live.removeChild(a); a = na; }
+  }
+  function paint(app, html) {
+    UI.lastHtml = html;
+    tpl.innerHTML = html;
+    DG.translateTree(tpl.content);
+    morphChildren(app, tpl.content);
+    DG.i18nSkipPending();
+  }
+
   function render() {
     const app = document.getElementById('app');
     if (UI.mgCleanup) { UI.mgCleanup(); UI.mgCleanup = null; }
-    if (!G) { app.innerHTML = welcomeScreen(); return; }
-    app.innerHTML = topbar() + `<main class="view view-${UI.view}">${VIEWS[UI.view]()}</main>` + overlay();
-    // re-rendering the same overlay (e.g. changing a setting) should not replay its entry animation
-    const ovType = G.gameOver ? 'gameover' : UI.overlay && UI.overlay.type;
-    if (ovType && ovType === UI.lastOverlay) app.querySelectorAll('.overlay, .sheet').forEach(el => el.classList.add('still'));
-    UI.lastOverlay = ovType;
+    if (!G) { paint(app, welcomeScreen()); return; }
     const tip = currentTip();
+    const ovType = G.gameOver ? 'gameover' : UI.overlay && UI.overlay.type;
+    paint(app, topbar() + `<main class="view view-${UI.view}" data-key="${UI.view}">${VIEWS[UI.view]()}</main>`
+      + `<div class="ov-host" data-key="${ovType || ''}">${overlay()}</div>` + (tip ? coachHtml(tip) : ''));
+    UI.lastOverlay = ovType;
     document.body.classList.toggle('has-coach', !!tip);
     if (tip) {
-      app.insertAdjacentHTML('beforeend', coachHtml(tip));
       const el = app.querySelector(tip.target);
       if (el) el.classList.add('coach-target');
     }
@@ -1522,5 +1552,5 @@
     beginSewGame();
   }
   render();
-  window.__mie = { get state() { return G; }, act };
+  window.__mie = { get state() { return G; }, act, get html() { return UI.lastHtml; } };
 })();
