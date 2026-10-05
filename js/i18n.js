@@ -75,6 +75,7 @@
       if (t !== v) node.nodeValue = t;
       return;
     }
+    if (node.nodeType === 11) { for (let c = node.firstChild; c; c = c.nextSibling) translateTree(c); return; }   // off-screen fragment
     if (node.nodeType !== 1 || node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
     if (node.getAttribute('translate') === 'no') return;
     // drawings: only look inside when they have text in them
