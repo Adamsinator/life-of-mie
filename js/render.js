@@ -273,6 +273,7 @@
       2: `<circle cx="50" cy="17" r="10" fill="${hair}"/>`,
       3: [[32, 34], [36, 24], [46, 18], [57, 19], [66, 26], [69, 38], [31, 48], [70, 50], [33, 60], [68, 61]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="${hair}"/>`).join(''),
       4: '',
+      5: `<circle cx="27" cy="44" r="8" fill="${hair}"/><circle cx="73" cy="44" r="8" fill="${hair}"/><circle cx="31" cy="38" r="2.4" fill="#d6577b"/><circle cx="69" cy="38" r="2.4" fill="#d6577b"/>`,
     }[look.style];
     const hairFront = {
       0: `<path d="M32 46 Q31 25 50 24 Q69 25 68 46 Q62 33 50 32 Q40 32 36 40 Q34 44 32 46Z" fill="${hair}"/>`,
@@ -280,6 +281,7 @@
       2: `<path d="M33 42 Q33 26 50 25 Q67 26 67 42 Q60 31 50 31 Q40 31 33 42Z" fill="${hair}"/>`,
       3: `<path d="M33 40 Q36 26 50 26 Q64 26 67 40 Q58 33 50 34 Q42 33 33 40Z" fill="${hair}"/>`,
       4: `<path d="M32 44 Q30 24 50 23 Q70 24 68 42 Q66 34 56 32 Q44 34 38 32 Q33 36 32 44Z" fill="${hair}"/>`,
+      5: `<path d="M33 42 Q33 25 50 25 Q67 25 67 42 Q62 32 50 34 Q38 32 33 42Z" fill="${hair}"/>`,
     }[look.style];
     const mouth = {
       ecstatic: `<path d="M42 55 Q50 66 58 55 Z" fill="#7a2a33"/><path d="M44 56 Q50 59 56 56" fill="#fff"/>`,
@@ -297,9 +299,10 @@
       ? '<path d="M40 46 Q43 43 46 46 M54 46 Q57 43 60 46" stroke="#2b2b2b" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
       : '<circle cx="43" cy="46" r="2" fill="#2b2b2b"/><circle cx="57" cy="46" r="2" fill="#2b2b2b"/>';
     const glasses = look.glasses ? '<g fill="none" stroke="#3a2a22" stroke-width="1.3"><circle cx="43" cy="46" r="5.5"/><circle cx="57" cy="46" r="5.5"/><path d="M48.5 46 H51.5"/></g>' : '';
+    const beard = look.beard ? `<path d="M34 50 Q36 68 50 68 Q64 68 66 50 Q62 60 50 60 Q38 60 34 50Z" fill="${hair}"/>` : '';
     const ear = look.earrings ? '<circle cx="33" cy="54" r="2" fill="#e9c35a"/><circle cx="67" cy="54" r="2" fill="#e9c35a"/>' : '';
     const extra = look.measure ? '<path d="M24 100 Q30 78 44 74 L48 82 Q36 86 32 100 Z" fill="#f2d54b"/><path d="M30 92 l3 1 M33 86 l3 1.4 M37 81 l3 1.6" stroke="#5a4a12" stroke-width=".8"/>' : '';
-    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${look.top}"/><rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/><ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${mouth}${glasses}${ear}${extra}</svg>`;
+    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${look.top}"/><rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/><ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${beard}${mouth}${glasses}${ear}${extra}</svg>`;
   };
 
   // ---------------- shop interior ----------------
@@ -400,8 +403,14 @@
     plate: 'M14 88 Q60 70 106 88 Q60 106 14 88 Z',
     vase: 'M50 30 L70 30 L68 42 Q94 60 85 86 Q78 100 60 100 Q42 100 35 86 Q26 60 52 42 Z',
     teapot: 'M30 78 Q30 54 60 54 Q90 54 90 78 Q90 100 60 100 Q30 100 30 78 Z',
+    mug: 'M38 56 L82 56 L82 98 Q60 102 38 98 Z',
+    planter: 'M30 62 L90 62 L82 98 Q60 102 38 98 Z',
+    jug: 'M48 40 L72 40 L70 50 Q90 64 86 86 Q80 100 60 100 Q40 100 34 86 Q30 64 50 50 Z',
+    amphora: 'M52 28 L68 28 L66 40 Q92 52 84 80 Q76 100 60 102 Q44 100 36 80 Q28 52 54 40 Z',
   };
-  const POT_RIM = { cup: [60, 60, 20, 4], bowl: [60, 66, 36, 6], plate: [60, 87, 30, 6], vase: [60, 30, 10, 3], teapot: [60, 55, 17, 4] };
+  const POT_RIM = { cup: [60, 60, 20, 4], bowl: [60, 66, 36, 6], plate: [60, 87, 30, 6], vase: [60, 30, 10, 3], teapot: [60, 55, 17, 4],
+    mug: [60, 56, 22, 4], planter: [60, 56, 32, 5], jug: [60, 40, 12, 3], amphora: [60, 28, 9, 2.5] };
+  DG.POT_BODY = POT_BODY;
 
   // Inner SVG content (no wrapper) for a pot. opts.raw = unglazed wet clay, opts.grow = 0..1 throwing progress.
   DG.potShapeSVG = function (pot, uid, opts = {}) {
@@ -416,6 +425,10 @@
     const line = darken(base, 0.35);
     if (pot.shape === 'cup') parts.push(`<path d="M79 68 q16 4 1 22" stroke="${base}" stroke-width="5" fill="none"/><path d="M79 68 q16 4 1 22" stroke="${line}" stroke-width=".8" fill="none"/>`);
     if (pot.shape === 'teapot') parts.push(`<path d="M30 70 Q12 78 30 92" stroke="${base}" stroke-width="5" fill="none"/><path d="M88 74 Q100 70 106 56 L110 58 Q106 78 90 88 Z" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
+    const handle = d => `<path d="${d}" stroke="${line}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="${d}" stroke="${base}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    if (pot.shape === 'mug') parts.push(handle('M81 64 Q102 64 101 78 Q100 92 81 92'));
+    if (pot.shape === 'jug') parts.push(handle('M71 46 Q94 50 84 78') + `<path d="M48 40 L36 34 L50 46 Z" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
+    if (pot.shape === 'amphora') parts.push(handle('M54 36 Q36 38 41 58') + handle('M66 36 Q84 38 79 58'));
     parts.push(`<path d="${body}" fill="${base}" stroke="${line}" stroke-width=".9"/>`);
     const det = [];
     if (!opts.raw) {
@@ -430,10 +443,15 @@
         });
       }
     }
+    if (!opts.raw && pot.paint) pot.paint.forEach(st => det.push(`<path d="${st.d}" stroke="${st.c}" stroke-width="${st.w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`));
     if (opts.raw) for (let y = 40; y < 100; y += 5) det.push(`<path d="M10 ${y} Q60 ${y + 2} 110 ${y}" stroke="${darken(base, 0.18)}" stroke-width=".6" fill="none" opacity=".7"/>`);
     parts.push(`<g clip-path="url(#${P}c)">${det.join('')}<rect x="0" y="0" width="120" height="120" fill="url(#${P}g)"/></g>`);
     if (pot.shape !== 'plate') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${rw}" ry="${rh}" fill="${darken(base, 0.25)}" stroke="${line}" stroke-width=".8"/>`);
     else parts.push(`<ellipse cx="60" cy="88" rx="30" ry="6" fill="${darken(base, 0.08)}" stroke="${line}" stroke-width=".5"/>`);
+    if (pot.shape === 'planter') {
+      parts.push(`<path d="M27 56 H93 V64 H27 Z" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
+      if (!opts.raw && !opts.noPlant) parts.push('<g fill="#4d8a4e"><path d="M60 54 Q44 36 48 22 Q58 34 60 54Z"/><path d="M60 54 Q76 34 74 20 Q62 32 60 54Z"/><path d="M60 54 Q60 30 66 16 Q54 26 60 54Z"/></g>');
+    }
     if (pot.shape === 'teapot') parts.push(`<ellipse cx="60" cy="55" rx="15" ry="3.5" fill="${base}" stroke="${line}" stroke-width=".8"/><circle cx="60" cy="49" r="4" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
     if (!opts.raw && pot.deco === 'goldrim') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${pot.shape === 'plate' ? 44 : rw}" ry="${pot.shape === 'plate' ? 11 : rh}" fill="none" stroke="#e3b53b" stroke-width="2.2"/>`);
     const g = opts.grow == null ? 1 : 0.25 + 0.75 * opts.grow;
@@ -443,6 +461,76 @@
   DG.renderPot = function (pot, uid = 'pot', opts = {}) {
     const wheel = opts.wheel ? '<ellipse cx="60" cy="104" rx="48" ry="8" fill="#8f8a84"/><ellipse class="wheel-spin" cx="60" cy="102" rx="44" ry="6.5" fill="#b4aea6" stroke="#6f6a63" stroke-width="1" stroke-dasharray="6 5"/>' : '<ellipse cx="60" cy="103" rx="40" ry="5" fill="#000" opacity=".12"/>';
     return `<svg class="pot-svg" viewBox="0 20 120 92" role="img" aria-label="${byId(DG.POT_SHAPES, pot.shape).name}">${wheel}${DG.potShapeSVG(pot, uid, opts)}</svg>`;
+  };
+
+  // ---------------- Dexter the cat ----------------
+  // mood: 'sit' | 'sleep' | 'purr' | 'hungry'
+  DG.renderDexter = function (mood = 'sit') {
+    const fur = '#8d8f96', dark = '#5d6068', belly = '#e9e6e1';
+    const stripes = `<path d="M-6 -2 q4 2 0 6 M0 -4 q4 3 0 7 M6 -2 q4 2 0 6" stroke="${dark}" stroke-width="1.6" fill="none"/>`;
+    if (mood === 'sleep') {
+      return `<g class="dexter sleep"><ellipse cx="0" cy="0" rx="18" ry="9" fill="${fur}"/>${stripes}<circle cx="-14" cy="-3" r="7" fill="${fur}"/><path d="M-19 -8 l2 -6 l3 5Z M-12 -9 l3 -5 l1 6Z" fill="${fur}"/><path d="M-17 -3 q2 1 4 0 M-12 -3 q2 1 3 0" stroke="#333" stroke-width=".8" fill="none"/><path d="M16 2 q8 4 0 8" stroke="${fur}" stroke-width="4" fill="none" stroke-linecap="round"/><text x="2" y="-12" font-size="7" fill="#7b6573" class="zzz">z z</text></g>`;
+    }
+    const eyes = mood === 'purr' ? '<path d="M-5 -19 q2 -2 4 0 M2 -19 q2 -2 4 0" stroke="#333" stroke-width="1" fill="none"/>'
+      : `<ellipse cx="-3.5" cy="-19" rx="1.6" ry="${mood === 'hungry' ? 2.4 : 2}" fill="#7bbf5a"/><ellipse cx="3.5" cy="-19" rx="1.6" ry="${mood === 'hungry' ? 2.4 : 2}" fill="#7bbf5a"/><path d="M-3.5 -20.5 v3 M3.5 -20.5 v3" stroke="#222" stroke-width=".8"/>`;
+    const hearts = mood === 'purr' ? '<g class="hearts-up"><text x="10" y="-30" font-size="8">💗</text><text x="-16" y="-34" font-size="6">💗</text></g>' : '';
+    const bubble = mood === 'hungry' ? '<g><rect x="8" y="-44" width="30" height="14" rx="6" fill="#fff" stroke="#bbb"/><text x="23" y="-34" font-size="8" text-anchor="middle" fill="#333">Mjav!</text></g>' : '';
+    return `<g class="dexter ${mood}"><path d="M10 6 q14 -2 10 -16" stroke="${fur}" stroke-width="4" fill="none" stroke-linecap="round" class="tail"/>
+      <ellipse cx="0" cy="0" rx="11" ry="10" fill="${fur}"/><ellipse cx="0" cy="3" rx="6" ry="6" fill="${belly}"/>${stripes}
+      <circle cx="0" cy="-17" r="8.5" fill="${fur}"/><path d="M-8 -21 l1 -9 l6 5Z M8 -21 l-1 -9 l-6 5Z" fill="${fur}"/><path d="M-6.5 -24 l.8 -4 l3 2.6Z M6.5 -24 l-.8 -4 l-3 2.6Z" fill="#e9b5bd"/>
+      <path d="M-2 -21 l2 -3 l2 3" stroke="${dark}" stroke-width="1" fill="none"/>${eyes}<path d="M-1 -15.5 h2 l-1 1.2Z" fill="#e88"/>
+      <path d="M-3 -14 q3 2 6 0" stroke="#333" stroke-width=".6" fill="none"/><path d="M-9 -16 h-6 M-9 -14.5 l-6 1 M9 -16 h6 M9 -14.5 l6 1" stroke="#ddd" stroke-width=".5"/>
+      <ellipse cx="-5" cy="9" rx="3" ry="2" fill="${belly}"/><ellipse cx="5" cy="9" rx="3" ry="2" fill="${belly}"/>${hearts}${bubble}</g>`;
+  };
+
+  // ---------------- Mie's home ----------------
+  DG.renderHome = function (G, opts = {}) {
+    const has = id => G.home.items.includes(id);
+    const se = DG.season(G);
+    const out = [];
+    out.push(`<defs><pattern id="homewall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f4ead9"/><circle cx="12" cy="12" r="1.6" fill="#e3d2b5"/></pattern>
+      <linearGradient id="homesky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.1)}"/></linearGradient></defs>`);
+    out.push('<rect width="400" height="150" fill="url(#homewall)"/><rect y="150" width="400" height="60" fill="#b48b62"/><path d="M0 150 H400" stroke="#8a6a48" stroke-width="3"/>');
+    for (let x = 0; x < 400; x += 50) out.push(`<path d="M${x} 152 V210" stroke="#a37c55" stroke-width="1"/>`);
+    // window with season
+    out.push('<rect x="22" y="22" width="92" height="84" rx="3" fill="#fffaf5"/><rect x="28" y="28" width="80" height="72" fill="url(#homesky)"/>');
+    if (se.id === 'winter') out.push('<rect x="28" y="92" width="80" height="8" fill="#fff"/><circle cx="44" cy="44" r="1.4" fill="#fff"/><circle cx="80" cy="60" r="1.4" fill="#fff"/><circle cx="64" cy="38" r="1.4" fill="#fff"/>');
+    if (se.id === 'summer') out.push('<circle cx="90" cy="44" r="8" fill="#ffd75e"/>');
+    if (se.id === 'autumn') out.push('<ellipse cx="50" cy="60" rx="2.6" ry="1.4" fill="#d9822b"/><ellipse cx="86" cy="80" rx="2.6" ry="1.4" fill="#b5481f"/>');
+    if (se.id === 'spring') out.push('<circle cx="46" cy="50" r="1.6" fill="#f6c6d2"/><circle cx="84" cy="70" r="1.6" fill="#f6c6d2"/>');
+    out.push('<path d="M68 28 V100 M28 64 H108" stroke="#fffaf5" stroke-width="3"/><path d="M18 18 Q30 60 22 110 M118 18 Q106 60 114 110" stroke="#c44d6c" stroke-width="6" fill="none"/>');
+    // lamp + bookshelf
+    out.push('<path d="M150 0 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
+    out.push('<rect x="330" y="40" width="58" height="110" fill="#8a6a48"/><path d="M330 76 H388 M330 112 H388" stroke="#6e5238" stroke-width="3"/>' +
+      [[336, 50, '#c44d6c'], [344, 54, '#1d6b6b'], [352, 48, '#e9c35a'], [362, 52, '#34437f'], [338, 86, '#9db69a'], [348, 90, '#ee7d61'], [370, 88, '#6b2a5e']].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="7" height="${y < 70 ? 74 - y : 110 - y}" fill="${c}"/>`).join(''));
+    // Elizabeth's drawings
+    if (has('crayons')) out.push('<rect x="128" y="56" width="26" height="20" fill="#fff" transform="rotate(-4 141 66)"/><path d="M134 72 l6 -10 l6 10Z" fill="#d6577b" transform="rotate(-4 141 66)"/><circle cx="137" cy="62" r="2" fill="#e9c35a"/><rect x="160" y="60" width="22" height="18" fill="#fff" transform="rotate(5 171 69)"/><path d="M164 74 q6 -10 12 0" stroke="#34437f" stroke-width="2" fill="none"/>');
+    // sofa
+    out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
+    out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
+    // family
+    out.push(DG.renderAvatar(DG.FAMILY.adam.look, 'happy', 46).replace('<svg', '<svg x="244" y="82"'));
+    out.push(DG.renderAvatar(Object.assign({}, DG.MIE_LOOK, { bg: 'transparent', measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 46).replace('<svg', '<svg x="194" y="82"'));
+    const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
+    out.push(DG.renderAvatar(DG.FAMILY.elizabeth.look, eMood, 34).replace('<svg', `<svg x="${has('tricycle') ? 132 : 150}" y="150"`));
+    // toys
+    if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
+    if (has('train')) out.push('<g transform="translate(236 184)"><rect x="0" y="-8" width="14" height="8" fill="#c44d6c"/><rect x="2" y="-14" width="6" height="6" fill="#c44d6c"/><rect x="16" y="-7" width="11" height="7" fill="#1d6b6b"/><rect x="29" y="-7" width="11" height="7" fill="#e9c35a"/>' + [3, 11, 19, 25, 32, 38].map(x => `<circle cx="${x}" cy="1" r="2" fill="#333"/>`).join('') + '</g>');
+    if (has('dollhouse')) out.push('<g transform="translate(286 150)"><rect x="0" y="0" width="34" height="28" fill="#f1b9c2"/><path d="M-3 0 L17 -16 L37 0Z" fill="#c44d6c"/><rect x="5" y="6" width="8" height="8" fill="#dff0fa"/><rect x="21" y="6" width="8" height="8" fill="#dff0fa"/><rect x="13" y="16" width="8" height="12" fill="#7a5236"/></g>');
+    if (has('tricycle')) out.push('<g transform="translate(150 186)"><circle cx="0" cy="0" r="7" fill="none" stroke="#333" stroke-width="2"/><circle cx="22" cy="2" r="5" fill="none" stroke="#333" stroke-width="2"/><path d="M0 0 L12 -8 L22 2 M12 -8 L10 -14" stroke="#c44d6c" stroke-width="2.5" fill="none"/></g>');
+    if (has('puppets')) out.push('<g transform="translate(118 112)"><rect x="0" y="0" width="34" height="34" fill="#6b2a5e"/><rect x="5" y="5" width="24" height="16" fill="#2f1d2b"/><path d="M5 5 q6 8 0 16 M29 5 q-6 8 0 16" fill="#bf2630"/><circle cx="17" cy="14" r="3" fill="#e9c35a"/></g>');
+    // Dexter's things
+    if (has('cattower')) out.push('<g transform="translate(70 104)"><rect x="8" y="0" width="5" height="46" fill="#c9b08a"/><rect x="0" y="-4" width="24" height="6" rx="2" fill="#9a6b47"/><rect x="-2" y="20" width="28" height="6" rx="2" fill="#9a6b47"/><rect x="-4" y="44" width="34" height="6" rx="2" fill="#9a6b47"/></g>');
+    if (has('scratch')) out.push('<g transform="translate(320 150)"><rect x="4" y="0" width="8" height="34" fill="#c9b08a"/><path d="M4 6 h8 M4 12 h8 M4 18 h8 M4 24 h8" stroke="#a88a5f"/><rect x="0" y="32" width="16" height="4" fill="#9a6b47"/></g>');
+    if (has('catbed')) out.push('<ellipse cx="360" cy="190" rx="22" ry="8" fill="#c44d6c"/><ellipse cx="360" cy="187" rx="16" ry="5" fill="#f1b9c2"/>');
+    if (has('feather')) out.push('<path d="M100 196 L120 170" stroke="#7a5236" stroke-width="1.5"/><path d="M120 170 q6 -10 2 -16 q-6 6 -2 16" fill="#9db69a"/>');
+    // food bowl
+    out.push(`<ellipse cx="44" cy="196" rx="10" ry="4" fill="#34437f"/>${G.home.catFood > 0 ? '<ellipse cx="44" cy="194" rx="7" ry="2" fill="#a8743f"/>' : ''}`);
+    // Dexter: where he is depends on what he owns and how he feels
+    const dmood = opts.dexter || (G.home.catFood <= 0 ? 'hungry' : has('catbed') ? 'sleep' : 'sit');
+    const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && dmood === 'sit' ? [82, 98] : [70, 184];
+    out.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
+    return `<svg class="shop-scene home-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 
   DG.MIE_LOOK = { skin: '#f3cdb0', hair: '#9a3b1c', style: 2, top: '#2f6f73', bg: '#f6e3d6', glasses: true, earrings: true, measure: true };

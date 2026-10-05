@@ -10,7 +10,20 @@ No build step and no dependencies. It is plain HTML, CSS and JavaScript.
 - **On iPad:** host it on GitHub Pages (Settings → Pages → deploy from `main`, root folder), open it in Safari, then choose *Share → Add to Home Screen*. It then opens full screen like an app.
 - **Single file:** `npm run build` writes `dist/mies-atelier.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
 
-Progress is saved automatically in the browser (`localStorage`).
+## Players and saving
+
+- On first start you type your name. That creates a **player**, and each player has their own shop. Add, rename, switch or delete players under **Menu → Players**.
+- The game **saves automatically** after every move, in this browser on this device (`localStorage`). There is no account and no server. **Menu → Save → Save now** is there for peace of mind.
+- **Moving to another device:** Menu → Save → *Show save code* gives a code starting with `MIE1:`. Send it to yourself, then on the other device use *Import as a new player*.
+- Saves from older versions of the game become "Player 1" automatically.
+
+## Settings
+
+Menu → Settings has these options:
+- Theme: auto, light or dark.
+- Music volume and sound-effect volume. Both are synthesised live with Web Audio, so there are no audio files.
+- Animations: on or off.
+- **Mini-games:** *Full* or *Quick*. Full means cut, stitch and iron each dress, and knead clay before the wheel. Quick means only the stitching and the wheel.
 
 ## How a day works
 
@@ -20,7 +33,12 @@ Progress is saved automatically in the browser (`localStorage`).
    - colours they love and dislike, silhouettes they prefer, and a budget.
 2. **Market:** buy fabric by the metre and notions (zippers, buttons, ribbon, lace trim, sequins, embroidery thread, crystals). Fabric prices move every morning, and some days have a sale.
 3. **Workshop:** pick the main and accent fabric, colours, silhouette, length, neckline, sleeves, closure and extras. The dress preview and the stat bars update live. A black mark on a bar shows the customer's wish for that quality. More than three decorations make a dress look over-done.
-4. **Sewing:** tap *Stitch!* when the needle is over the green zone, five times. Neat stitching raises quality.
+4. **Sewing** happens in three mini-games:
+   - **Cut:** trace the dashed pattern line with your finger.
+   - **Stitch:** tap when the needle is over the green zone.
+   - **Iron:** swipe the iron over the wrinkles.
+
+   Craft = 30% cutting + 50% stitching + 20% ironing. It raises quality and counts for 10% of satisfaction.
 5. **Result:** satisfaction decides payment, tip and reputation, and whether the customer comes back. Regulars return with new requests and bigger budgets.
 6. **Close the shop:** pay rent, and a new day begins.
 
@@ -51,12 +69,27 @@ Every 7 days the season changes: spring → summer → autumn → winter, starti
 
 Buy the **Pottery studio** under Upgrades → Expansion (600 kr, level 2 for 1.500 kr). In the Pottery screen you:
 
-1. Pick a shape (cup, bowl, plate, vase, teapot), a clay (terracotta, stoneware, porcelain), a glaze and a decoration. Clay, glazes and gold leaf are sold at the market.
-2. **Throw it on the wheel:** hold the button to press on the clay and let go to ease off. Keep the marker inside the moving green band while the pot rises. Harder shapes move the band faster and make it narrower.
-3. The pot goes into the **kiln** and is fired overnight. The crack risk is $0.32\,(1-\text{score})\cdot\text{difficulty}$, halved with the electric kiln, and between 3% and 60%.
-4. Pots that survive go on the **shelf**. Each sells with probability $\min(0.8,\ 0.3 + 0.02\cdot\text{charm})$ per evening. Up to 3 pots on display add charm to the shop.
+1. Pick a shape (cup, mug, bowl, plate, planter, jug, vase, amphora, teapot), a clay (terracotta, stoneware, porcelain), a glaze and a decoration. Clay, glazes and gold leaf are sold at the market.
+2. **Knead the clay:** tap fast to push out air bubbles. Good kneading lowers the crack risk (×0.8 when perfect, ×1.3 when not kneaded).
+3. **Throw it on the wheel:** hold the button to press on the clay and let go to ease off. Keep the marker inside the moving green band while the pot rises. Harder shapes move the band faster and make it narrower.
+4. **Paint it** (if you chose *Hand-painted*): draw on the pot with your finger, using 8 colours and 3 brush sizes. Value multiplier: $1.1 + 0.05\cdot\min(4,\text{colours}) + $ up to $0.1$ for how much paint you used, so at most ×1.4. Your painting is saved with the pot and shown on the shelf.
+5. The pot goes into the **kiln** and is fired overnight. The crack risk is $0.32\,(1-\text{score})\cdot\text{difficulty}$, halved with the electric kiln, and between 3% and 60%.
+6. Pots that survive go on the **shelf**. Each sells with probability $\min(0.8,\ 0.3 + 0.02\cdot\text{charm})$ per evening. Up to 3 pots on display add charm to the shop.
 
 Price: $\text{shape base}\cdot\text{clay}\cdot\text{glaze}\cdot\text{decoration}\cdot(0.6 + 0.8\cdot\text{score})$.
+
+## Mie's home
+
+The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, their daughter **Elizabeth** (3) and **Dexter** the cat.
+
+- **Family happiness** (0–100) drops 10 every night. Each toy you own slows the drop by 1, down to a minimum of 3, and it drops 8 more if Dexter has no food.
+  - Above 75, Mie is happy and rested: +2 satisfaction on every dress and a wider stitch zone.
+  - Below 30, she misses her family: −3 satisfaction.
+- **Every day:** play with Elizabeth and pet Dexter (tap him, he purrs). Both are free, once a day each.
+- **Outings:** ice cream in Nyhavn, Copenhagen Zoo, date night with Adam, a family day at Tivoli. One outing per day.
+- **Shopping:** toys for Elizabeth (crayons, teddy bear, wooden train, puppet theatre, tricycle, dollhouse) and things for Dexter (feather wand, scratching post, cat bed, cat tower). They all appear in the scene.
+- **Cat food** lasts 7 days. A hungry Dexter says "Mjav!".
+- Each evening brings a little story from home.
 
 ## Upstairs floor and goals
 
@@ -85,7 +118,10 @@ css/style.css       all styling (touch-first, iPad landscape + portrait)
 js/data.js          fabrics, dress parts, notions, upgrades, customer types
 js/logic.js         market, customers, dress analysis, scoring (pure, runs in Node too)
 js/render.js        SVG dress-on-dress-form renderer, swatches, portraits
-js/ui.js            screens, input handling, sewing mini-game
+js/audio.js         synthesised sound effects and music
+js/profiles.js      players, per-player saves, settings, save codes
+js/minigames.js     cutting, ironing, kneading and pot-painting mini-games
+js/ui.js            screens, input handling, stitching and wheel mini-games
 tests/              balance and render sanity checks (npm test)
 tools/              single-file build
 ```

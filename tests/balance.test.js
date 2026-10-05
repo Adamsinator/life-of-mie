@@ -180,3 +180,54 @@ console.log('all checks passed');
   for (const sh of DG.POT_SHAPES) for (const gl of DG.GLAZES) assert(!/NaN|undefined/.test(DG.renderPot({ clay: 'porcelain', shape: sh.id, glaze: gl.id, deco: 'goldrim' }, 'x', { wheel: true, grow: 0.3 })));
   console.log('v1.2 checks passed');
 }
+
+// ---- v1.3: home, painting, kneading, profiles ----
+{
+  const H = DG.newGame(); DG.startDay(H);
+  assert.strictEqual(H.home.happy, 70);
+  assert(DG.doActivity(H, 'play')); assert(!DG.doActivity(H, 'play'), 'free activity once per day');
+  assert(DG.doActivity(H, 'icecream')); assert(!DG.canDoActivity(H, 'zoo'), 'one outing per day');
+  assert.strictEqual(H.home.happy, 88);
+  assert.strictEqual(DG.homeMood(H).sat, 2);
+  const m0 = H.money; assert(DG.buyHomeItem(H, 'teddy')); assert.strictEqual(H.money, m0 - 90); assert(!DG.buyHomeItem(H, 'teddy'));
+  assert.strictEqual(DG.homeDecay(H), 9);
+  H.home.catFood = 0; H.home.happy = 50;
+  const r = DG.endDayHome(H); assert.strictEqual(r.drop, 9 + 8); assert(r.hungry); assert.strictEqual(H.home.happy, 33);
+  H.home.happy = 20; assert.strictEqual(DG.homeMood(H).sat, -3);
+
+  // painting value: more colours/ink -> more value, capped at 1.4
+  assert.strictEqual(DG.paintMult({ paint: [] }), 1);
+  const one = DG.paintMult({ paint: [{ c: '#000', w: 2.5, n: 20 }] });
+  const four = DG.paintMult({ paint: ['#1', '#2', '#3', '#4', '#5'].map(c => ({ c, w: 4.5, n: 400 })) });
+  assert(one > 1 && four > one && four <= 1.4, `paint mult ${one} ${four}`);
+  const pot = { clay: 'stoneware', shape: 'jug', glaze: 'cream', deco: 'handpainted', paint: [{ c: '#a3262e', w: 2.5, n: 30, d: 'M50 70L70 80' }] };
+  assert(DG.potPrice(pot, 0.8) > DG.potPrice(Object.assign({}, pot, { paint: [] }), 0.8));
+  assert(DG.renderPot(pot, 'z').includes('#a3262e'), 'strokes rendered');
+  // kneading lowers crack risk
+  const P = DG.newGame(); P.upgrades.pottery = 1;
+  assert(DG.crackChance(pot, 0.5, P, 1) < DG.crackChance(pot, 0.5, P, 0));
+
+  // profiles + save codes (node polyfills)
+  const store = {};
+  globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  globalThis.btoa = s => Buffer.from(s, 'binary').toString('base64');
+  globalThis.atob = s => Buffer.from(s, 'base64').toString('binary');
+  require('../js/profiles.js');
+  // legacy single save becomes "Player 1"
+  store['mies-atelier-save-v1'] = JSON.stringify(Object.assign(DG.newGame(), { day: 4 }));
+  assert.strictEqual(DG.Profiles.list()[0].name, 'Player 1');
+  assert.strictEqual(DG.Profiles.loadGame().day, 4);
+  assert(!('mies-atelier-save-v1' in store));
+  const g2 = DG.newGame(); g2.day = 12; g2.known.push({ name: 'Lærke Ø' });
+  DG.Profiles.create('Elizabeth', g2);
+  assert.strictEqual(DG.Profiles.active().name, 'Elizabeth');
+  const code = DG.Profiles.exportCode(g2);
+  const back = DG.Profiles.parseCode(code);
+  assert.strictEqual(back.day, 12); assert.strictEqual(back.known[0].name, 'Lærke Ø', 'unicode survives the code');
+  assert.throws(() => DG.Profiles.parseCode('hello'), /MIE1/);
+  assert.throws(() => DG.Profiles.parseCode('MIE1:abc'), /damaged|valid/);
+  DG.Profiles.remove(DG.Profiles.active().id);
+  assert.strictEqual(DG.Profiles.list().length, 1);
+  assert.strictEqual(DG.Profiles.settings().minigames, 'full');
+  console.log('v1.3 checks passed');
+}

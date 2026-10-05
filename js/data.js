@@ -167,6 +167,10 @@
     { id: 'plate',  name: 'Plate',  kg: 1.0, base: 55, diff: 1.1 },
     { id: 'vase',   name: 'Vase',   kg: 1.5, base: 95, diff: 1.6 },
     { id: 'teapot', name: 'Teapot', kg: 2.0, base: 160, diff: 2.0 },
+    { id: 'mug',     name: 'Mug',     kg: 0.6, base: 45,  diff: 1.1 },
+    { id: 'planter', name: 'Planter', kg: 1.2, base: 60,  diff: 1.0 },
+    { id: 'jug',     name: 'Jug',     kg: 1.4, base: 85,  diff: 1.5 },
+    { id: 'amphora', name: 'Amphora', kg: 2.2, base: 150, diff: 1.9 },
   ];
   DG.GLAZES = [
     { id: 'none',     name: 'Unglazed',        price: 0,  mult: 0.8, hex: null },
@@ -181,8 +185,51 @@
     { id: 'carved',  name: 'Carved lines',   mult: 1.08 },
     { id: 'painted', name: 'Painted flowers',mult: 1.15 },
     { id: 'goldrim', name: 'Gold rim',       mult: 1.25, item: 'goldleaf' },
+    { id: 'handpainted', name: 'Hand-painted', mult: 1.0, paint: true },  // value set by the painting itself
   ];
+  DG.PAINT_COLORS = ['#2f4f9e', '#a3262e', '#1e7a58', '#e3b53b', '#f7f5ef', '#232326', '#d6577b', '#ee7d61'];
   DG.POT_ITEMS = [{ id: 'goldleaf', name: 'Gold leaf', price: 40, icon: '🟨' }];
+
+  // ---------------- Mie's home ----------------
+  DG.FAMILY = {
+    adam:      { name: 'Adam',      look: { skin: '#efc3a0', hair: '#4a2c1a', style: 4, top: '#34437f', bg: 'transparent', glasses: false, earrings: false, beard: true } },
+    elizabeth: { name: 'Elizabeth', look: { skin: '#f6d7bf', hair: '#b07a3e', style: 5, top: '#f1b9c2', bg: 'transparent', glasses: false, earrings: false } },
+  };
+  // toys: one-off purchases. joy = instant happiness, each also slows the daily drop by 1.
+  DG.HOME_ITEMS = [
+    { id: 'crayons',   who: 'elizabeth', name: 'Crayons and paper', icon: '🖍️', cost: 60,  joy: 6,  desc: 'Elizabeth draws dresses "just like Mama".' },
+    { id: 'teddy',     who: 'elizabeth', name: 'Teddy bear',        icon: '🧸', cost: 90,  joy: 8,  desc: 'Named Bamse, obviously.' },
+    { id: 'train',     who: 'elizabeth', name: 'Wooden train',      icon: '🚂', cost: 180, joy: 10, desc: 'Choo-choo all around the living room.' },
+    { id: 'puppets',   who: 'elizabeth', name: 'Puppet theatre',    icon: '🎭', cost: 300, joy: 12, desc: 'Starring Dexter, against his will.' },
+    { id: 'tricycle',  who: 'elizabeth', name: 'Tricycle',          icon: '🚲', cost: 350, joy: 12, desc: 'Fast. Too fast, says Adam.' },
+    { id: 'dollhouse', who: 'elizabeth', name: 'Dollhouse',         icon: '🏠', cost: 450, joy: 15, desc: 'With a tiny atelier on the ground floor.' },
+    { id: 'feather',   who: 'dexter',    name: 'Feather wand',      icon: '🪶', cost: 40,  joy: 4,  desc: 'Dexter pretends not to care. He cares.' },
+    { id: 'scratch',   who: 'dexter',    name: 'Scratching post',   icon: '🪵', cost: 150, joy: 6,  desc: 'Saves the sofa. Mostly.' },
+    { id: 'catbed',    who: 'dexter',    name: 'Cat bed',           icon: '🛏️', cost: 200, joy: 8,  desc: 'He still sleeps on the fabric pile.' },
+    { id: 'cattower',  who: 'dexter',    name: 'Cat tower',         icon: '🗼', cost: 400, joy: 10, desc: 'King Dexter surveys his kingdom.' },
+  ];
+  DG.CAT_FOOD = { name: 'Cat food (7 days)', icon: '🐟', cost: 70, days: 7 };
+  // once per day each; outings share one daily slot
+  DG.ACTIVITIES = [
+    { id: 'play',     name: 'Play with Elizabeth', icon: '🧩', cost: 0,   joy: 8,  free: true },
+    { id: 'pet',      name: 'Pet Dexter',          icon: '🐈', cost: 0,   joy: 4,  free: true },
+    { id: 'icecream', name: 'Ice cream in Nyhavn', icon: '🍦', cost: 80,  joy: 10 },
+    { id: 'zoo',      name: 'Copenhagen Zoo',      icon: '🦒', cost: 250, joy: 18 },
+    { id: 'date',     name: 'Date night with Adam',icon: '🕯️', cost: 300, joy: 20 },
+    { id: 'tivoli',   name: 'Family day at Tivoli',icon: '🎡', cost: 450, joy: 30 },
+  ];
+  DG.HOME_EVENTS = [
+    'Elizabeth drew a dress for the shop window. It has seven sleeves.',
+    'Dexter knocked a spool of thread off the table. Then another. Then another.',
+    'Adam made æbleskiver for everyone.',
+    'Elizabeth asked why the sky is blue. Then why fabric is blue. Then why Dexter is grey.',
+    'Dexter fell asleep on the pattern paper. Nobody dared to move him.',
+    'Adam read "Rasmus Klump" three times in a row at bedtime.',
+    'Elizabeth "helped" pin a hem. Mie found pins in the teddy bear.',
+    'Dexter brought Mie a button. Probably from the shop. Probably expensive.',
+    'The whole family had hygge with candles and cocoa.',
+    'Elizabeth wore Mie\'s tape measure as a necklace all evening.',
+  ];
 
   // ---------------- goals ----------------
   DG.GOALS = [
@@ -201,6 +248,8 @@
     { id: 'floor',    title: 'Moving on up',        desc: 'Open the upstairs floor.',                         target: 1,    reward: 500,  prog: G => DG.upgradeLevel(G, 'floor') },
     { id: 'rep60',    title: 'Copenhagen icon',     desc: 'Reach reputation 60.',                             target: 60,   reward: 600,  prog: G => Math.floor(G.rep) },
     { id: 'day30',    title: 'One month in',        desc: 'Keep the atelier open for 30 days.',               target: 30,   reward: 1000, prog: G => G.day },
+    { id: 'family',   title: 'Happy home',          desc: 'Get family happiness to 90.',                      target: 90,   reward: 300,  prog: G => Math.floor(G.home.happy) },
+    { id: 'artist',   title: 'Potter and painter',  desc: 'Fire a hand-painted pot.',                        target: 1,    reward: 250,  prog: G => G.stats.painted },
     { id: 'bride',    title: 'Say yes to the dress',desc: "Make a bride's dress that scores 85% or more.",   target: 85,   reward: 1500, prog: G => G.stats.brideBest },
   ];
 

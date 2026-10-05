@@ -2,9 +2,8 @@
 (function () {
   const DG = window.DG;
   const { byId, clamp, round1, pick } = DG;
-  const KEY = 'mies-atelier-save-v1';
   let G = null;
-  const UI = { view: 'shop', tab: 'fabric', upTab: 'equipment', overlay: null, sew: null, raf: 0, confirm: null };
+  const UI = { view: 'shop', tab: 'fabric', upTab: 'equipment', menuTab: 'settings', overlay: null, sew: null, raf: 0, confirm: null, dexter: null, exportCode: '', importErr: '' };
 
   const kr = n => `${Math.round(n).toLocaleString('da-DK')} kr`;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -14,14 +13,20 @@
     return `<span class="fx ${v > 0 ? 'up' : 'down'}">${DG.ATTR_META[k].icon}${v > 0 ? '+' : '−'}${Math.abs(v)}</span>`;
   }).join('');
 
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(G)); } catch (e) { /* storage unavailable */ } }
+  function save() { if (G) DG.Profiles.saveGame(G); }
   function load() {
-    try {
-      const s = localStorage.getItem(KEY);
-      if (s) { const x = JSON.parse(s); if (x && x.version === 1) return DG.ensureDefaults(x); }
-    } catch (e) { /* ignore */ }
-    return null;
+    const x = DG.Profiles.loadGame();
+    return x && x.version === 1 ? DG.ensureDefaults(x) : null;
   }
+
+  let S = DG.Profiles.settings();
+  function applySettings() {
+    const r = document.documentElement;
+    if (S.theme === 'auto') delete r.dataset.mieTheme; else r.dataset.mieTheme = S.theme;
+    r.classList.toggle('no-anim', !S.anim);
+    DG.Audio.setVolumes(S.music, S.sfx);
+  }
+  const sfx = n => DG.Audio.play(n);
 
   function toast(msg) {
     document.querySelectorAll('.toast').forEach(x => x.remove());
@@ -71,14 +76,14 @@
 
   // ---------------- top bar ----------------
   function topbar() {
-    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
+    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
       <div class="brand"><span class="brand-script">Mie's</span><span class="brand-word">Atelier</span></div>
       <div class="hud">
         <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
-        <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} ${se.name}</b></div>
+        <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} <span class="sname">${se.name}</span></b></div>
         <div class="hud-item"><span class="lbl">Bank</span><b class="${G.money < 100 ? 'low' : ''}">${kr(G.money)}</b></div>
         <div class="hud-item rep"><span class="lbl">Reputation</span><b>${Math.round(G.rep)}</b><span class="repbar"><i style="width:${clamp(G.rep, 0, 100)}%"></i></span></div>
       </div>
@@ -127,7 +132,7 @@
           <div><dt>Rent${DG.wages(G) ? ' + wages' : ''} tonight</dt><dd>${kr(DG.dailyCosts(G))}</dd></div>
           <div><dt>Shop charm</dt><dd>✨ ${DG.charm(G)}</dd></div>
           <div><dt>Regulars</dt><dd>${G.known.length}</dd></div>
-          <div><dt>Reputation</dt><dd>${Math.round(G.rep)}</dd></div>
+          <div><dt>Mie's mood</dt><dd>${G.home.happy >= 75 ? '😊' : G.home.happy < 30 ? '😔' : '🙂'} ${Math.round(G.home.happy)}</dd></div>
         </dl>
         <button class="btn ghost wide" data-act="endday">${UI.confirm === 'endday' ? `Tap again: ${G.queue.length} will leave (−rep)` : 'Close shop for today 🌙'}</button>
       </section>
@@ -427,9 +432,17 @@
     </div></div>`;
   }
 
+  const STEP_LABEL = { cut: '✂️ Cut', stitch: '🪡 Stitch', iron: '♨️ Iron', wedge: '👐 Knead', wheel: '🏺 Wheel', paint: '🎨 Paint' };
+  function stepsBar(steps, cur) {
+    const ci = steps.indexOf(cur);
+    return `<div class="steps">${steps.map((st, i) => `<span class="step ${i === ci ? 'on' : i < ci ? 'done' : ''}">${STEP_LABEL[st]}</span>`).join('')}</div>`;
+  }
   function ovSew() {
-    return `<div class="overlay"><div class="sheet sew">
-      <h2>${G.active.rack ? 'Sewing a dress for the rack' : `Sewing ${esc(G.active.name)}'s dress`}</h2>
+    const ph = UI.sew.phase;
+    const title = G.active.rack ? 'Sewing a dress for the rack' : `Sewing ${esc(G.active.name)}'s dress`;
+    if (ph !== 'stitch') return `<div class="overlay"><div class="sheet sew mg-sheet">${stepsBar(UI.sew.steps, ph)}<p class="muted small">${title}</p><div id="mg" class="mg"></div></div></div>`;
+    return `<div class="overlay"><div class="sheet sew">${UI.sew.steps.length > 1 ? stepsBar(UI.sew.steps, ph) : ''}
+      <h2>${title}</h2>
       <p class="muted">Tap <b>Stitch</b> when the needle is over the green. The gold centre is a perfect stitch.</p>
       <div class="sew-stage">${DG.renderDress(G.design, 'sew')}</div>
       <div class="track"><div class="zone" id="zone"><div class="sweet"></div></div><div class="needle" id="needle"></div></div>
@@ -459,6 +472,7 @@
             ${ev.rows.sort((a, b) => b.w - a.w).map(r => `<tr><td>${DG.ATTR_META[r.k].icon} ${DG.ATTR_META[r.k].label} <i class="hearts">${'♥'.repeat(r.w)}</i></td><td class="num">${r.v.toFixed(1)} / ${r.t}</td><td>${r.v >= r.t ? '✓' : r.fit > 0.7 ? '~' : '✗'}</td></tr>`).join('')}
             <tr><td>🎨 Colour</td><td class="num">${byId(DG.COLORS, design.mainColor).name}</td><td>${colorWord(design.mainColor) === 'a favourite' ? '♥' : colorWord(design.mainColor) === 'disliked' ? '✗' : '~'}</td></tr>
             ${ev.seasonAdj ? `<tr><td>${DG.season(G).icon} Season</td><td class="num">${byId(DG.FABRICS, design.main).name}</td><td>${ev.seasonAdj > 0 ? '♥ +3' : '✗ −4'}</td></tr>` : ''}
+            ${ev.moodAdj ? `<tr><td>🏡 Mie's mood</td><td class="num">${ev.moodAdj > 0 ? 'happy home' : 'misses family'}</td><td>${ev.moodAdj > 0 ? '+2' : '−3'}</td></tr>` : ''}
             <tr><td>👗 Silhouette</td><td class="num">${byId(DG.SILHOUETTES, design.silhouette).name}</td><td>${ev.St === 1 ? '♥' : '~'}</td></tr>
             ${cust.reqs.map(r => `<tr><td>📌 ${DG.REQS[r].short}</td><td></td><td>${ev.failed.includes(r) ? '✗ −15' : '✓'}</td></tr>`).join('')}
             <tr><td>🪡 Stitching</td><td class="num">${Math.round(ev.craft * 100)}%</td><td>${ev.craft >= 0.8 ? '✓' : ev.craft >= 0.5 ? '~' : '✗'}</td></tr>
@@ -507,6 +521,7 @@
         ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
       </tbody></table>
+      ${o.res.home ? `<div class="home-night">${DG.renderAvatar(DG.FAMILY.elizabeth.look, o.res.home.happy >= 30 ? 'happy' : 'sad', 44)}<p><b>At home:</b> ${esc(o.res.home.event)}<br><span class="muted small">Family happiness ${Math.round(o.res.home.happy)} (−${o.res.home.drop}).${o.res.home.hungry ? ' <b class="bad">Dexter is hungry. Buy cat food on the Home screen!</b>' : ''}</span></p></div>` : ''}
       ${o.res.mom ? '<p class="event">Mie couldn\'t make rent, so her mum sent 300 kr. "Just this once, skat!" Next time the bank will close the shop.</p>' : ''}
       <button class="btn primary big wide" data-act="nextday">Open the shop: day ${G.day + 1}</button>
     </div></div>`;
@@ -522,12 +537,49 @@
   }
 
   function ovMenu() {
-    return `<div class="overlay dismissable"><div class="sheet menu">
-      <h2>Menu</h2>
-      <p class="muted small">Your progress is saved automatically on this device.</p>
-      <button class="btn wide" data-act="howto">How to play</button>
-      <button class="btn ghost wide" data-act="newgame">${UI.confirm === 'newgame' ? 'Tap again to erase this shop and start over' : 'Start a new game'}</button>
-      <button class="btn primary wide" data-act="closeov">Close</button>
+    const tabs = [['settings', '⚙️ Settings'], ['players', '👤 Players'], ['save', '💾 Save'], ['help', '❓ Help']];
+    const t = UI.menuTab;
+    const seg = (key, opts) => `<div class="seg">${opts.map(([v, l]) => `<button class="chip ${String(S[key]) === String(v) ? 'on' : ''}" data-act="setting" data-arg="${key}:${v}">${l}</button>`).join('')}</div>`;
+    const slider = (key, label) => `<div class="set-row"><label class="lbl" for="vol-${key}">${label}</label><input type="range" id="vol-${key}" min="0" max="100" step="5" value="${Math.round(S[key] * 100)}" data-setting="${key}"><span class="vol" id="vol-${key}-v">${Math.round(S[key] * 100)}%</span></div>`;
+    let body = '';
+    if (t === 'settings') {
+      body = `<div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}</div>
+        ${slider('music', 'Music')}${slider('sfx', 'Sound effects')}
+        <div class="set-row"><span class="lbl">Animations</span>${seg('anim', [[true, 'On'], [false, 'Off']])}</div>
+        <div class="set-row"><span class="lbl">Mini-games</span>${seg('minigames', [['full', 'Full'], ['quick', 'Quick']])}</div>
+        <p class="muted small">Full: cut, stitch and iron each dress; knead clay before the wheel. Quick: only the stitching and the wheel. Painting pots is always included.</p>`;
+    } else if (t === 'players') {
+      const act = DG.Profiles.active();
+      body = `<p class="muted small">Every player has their own shop on this device.</p>
+        <ul class="players">${DG.Profiles.list().map(p => `<li class="${act && p.id === act.id ? 'on' : ''}">
+          <div class="pl-main"><b>${esc(p.name)}</b><span class="muted small">Day ${p.day || 0} · ${kr(p.money || 0)}</span></div>
+          <div class="pl-act">${act && p.id === act.id ? '<span class="tag">Playing</span>' : `<button class="btn small primary" data-act="switchplayer" data-arg="${p.id}">Play</button>
+            <button class="btn small ghost" data-act="deleteplayer" data-arg="${p.id}">${UI.confirm === 'del-' + p.id ? 'Tap again to delete' : 'Delete'}</button>`}</div>
+          <div class="pl-rename"><input class="text-in small" id="rn-${p.id}" value="${esc(p.name)}" maxlength="24" aria-label="Rename ${esc(p.name)}"><button class="btn small" data-act="renameplayer" data-arg="${p.id}">Rename</button></div>
+        </li>`).join('')}</ul>
+        <h3>New player</h3>
+        <div class="inline-form"><input class="text-in" id="newname" maxlength="24" placeholder="Name" autocomplete="off"><button class="btn primary" data-act="newplayer">Create</button></div>`;
+    } else if (t === 'save') {
+      body = `<p>Your game saves automatically on this device after every move. There is no account and no server, so nothing leaves the device unless you copy a save code.</p>
+        <button class="btn primary wide" data-act="savenow">💾 Save now</button>
+        <h3>Move your game to another device</h3>
+        <p class="muted small">Copy the save code, send it to yourself, and import it on the other device.</p>
+        ${UI.exportCode ? `<textarea class="code" id="exportcode" readonly rows="3">${UI.exportCode}</textarea><button class="btn wide" data-act="copycode">📋 Copy save code</button>` : '<button class="btn wide" data-act="exportcode">Show save code</button>'}
+        <h3>Import a save code</h3>
+        <textarea class="code" id="importcode" rows="3" placeholder="Paste a code starting with MIE1:"></textarea>
+        ${UI.importErr ? `<p class="bad small">${esc(UI.importErr)}</p>` : ''}
+        <button class="btn wide" data-act="importcode">Import as a new player</button>
+        <h3>Start over</h3>
+        <button class="btn ghost wide" data-act="newgame">${UI.confirm === 'newgame' ? 'Tap again to erase this player\'s shop and start over' : 'Start a new game for this player'}</button>`;
+    } else {
+      body = `<button class="btn wide" data-act="howto">📖 How to play</button>
+        <p class="small">Tips: read each customer's wishes and must-haves, check the season, keep the family happy, and collect rewards on the Goals screen.</p>
+        <p class="muted small">Mie's Atelier is made with plain HTML, CSS and JavaScript. Music and sounds are generated live in the browser.</p>`;
+    }
+    return `<div class="overlay dismissable"><div class="sheet menu-sheet">
+      <div class="menu-head"><h2>Menu</h2><button class="btn small" data-act="closeov" aria-label="Close menu">✕</button></div>
+      <div class="tabs">${tabs.map(([id, l]) => `<button class="tab ${t === id ? 'on' : ''}" data-act="menutab" data-arg="${id}">${l}</button>`).join('')}</div>
+      <div class="menu-body">${body}</div>
     </div></div>`;
   }
 
@@ -545,6 +597,8 @@
       case 'menu': return ovMenu();
       case 'throw': return ovThrow();
       case 'thrown': return ovThrown(o);
+      case 'wedge': return ovPotStep('wedge');
+      case 'paint': return ovPotStep('paint');
       default: return '';
     }
   }
@@ -567,7 +621,7 @@
       if (key === 'clay') sub = `${round1(G.inv.clay[x.id] || 0)} kg · ${kr(DG.clayPrice(G, x.id))}/kg`;
       if (key === 'shape') sub = `${x.kg} kg · ${'●'.repeat(Math.round(x.diff * 2 - 1))} difficulty`;
       if (key === 'glaze') sub = x.price ? `own ${G.inv.glazes[x.id] || 0} · ${kr(DG.glazePrice(G, x.id))}` : 'raw clay';
-      if (key === 'deco') sub = `value ×${x.mult}${x.item ? ` · own ${G.inv.items[x.item] || 0} gold leaf` : ''}`;
+      if (key === 'deco') sub = x.paint ? 'paint it yourself: up to ×1.4' : `value ×${x.mult}${x.item ? ` · own ${G.inv.items[x.item] || 0} gold leaf` : ''}`;
       const sw = key === 'clay' || key === 'glaze' ? `<span class="clay-dot small" style="--c:${x.hex || byId(DG.CLAYS, pot.clay).hex}"></span>` : '';
       return chip('setpot', `${key}:${x.id}`, pot[key] === x.id, `${sw}<span class="chip-txt"><b>${x.name}</b><small>${locked ? '🔒 locked' : sub}</small></span>`, locked ? 'disabled' : '');
     }).join('')}</div>`;
@@ -603,7 +657,7 @@
 
   function ovThrow() {
     const shape = byId(DG.POT_SHAPES, G.pot.shape);
-    return `<div class="overlay"><div class="sheet sew">
+    return `<div class="overlay"><div class="sheet sew">${potSteps().length > 1 ? stepsBar(potSteps(), 'wheel') : ''}
       <h2>Throwing a ${shape.name.toLowerCase()}</h2>
       <p class="muted"><b>Hold</b> the button to press on the clay, let go to ease off. Keep the marker inside the green band until the pot is done.</p>
       <div class="sew-stage throw-stage" id="throwpot">${DG.renderPot(G.pot, 'throw', { raw: true, grow: 0, wheel: true })}</div>
@@ -619,7 +673,7 @@
     return `<div class="overlay"><div class="sheet center">
       <div class="pot-hero">${DG.renderPot(it.pot, 'thrown')}</div>
       <h2>${o.score >= 0.85 ? 'Beautifully centred!' : o.score >= 0.6 ? 'A nice, even pot.' : o.score >= 0.35 ? 'A bit lopsided...' : 'Wobbly, but it holds together.'}</h2>
-      <p>Centring ${Math.round(o.score * 100)}% · price tag ${kr(it.price)} · crack risk ${Math.round(it.crack * 100)}%</p>
+      <p>${o.wedge != null && S.minigames === 'full' ? `Kneading ${Math.round(o.wedge * 100)}% · ` : ''}Centring ${Math.round(o.score * 100)}% · price tag ${kr(it.price)} · crack risk ${Math.round(it.crack * 100)}%</p>
       <p class="muted small">It goes into the kiln and is fired tonight. If it survives, it appears on the shelf tomorrow morning.</p>
       <button class="btn primary big wide" data-act="closeov">Back to the studio</button>
     </div></div>`;
@@ -656,9 +710,17 @@
     UI.raf = requestAnimationFrame(step);
   }
 
+  function potSteps() {
+    return (S.minigames === 'full' ? ['wedge', 'wheel'] : ['wheel']).concat(G.pot.deco === 'handpainted' ? ['paint'] : []);
+  }
   function startThrowing() {
     const an = DG.analyzePot(G.pot, G);
     if (an.issues.length) return;
+    UI.potRun = { wedge: 0.6, score: 0 };
+    if (S.minigames === 'full') { UI.overlay = { type: 'wedge' }; render(); return; }
+    startWheel();
+  }
+  function startWheel() {
     const shape = byId(DG.POT_SHAPES, G.pot.shape);
     const lvl = DG.upgradeLevel(G, 'pottery');
     UI.throwSt = { t: 0, dur: 6, p: 0.2, holding: false, good: 0, last: 0, phase: Math.random() * 6, diff: shape.diff,
@@ -669,11 +731,55 @@
 
   function finishThrow(score) {
     score = clamp(score, 0, 1);
-    const item = DG.throwPot(G, G.pot, score);
+    UI.potRun.score = score;
+    if (G.pot.deco === 'handpainted') { UI.overlay = { type: 'paint' }; render(); return; }
+    completePot(score, null);
+  }
+  function completePot(score, strokes) {
+    const pot = Object.assign({}, G.pot, strokes ? { paint: strokes } : {});
+    const item = DG.throwPot(G, pot, score, UI.potRun.wedge);
     DG.updateGoals(G);
-    UI.overlay = { type: 'thrown', item, score };
+    sfx('good');
+    UI.overlay = { type: 'thrown', item, score, wedge: UI.potRun.wedge };
     save();
     render();
+  }
+  function ovPotStep(type) {
+    return `<div class="overlay"><div class="sheet sew mg-sheet ${type === 'paint' ? 'paint-sheet' : ''}">${stepsBar(potSteps(), type)}<div id="mg" class="mg"></div></div></div>`;
+  }
+
+  // ---------------- Mie's home ----------------
+  function viewHome() {
+    const h = G.home, mood = DG.homeMood(G);
+    const acts = DG.ACTIVITIES.map(a => {
+      const done = a.free ? h.did[a.id] === G.day : h.did.outing === G.day;
+      const can = DG.canDoActivity(G, a.id);
+      return `<button class="chip" data-act="activity" data-arg="${a.id}" ${can ? '' : 'disabled'}><span class="ex-ic">${a.icon}</span><span class="chip-txt"><b>${a.name}</b><small>${done ? 'done today ✓' : a.free ? 'free · once a day' : `${kr(a.cost)} · one outing a day`} · ❤️ +${a.joy}</small></span></button>`;
+    }).join('');
+    const items = who => DG.HOME_ITEMS.filter(i => i.who === who).map(it => {
+      const own = h.items.includes(it.id);
+      return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">❤️ +${it.joy} now, and a slower daily drop</span></div></div>
+        <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
+    }).join('');
+    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>
+    <div class="shop-grid">
+      <section class="panel">
+        <h2>Mie's home</h2>
+        <p class="muted">Above the atelier live Mie, her husband Adam, their daughter Elizabeth (3) and Dexter the cat. Tap Dexter to pet him.</p>
+        <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
+        <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
+        <p class="muted small">Happiness drops by ${DG.homeDecay(G)} every night (each toy slows it by 1)${h.catFood <= 0 ? ', plus 8 while Dexter is hungry' : ''}.</p>
+        <h3>Today</h3><div class="chips">${acts}</div>
+        <h3>Dexter's food</h3>
+        <div class="food-row"><span>${h.catFood > 0 ? `🐟 ${h.catFood} day${h.catFood > 1 ? 's' : ''} of food left` : '<b class="bad">Dexter is hungry! Mjav!</b>'}</span>
+          <button class="btn" data-act="catfood" ${G.money < DG.CAT_FOOD.cost ? 'disabled' : ''}>${DG.CAT_FOOD.icon} Buy ${DG.CAT_FOOD.name}: ${kr(DG.CAT_FOOD.cost)}</button></div>
+        ${h.event ? `<p class="event soft">Last night: ${esc(h.event)}</p>` : ''}
+      </section>
+      <section class="panel">
+        <h2>Toys for Elizabeth</h2><div class="grid upg">${items('elizabeth')}</div>
+        <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
+      </section>
+    </div>`;
   }
 
   // ---------------- goals ----------------
@@ -695,13 +801,46 @@
   }
 
   // ---------------- render ----------------
-  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, upgrades: viewUpgrades, goals: viewGoals };
+  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, home: viewHome, upgrades: viewUpgrades, goals: viewGoals };
   function render() {
     const app = document.getElementById('app');
+    if (UI.mgCleanup) { UI.mgCleanup(); UI.mgCleanup = null; }
+    if (!G) { app.innerHTML = welcomeScreen(); return; }
     app.innerHTML = topbar() + `<main class="view view-${UI.view}">${VIEWS[UI.view]()}</main>` + overlay();
+    // re-rendering the same overlay (e.g. changing a setting) should not replay its entry animation
+    const ovType = G.gameOver ? 'gameover' : UI.overlay && UI.overlay.type;
+    if (ovType && ovType === UI.lastOverlay) app.querySelectorAll('.overlay, .sheet').forEach(el => el.classList.add('still'));
+    UI.lastOverlay = ovType;
     document.body.classList.toggle('modal-open', !!(UI.overlay || G.gameOver));
-    if (UI.overlay && UI.overlay.type === 'sew') startSewLoop();
+    if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
+    mountMiniGame();
+  }
+
+  function mountMiniGame() {
+    const host = document.getElementById('mg');
+    const o = UI.overlay;
+    if (!host || !o) return;
+    if (o.type === 'sew') {
+      const ph = UI.sew.phase;
+      UI.mgCleanup = DG.MiniGames[ph](host, { color: DG.colorHex(G.design.mainColor) }, r => sewPhaseDone(ph, r));
+    } else if (o.type === 'wedge') {
+      UI.mgCleanup = DG.MiniGames.wedge(host, { color: byId(DG.CLAYS, G.pot.clay).hex }, r => { UI.potRun.wedge = r; startWheel(); });
+    } else if (o.type === 'paint') {
+      UI.mgCleanup = DG.MiniGames.paint(host, { pot: G.pot }, strokes => completePot(UI.potRun.score, strokes));
+    }
+  }
+
+  function welcomeScreen() {
+    return `<div class="welcome"><div class="panel center">
+      ${DG.renderAvatar(DG.MIE_LOOK, 'ecstatic', 120)}
+      <h1><span class="brand-script">Mie's</span> Atelier</h1>
+      <p>Welcome! Who is playing? Each player gets their own shop, saved on this device.</p>
+      <label class="lbl" for="firstname">Your name</label>
+      <input id="firstname" class="text-in" maxlength="24" placeholder="e.g. Adam" autocomplete="off">
+      <button class="btn primary big wide" data-act="firstplayer">Start playing</button>
+      <p class="muted small">Have a save code from another device? Start, then open Menu → Save → Import.</p>
+    </div></div>`;
   }
 
   // ---------------- sewing mini-game ----------------
@@ -721,8 +860,8 @@
       if (!el) return;
       const dt = s.last ? Math.min(0.05, (now - s.last) / 1000) : 0;
       s.last = now;
-      if (!s.lock) s.phase += dt * (2.1 + 0.45 * s.i) * (1 - 0.12 * machine);
-      s.pos = 0.5 + 0.47 * Math.sin(s.phase);
+      if (!s.lock) s.ang += dt * (2.1 + 0.45 * s.i) * (1 - 0.12 * machine);
+      s.pos = 0.5 + 0.47 * Math.sin(s.ang);
       el.style.left = `${s.pos * 100}%`;
       UI.raf = requestAnimationFrame(step);
     };
@@ -738,6 +877,7 @@
     else if (dist < s.zw) { sc = 0.45; msg = 'A bit wobbly'; }
     else { sc = 0.1; msg = 'Oops! 😬'; }
     s.scores.push(sc);
+    sfx(sc >= 1 ? 'perfect' : sc >= 0.8 ? 'stitch' : sc >= 0.45 ? 'stitch' : 'bad');
     const dots = document.querySelectorAll('#sdots i');
     if (dots[s.i]) dots[s.i].className = sc >= 1 ? 'p' : sc >= 0.8 ? 'g' : sc >= 0.45 ? 'w' : 'x';
     const fb = document.getElementById('sfb');
@@ -746,7 +886,7 @@
     if (s.i >= 5) {
       s.lock = true;
       const craft = s.scores.reduce((a, b) => a + b, 0) / s.scores.length;
-      setTimeout(() => finishSewing(craft), 750);
+      setTimeout(() => sewPhaseDone('stitch', craft), 750);
     } else {
       s.center = 0.2 + Math.random() * 0.6;
       placeZone();
@@ -765,10 +905,28 @@
 
   function beginSewGame() {
     const machine = DG.upgradeLevel(G, 'machine');
-    UI.sew = { i: 0, scores: [], center: 0.2 + Math.random() * 0.6, zw: 0.16 + 0.05 * machine + (G.staff.apprentice ? 0.04 : 0), phase: 0, pos: 0.5, last: 0, lock: false };
+    const steps = S.minigames === 'full' ? ['cut', 'stitch', 'iron'] : ['stitch'];
+    UI.sew = { i: 0, scores: [], center: 0.2 + Math.random() * 0.6, zw: 0.16 + 0.05 * machine + (G.staff.apprentice ? 0.04 : 0) + DG.homeMood(G).zone,
+      ang: 0, pos: 0.5, last: 0, lock: false, steps, res: {} };
+    UI.sew.phase = steps[0];
     UI.overlay = { type: 'sew' };
     save();
     render();
+  }
+
+  // craft = 30% cutting + 50% stitching + 20% ironing (quick mode: stitching only)
+  function sewPhaseDone(phase, score) {
+    const sw = UI.sew;
+    sw.res[phase] = score;
+    const next = sw.steps[sw.steps.indexOf(phase) + 1];
+    if (next) {
+      sw.phase = next;
+      render();
+      return;
+    }
+    const r = sw.res;
+    const craft = sw.steps.length > 1 ? 0.3 * r.cut + 0.5 * r.stitch + 0.2 * r.iron : r.stitch;
+    finishSewing(clamp(craft, 0, 1));
   }
 
   function finishSewing(craft) {
@@ -789,6 +947,7 @@
     ev.cost = design.cost != null ? design.cost : ev.cost;
     G.money += ev.pay + ev.tip;
     G.today.income += ev.pay + ev.tip;
+    sfx(ev.S >= 60 ? 'coin' : 'bad');
     G.today.served++;
     G.rep = clamp(round1(G.rep + ev.repDelta), 0, 100);
     G.stats.served++;
@@ -834,12 +993,13 @@
   }
 
   function act(name, arg) {
-    if (name !== 'endday' && name !== 'newgame' && name !== 'fire') UI.confirm = null;
+    if (!['endday', 'newgame', 'fire', 'deleteplayer'].includes(name)) UI.confirm = null;
+    if (!['stitch', 'press', 'pet'].includes(name)) sfx('click');
     switch (name) {
       case 'view': UI.view = arg; window.scrollTo(0, 0); break;
       case 'tab': UI.tab = arg; break;
-      case 'menu': UI.overlay = { type: 'menu' }; break;
       case 'howto': UI.overlay = { type: 'intro' }; break;
+      case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
       case 'openreq': UI.overlay = { type: 'req', arg }; break;
       case 'accept': {
@@ -889,6 +1049,93 @@
       }
       case 'sew': startSewing(); return;
       case 'uptab': UI.upTab = arg; break;
+      case 'menutab': UI.menuTab = arg; UI.importErr = ''; break;
+      case 'setting': {
+        const i = arg.indexOf(':');
+        const key = arg.slice(0, i), raw = arg.slice(i + 1);
+        S[key] = raw === 'true' ? true : raw === 'false' ? false : raw;
+        DG.Profiles.saveSettings(S);
+        applySettings();
+        break;
+      }
+      case 'savenow': save(); toast('Saved on this device ✓'); break;
+      case 'exportcode': UI.exportCode = DG.Profiles.exportCode(G); break;
+      case 'copycode': {
+        const ta = document.getElementById('exportcode');
+        const fallback = () => { if (ta) { ta.focus(); ta.select(); } toast('Select the code and copy it.'); };
+        try { navigator.clipboard.writeText(UI.exportCode).then(() => toast('Save code copied ✓'), fallback); } catch (e) { fallback(); }
+        return;
+      }
+      case 'importcode': {
+        const code = (document.getElementById('importcode') || {}).value;
+        try {
+          const game = DG.ensureDefaults(DG.Profiles.parseCode(code));
+          save();
+          DG.Profiles.create(`Imported (day ${game.day})`, game);
+          G = game; UI.importErr = ''; UI.exportCode = ''; UI.overlay = null; UI.view = 'shop';
+          toast('Save imported as a new player ✓ Rename it under Menu → Players.');
+        } catch (e) { UI.importErr = e.message; }
+        break;
+      }
+      case 'firstplayer': case 'newplayer': {
+        const nm = (document.getElementById(name === 'firstplayer' ? 'firstname' : 'newname') || {}).value || '';
+        if (!nm.trim()) { toast('Type a name first.'); return; }
+        if (G) save();
+        DG.Profiles.create(nm, null);
+        G = DG.newGame(); DG.startDay(G);
+        UI.view = 'shop'; UI.overlay = { type: 'intro' }; UI.exportCode = '';
+        break;
+      }
+      case 'switchplayer': {
+        save();
+        DG.Profiles.switchTo(arg);
+        G = load();
+        if (!G) { G = DG.newGame(); DG.startDay(G); }
+        UI.view = 'shop'; UI.overlay = null; UI.exportCode = '';
+        toast(`Welcome back, ${DG.Profiles.active().name}!`);
+        break;
+      }
+      case 'renameplayer': {
+        const v = (document.getElementById('rn-' + arg) || {}).value || '';
+        DG.Profiles.rename(arg, v);
+        toast('Renamed ✓');
+        return render();
+      }
+      case 'deleteplayer': {
+        if (UI.confirm !== 'del-' + arg) { UI.confirm = 'del-' + arg; return render(); }
+        UI.confirm = null;
+        DG.Profiles.remove(arg);
+        toast('Player deleted.');
+        return render();
+      }
+      case 'activity': {
+        if (arg === 'pet') return act('pet');
+        const a = byId(DG.ACTIVITIES, arg);
+        if (DG.doActivity(G, arg)) {
+          if (!a.free) G.today.spent += a.cost;
+          sfx('fanfare');
+          toast(`${a.icon} ${a.name}: family happiness +${a.joy}!`);
+        }
+        break;
+      }
+      case 'pet': {
+        if (DG.doActivity(G, 'pet')) {
+          UI.dexter = 'purr'; sfx('purr');
+          toast('Dexter purrs like a little motor. ❤️ +4');
+          setTimeout(() => { UI.dexter = null; if (UI.view === 'home' && !UI.overlay) render(); }, 2800);
+        } else {
+          sfx('meow');
+          toast(G.home.catFood <= 0 ? 'Dexter would rather have dinner. Mjav!' : 'Dexter has had enough cuddles for today. He is a cat, after all.');
+          return;
+        }
+        break;
+      }
+      case 'buyhome': {
+        const it = byId(DG.HOME_ITEMS, arg);
+        if (DG.buyHomeItem(G, arg)) { G.today.spent += it.cost; sfx('coin'); toast(`${it.icon} ${it.name} for ${it.who === 'dexter' ? 'Dexter' : 'Elizabeth'}!`); }
+        break;
+      }
+      case 'catfood': if (DG.buyCatFood(G)) { G.today.spent += DG.CAT_FOOD.cost; sfx('meow'); toast('Dexter approves. 🐟'); } break;
       case 'goexpansion': UI.view = 'upgrades'; UI.upTab = 'expansion'; window.scrollTo(0, 0); break;
       case 'setpot': {
         const i = arg.indexOf(':');
@@ -916,6 +1163,7 @@
       }
       case 'claim': {
         const got = DG.claimGoal(G, arg);
+        if (got) sfx('fanfare');
         if (got) toast(`🏆 ${byId(DG.GOALS, arg).title}: +${kr(got)}!`);
         break;
       }
@@ -991,6 +1239,7 @@
         if (G.queue.length && UI.confirm !== 'endday') { UI.confirm = 'endday'; break; }
         UI.confirm = null;
         const res = DG.endDay(G);
+        if (res.pottery && res.pottery.cracked.length) setTimeout(() => sfx('crack'), 300);
         UI.overlay = G.gameOver ? null : { type: 'dayend', res };
         break;
       }
@@ -1032,23 +1281,37 @@
   ['pointerup', 'pointercancel', 'blur'].forEach(ev => (ev === 'blur' ? window : document).addEventListener(ev, release));
   document.addEventListener('contextmenu', e => { if (e.target.closest('[data-act="press"]')) e.preventDefault(); });
   document.addEventListener('keyup', e => { if (e.code === 'Space') release(); });
+  // first touch unlocks audio on iOS
+  document.addEventListener('pointerdown', () => DG.Audio.unlock(), { once: true });
+  document.addEventListener('input', e => {
+    const k = e.target.dataset && e.target.dataset.setting;
+    if (!k) return;
+    S[k] = e.target.value / 100;
+    const v = document.getElementById(`vol-${k}-v`);
+    if (v) v.textContent = `${e.target.value}%`;
+    applySettings();
+  });
+  document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.setting) { DG.Profiles.saveSettings(S); if (e.target.dataset.setting === 'sfx') sfx('coin'); } });
   document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'firstname') { act('firstplayer'); return; }
+    if (e.key === 'Enter' && e.target.id === 'newname') { act('newplayer'); return; }
     if (UI.overlay && UI.overlay.type === 'sew' && (e.code === 'Space' || e.key === 'Enter')) { e.preventDefault(); stitch(); }
     else if (UI.overlay && UI.overlay.type === 'throw' && e.code === 'Space') { e.preventDefault(); if (UI.throwSt) UI.throwSt.holding = true; }
     else if (e.key === 'Escape' && UI.overlay && ['req', 'menu'].includes(UI.overlay.type)) act('closeov');
   });
 
   // ---------------- boot ----------------
-  G = load();
-  if (!G) {
+  applySettings();
+  G = DG.Profiles.active() ? load() : null;
+  if (DG.Profiles.active() && !G) {
     G = DG.newGame();
     DG.startDay(G);
     UI.overlay = { type: 'intro' };
     save();
-  } else if (G.active && !G.design) {
+  } else if (G && G.active && !G.design) {
     G.design = DG.newDesign(G);
-  } else if (G.active && G.design.sewn) {
-    // the page was closed mid-sewing: materials are already cut, so resume the stitching
+  } else if (G && G.active && G.design.sewn) {
+    // the page was closed mid-sewing: materials are already cut, so resume
     UI.view = 'workshop';
     beginSewGame();
   }

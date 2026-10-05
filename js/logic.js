@@ -65,7 +65,56 @@
     st.byArche = st.byArche || {};
     for (const k of ['happy', 'rackSold', 'potsMade', 'potsSold', 'potsCracked', 'teapots', 'brideBest']) st[k] = st[k] || 0;
     st.seasons = st.seasons || [];
+    st.painted = st.painted || 0;
+    G.home = G.home || { happy: 70, items: [], catFood: 7, did: {}, event: null };
     return G;
+  };
+
+  // ---------- Mie's home ----------
+  // Happiness drops 10/day, 1 less per toy owned (min 3), plus 8 more if Dexter has no food.
+  DG.homeDecay = G => Math.max(3, 10 - G.home.items.length);
+  DG.homeMood = function (G) {
+    const h = G.home.happy;
+    if (h >= 75) return { id: 'happy', label: 'Happy and rested', sat: 2, zone: 0.02 };
+    if (h < 30) return { id: 'low', label: 'Misses her family', sat: -3, zone: -0.02 };
+    return { id: 'ok', label: 'Doing fine', sat: 0, zone: 0 };
+  };
+  DG.canDoActivity = function (G, id) {
+    const a = byId(DG.ACTIVITIES, id);
+    if (a.free) return G.home.did[id] !== G.day;
+    return G.home.did.outing !== G.day && G.money >= a.cost;
+  };
+  DG.doActivity = function (G, id) {
+    const a = byId(DG.ACTIVITIES, id);
+    if (!DG.canDoActivity(G, id)) return false;
+    if (a.free) G.home.did[id] = G.day; else { G.home.did.outing = G.day; G.money -= a.cost; }
+    G.home.happy = clamp(G.home.happy + a.joy, 0, 100);
+    DG.updateGoals(G);
+    return true;
+  };
+  DG.buyHomeItem = function (G, id) {
+    const it = byId(DG.HOME_ITEMS, id);
+    if (G.home.items.includes(id) || G.money < it.cost) return false;
+    G.money -= it.cost;
+    G.home.items.push(id);
+    G.home.happy = clamp(G.home.happy + it.joy, 0, 100);
+    DG.updateGoals(G);
+    return true;
+  };
+  DG.buyCatFood = function (G) {
+    if (G.money < DG.CAT_FOOD.cost) return false;
+    G.money -= DG.CAT_FOOD.cost;
+    G.home.catFood += DG.CAT_FOOD.days;
+    return true;
+  };
+  DG.endDayHome = function (G) {
+    const h = G.home;
+    const hungry = h.catFood <= 0;
+    if (!hungry) h.catFood -= 1;
+    const drop = DG.homeDecay(G) + (hungry ? 8 : 0);
+    h.happy = clamp(h.happy - drop, 0, 100);
+    h.event = pick(DG.HOME_EVENTS);
+    return { drop, hungry, event: h.event, happy: h.happy };
   };
 
   // ---------- seasons ----------
@@ -263,6 +312,7 @@
     const pottery = DG.endDayPottery(G);
     G.money += pottery.income;
     if (G.today) G.today.income += pottery.income;
+    const home = DG.endDayHome(G);
     G.money -= rent + wages;
     if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
     G.queue = [];
@@ -272,7 +322,7 @@
       else G.gameOver = true;
     }
     DG.updateGoals(G);
-    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery };
+    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
@@ -396,7 +446,7 @@
     const seasonAdj = sf === 'in' ? 3 : sf === 'out' ? -4 : 0;
 
     let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0)
-      + 0.25 * DG.charm(G) + seasonAdj;
+      + 0.25 * DG.charm(G) + seasonAdj + DG.homeMood(G).sat;
     S = Math.round(clamp(S, 0, 100));
 
     const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
@@ -405,7 +455,7 @@
     const repDelta = round1((S - 65) / 8);
     const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
 
-    return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj };
+    return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj, moodAdj: DG.homeMood(G).sat };
   };
 
   // ---------- ready-to-wear rack ----------
@@ -495,24 +545,34 @@
   };
 
   // price = base · clay · glaze · decoration · (0.6 + 0.8·throwing score), rounded to 5 kr
+  // Hand-painting: 1.1 + 0.05 per colour used (max 4) + up to 0.1 for how much of the pot is covered.
+  DG.paintMult = function (pot) {
+    const strokes = pot.paint || [];
+    if (!strokes.length) return 1;
+    const colors = new Set(strokes.map(st => st.c)).size;
+    const ink = strokes.reduce((a, st) => a + (st.n || 0) * st.w, 0);
+    return Math.round((1.1 + 0.05 * Math.min(4, colors) + Math.min(0.1, ink / 6000)) * 100) / 100;
+  };
   DG.potPrice = function (pot, score) {
+    const deco = byId(DG.POT_DECOS, pot.deco);
     const v = byId(DG.POT_SHAPES, pot.shape).base * byId(DG.CLAYS, pot.clay).mult * byId(DG.GLAZES, pot.glaze).mult
-      * byId(DG.POT_DECOS, pot.deco).mult * (0.6 + 0.8 * score);
+      * (deco.paint ? DG.paintMult(pot) : deco.mult) * (0.6 + 0.8 * score);
     return Math.round(v / 5) * 5;
   };
-  DG.crackChance = function (pot, score, G) {
+  // wedge ∈ [0,1]: well-kneaded clay has no air bubbles (1 → ×0.8 risk, 0 → ×1.3)
+  DG.crackChance = function (pot, score, G, wedge = 0.6) {
     const diff = byId(DG.POT_SHAPES, pot.shape).diff;
-    return clamp(0.32 * (1 - score) * diff * (DG.upgradeLevel(G, 'pottery') >= 2 ? 0.5 : 1), 0.03, 0.6);
+    return clamp(0.32 * (1 - score) * diff * (DG.upgradeLevel(G, 'pottery') >= 2 ? 0.5 : 1) * (1.3 - 0.5 * wedge), 0.03, 0.6);
   };
 
   // Consumes materials and puts the thrown pot in the kiln.
-  DG.throwPot = function (G, pot, score) {
+  DG.throwPot = function (G, pot, score, wedge = 0.6) {
     const an = DG.analyzePot(pot, G);
     G.inv.clay[pot.clay] = round1((G.inv.clay[pot.clay] || 0) - an.kg);
     if (byId(DG.GLAZES, pot.glaze).price) G.inv.glazes[pot.glaze] -= 1;
     const deco = byId(DG.POT_DECOS, pot.deco);
     if (deco.item) G.inv.items[deco.item] -= 1;
-    const item = { pot: Object.assign({}, pot), score, cost: an.cost, price: DG.potPrice(pot, score), crack: DG.crackChance(pot, score, G) };
+    const item = { pot: Object.assign({}, pot), score, cost: an.cost, price: DG.potPrice(pot, score), crack: DG.crackChance(pot, score, G, wedge) };
     G.kiln.push(item);
     G.stats.potsMade++;
     return item;
@@ -532,6 +592,7 @@
       if (G.shelf.length < DG.shelfCapacity(G)) {
         G.shelf.push(it); fired.push(it);
         if (it.pot.shape === 'teapot') G.stats.teapots++;
+        if (it.pot.paint && it.pot.paint.length) G.stats.painted++;
       } else keep.push(Object.assign(it, { crack: 0 }));  // fired fine, waits for shelf space
     });
     G.kiln = keep;

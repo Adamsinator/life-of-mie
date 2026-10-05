@@ -8,7 +8,7 @@ const fragment = process.argv.includes('--fragment');
 
 const fonts = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap';
 const css = read('css/style.css');
-const js = ['js/data.js', 'js/logic.js', 'js/render.js', 'js/ui.js'].map(read).join('\n');
+const js = ['js/data.js', 'js/logic.js', 'js/render.js', 'js/audio.js', 'js/profiles.js', 'js/minigames.js', 'js/ui.js'].map(read).join('\n');
 const body = `<div id="app"></div>\n<script>\n${js}\n</script>`;
 const head = `<title>Mie's Atelier</title>\n<link rel="stylesheet" href="${fonts}">\n<style>\n${css}\n</style>`;
 
