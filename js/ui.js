@@ -89,7 +89,7 @@
     }
     return `<button class="cust" data-act="openreq" data-arg="${arg}">
       ${DG.renderAvatar(c.look, 'neutral', 64)}
-      <span class="cust-info"><span class="cust-name"><span translate="no">${esc(c.name)}</span> ${c.visits ? '<span class="tag">Regular</span>' : ''}</span>
+      <span class="cust-info"><span class="cust-name"><span translate="no">${esc(c.name)}</span> ${c.story ? '<span class="tag story">📖 Her story</span>' : c.visits ? '<span class="tag">Regular</span>' : ''}</span>
       <span class="muted">${esc(c.title)}</span><span class="pchips small">${prioChips(c)}</span></span>
       <span class="cust-budget">${kr(c.budget)}</span>
     </button>`;
@@ -111,7 +111,7 @@
 
   // ---------------- top bar ----------------
   function topbar() {
-    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
+    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['album', '📖', 'Album']];
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
@@ -121,7 +121,7 @@
         <div class="hud-item"><span class="lbl">Purse</span><b>${kr(G.money)}</b></div>
         <div class="hud-item rep" title="Reputation ${Math.round(G.rep)} of 100"><span class="lbl">Reputation</span><b>${starsHtml(1 + G.rep / 25)}</b></div>
       </div>
-      <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${(id === 'workshop' && G.active) || (id === 'goals' && claimable) ? '<i class="dot"></i>' : ''}</button>`).join('')}
+      <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${(id === 'workshop' && G.active) || (id === 'album' && (claimable || DG.mailToday(G).length)) ? '<i class="dot"></i>' : ''}</button>`).join('')}
         <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">☰</span><span>Menu</span></button></nav>
     </header>`;
   }
@@ -142,6 +142,8 @@
         : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
     const queue = G.queue.map((c, i) => custCard(c, i)).join('');
     const seasonBanner = G.newSeason ? `<div class="event season">${DG.season(G).icon} ${esc(DG.season(G).hello)} In season: ${DG.season(G).in.map(id => byId(DG.FABRICS, id).name.toLowerCase()).join(', ')}.</div>` : '';
+    const post = DG.mailToday(G);
+    const mailBanner = post.length ? `<button class="event mail" data-act="readmail">📬 ${post.length === 1 ? `A letter from <span translate="no">${esc(post[0].from)}</span>` : `${post.length} letters in the post`}</button>` : '';
     const goalBanner = DG.claimableGoals(G).length ? `<button class="event goal" data-act="claimall">🏆 ${DG.claimableGoals(G).length} goal${DG.claimableGoals(G).length > 1 ? 's' : ''} complete. Tap to collect your reward!</button>` : '';
     const camp = G.boost && G.boost.campaigns && G.boost.campaigns.length
       ? `<div class="event teal">Today's marketing: ${G.boost.campaigns.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
@@ -159,7 +161,7 @@
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
-        ${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
+        ${mailBanner}${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
           <div><dt>Happy customers</dt><dd>${G.stats.served ? starsHtml(G.stats.totalS / G.stats.served / 20) : '–'}</dd></div>
@@ -459,7 +461,7 @@
     const c = isActive ? G.active : G.queue[+arg];
     if (!c) return '';
     return `<div class="overlay dismissable"><div class="sheet req">
-      <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2 translate="no">${esc(c.name)}</h2><span class="muted">${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}</span></div></div>
+      <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2 translate="no">${esc(c.name)}</h2><span class="muted">${c.story ? `📖 Chapter ${c.ch + 1}: ${esc(c.title)}` : `${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}`}</span></div></div>
       <div class="bubble big">${(c.parts || [c.text]).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
       ${briefHtml(c, isActive ? G.design : null)}
       <div class="actions">
@@ -592,6 +594,19 @@
     </div></div>`;
   }
 
+  function ovLetter(o) {
+    const m = o.m, gf = m.gift || {};
+    const gift = gf.money ? `She tucked ${kr(gf.money)} into the envelope.` : gf.happy ? 'She sent a little something for Elizabeth.' : gf.fabric ? `She sent ${gf.m} m of ${byId(DG.FABRICS, gf.fabric).name.toLowerCase()} she didn't need.` : gf.charm ? 'She sent a keepsake for the shop wall (+1 charm).' : '';
+    return `<div class="overlay"><div class="sheet letter-sheet">
+      <div class="paper">
+        <div class="letter-head">${DG.renderAvatar(m.look || DG.randomLook(), 'happy', 64)}<div><span class="muted small">A letter from</span><h2 translate="no">${esc(m.from)}</h2>${m.title ? `<span class="muted small">${esc(m.title)}</span>` : ''}</div></div>
+        <p class="letter-text">${esc(m.text)}</p>
+        ${gift ? `<p class="letter-gift">🎁 ${gift}</p>` : ''}
+      </div>
+      <button class="btn primary big wide" data-act="keepmail" data-arg="${m.id}">Keep it in the album</button>
+    </div></div>`;
+  }
+
   function ovMenu() {
     const tabs = [['settings', '⚙️ Settings'], ['players', '👤 Players'], ['save', '💾 Save'], ['help', '❓ Help']];
     const t = UI.menuTab;
@@ -656,6 +671,7 @@
       case 'rackdone': return ovRackDone(o);
       case 'dayend': return ovDayEnd(o);
       case 'menu': return ovMenu();
+      case 'letter': return ovLetter(o);
       case 'throw': return ovThrow();
       case 'thrown': return ovThrown(o);
       case 'wedge': return ovPotStep('wedge');
@@ -927,6 +943,49 @@
   }
 
   // ---------------- goals ----------------
+  // ---------------- album: life stories, the lookbook, letters and goals ----------------
+  function viewAlbum() {
+    const t = UI.albumTab || 'stories';
+    const tabs = [['stories', '📖 Stories'], ['lookbook', '👗 Lookbook'], ['letters', '💌 Letters'], ['goals', '🏆 Goals']];
+    const body = t === 'lookbook' ? lookbookHtml() : t === 'letters' ? lettersHtml() : t === 'goals' ? viewGoals() : storiesHtml();
+    return `<div class="tabs album-tabs">${tabs.map(([id, l]) => `<button class="tab ${t === id ? 'on' : ''}" data-act="albumtab" data-arg="${id}">${l}${(id === 'goals' && DG.claimableGoals(G).length) || (id === 'letters' && DG.mailToday(G).length) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}</div>${body}`;
+  }
+  function storiesHtml() {
+    const cards = DG.STORIES.map(st => {
+      const s = DG.storyState(G, st.id);
+      const met = s.done.length > 0;
+      const chapters = st.ch.map((c, i) => {
+        const d = s.done.find(x => x.ch === i);
+        if (d) return `<li class="chap done"><span class="thumb">${DG.renderDress(d.design, `st-${st.id}-${i}`)}</span><span><b>${c.title}</b><span class="stars small-stars">${'★'.repeat(starsOf(d.S))}${'☆'.repeat(5 - starsOf(d.S))}</span></span></li>`;
+        if (i === s.ch && met) return `<li class="chap next"><span class="thumb q">✉️</span><span><b>Next chapter</b><span class="muted small">${G.rep < c.minRep ? 'When the shop is better known' : 'She will drop by one of these days'}</span></span></li>`;
+        return `<li class="chap locked"><span class="thumb q">…</span><span class="muted small">A chapter still to come</span></li>`;
+      }).join('');
+      return `<article class="story ${met ? '' : 'unmet'}">
+        <div class="story-head">${met ? DG.renderAvatar(st.look, 'happy', 64) : '<span class="avatar-q">?</span>'}<div><h3 translate="${met ? 'no' : 'yes'}">${met ? st.name : 'Someone you have not met yet'}</h3>
+          <span class="muted small">${met ? `${st.job} · ${s.done.length} of ${st.ch.length} chapters` : 'Every life has a story. Keep the shop open.'}</span></div></div>
+        ${met ? `<ol class="chapters">${chapters}</ol>` : ''}
+      </article>`;
+    }).join('');
+    return `<section class="panel"><div class="sec-head"><h2>Life stories</h2><span class="muted">Some customers come back as their lives move on: first dates, weddings, babies, big moments. Their dresses and letters are kept here.</span></div><div class="stories">${cards}</div></section>`;
+  }
+  const starsOf = S => (S >= 92 ? 5 : S >= 80 ? 4 : S >= 65 ? 3 : S >= 45 ? 2 : 1);
+  function lookbookHtml() {
+    const L = G.lookbook;
+    return `<section class="panel"><div class="sec-head"><h2>Lookbook</h2><span class="muted">Every dress with four stars or more, and every dress from a life story.</span></div>
+      ${L.length ? `<div class="lookbook">${L.map((e, i) => `<figure class="look"><span class="thumb">${DG.renderDress(e.design, 'lb' + i)}</span>
+        <figcaption><b translate="no">${esc(e.name)}</b><span class="muted small">${esc(e.title)}${e.story ? ' 📖' : ''}</span><span class="stars small-stars">${'★'.repeat(starsOf(e.S))}${'☆'.repeat(5 - starsOf(e.S))}</span></figcaption></figure>`).join('')}</div>`
+        : '<p class="muted">Your first four-star dress will be the first page.</p>'}
+    </section>`;
+  }
+  function lettersHtml() {
+    const waiting = DG.mailToday(G);
+    return `<section class="panel"><div class="sec-head"><h2>Letters</h2><span class="muted">Thank-you notes and postcards from customers.</span></div>
+      ${waiting.length ? `<button class="event goal" data-act="readmail">📬 ${waiting.length === 1 ? 'A new letter is waiting' : `${waiting.length} new letters are waiting`}</button>` : ''}
+      ${G.letters.length ? `<ul class="letters">${G.letters.map(l => `<li class="letter-row"><b translate="no">${esc(l.from)}</b>${l.title ? ` <span class="muted small">· ${esc(l.title)}</span>` : ''}<p>${esc(l.text)}</p></li>`).join('')}</ul>`
+        : '<p class="muted">No letters yet.</p>'}
+    </section>`;
+  }
+
   function viewGoals() {
     DG.updateGoals(G);
     const done = G.goals.claimed.length;
@@ -974,7 +1033,7 @@
       title: 'Ready-to-wear rack', text: 'Leftover fabric? Sew a dress without an order and hang it on the rack. Walk-in shoppers buy in the evening.' },
     { id: 'season', when: () => G.day > DG.SEASON_LENGTH && UI.view === 'shop' && !ov(), target: '.hud-item:nth-child(1)',
       title: 'A new season', text: 'Every 7 days the season changes. It changes who visits and which fabrics are in season (+3) or off-season (−4).' },
-    { id: 'goals', when: () => DG.claimableGoals(G).length && !ov(), target: '[data-act=view][data-arg=goals]',
+    { id: 'goals', when: () => DG.claimableGoals(G).length && !ov(), target: '[data-act=view][data-arg=album]',
       title: 'Goal complete!', text: 'You reached a goal. Collect the cash reward on the Goals screen.' },
     { id: 'potteryad', when: () => !DG.upgradeLevel(G, 'pottery') && G.money >= 800 && UI.view === 'shop' && !ov(), target: '[data-act=view][data-arg=studio]',
       title: 'A pottery corner?', text: 'With some savings Mie could start making pottery too. Buy the pottery studio under Upgrades → Expansion.' },
@@ -1025,7 +1084,8 @@
   }
 
   // ---------------- render ----------------
-  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, home: viewHome, upgrades: viewUpgrades, goals: viewGoals };
+  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, home: viewHome, upgrades: viewUpgrades, album: viewAlbum,
+    goals: () => { UI.albumTab = 'goals'; UI.view = 'album'; return viewAlbum(); } };
   // ---------------- screen updates ----------------
   // Every action re-describes the whole screen as HTML, but only the parts that changed are touched:
   // the new HTML is built off-screen (and translated there) and then patched into the page. Untouched
@@ -1231,6 +1291,8 @@
     DG.rememberCustomer(G, cust, ev.S);
     const beforeGoals = DG.claimableGoals(G).length;
     DG.recordDress(G, cust, ev.S);
+    if (cust.story) DG.storyDelivered(G, cust, ev.S, design);
+    if (DG.addToLookbook(G, cust, ev.S, design)) setTimeout(() => toast(cust.story ? '📖 A new page in her story' : '👗 Added to the lookbook'), 900);
     const newGoals = DG.claimableGoals(G).length - beforeGoals;
     G.active = null;
     G.design = null;
@@ -1275,6 +1337,14 @@
       case 'howto': UI.overlay = { type: 'intro' }; break;
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
+      case 'albumtab': UI.albumTab = arg; break;
+      case 'readmail': { const m = DG.mailToday(G)[0]; if (m) { UI.overlay = { type: 'letter', m }; sfx('good'); } break; }
+      case 'keepmail': {
+        DG.openMail(G, arg);
+        const next = DG.mailToday(G)[0];
+        UI.overlay = next ? { type: 'letter', m: next } : null;
+        break;
+      }
       case 'toggle-ui': UI[arg] = !UI[arg]; break;
       case 'openreq': UI.overlay = { type: 'req', arg }; break;
       case 'accept': {
@@ -1288,6 +1358,7 @@
       }
       case 'decline': {
         const c = G.queue.splice(+arg, 1)[0];
+        DG.storyDeclined(G, c);
         UI.overlay = null;
         toast(`${c.name} understands and wishes you a lovely day.`);
         break;

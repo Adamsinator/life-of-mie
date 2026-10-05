@@ -14,7 +14,7 @@ globalThis.localStorage = {
 };
 globalThis.btoa = s => Buffer.from(s, 'binary').toString('base64');
 globalThis.atob = s => Buffer.from(s, 'base64').toString('binary');
-for (const f of ['data', 'logic', 'render', 'profiles']) require(`../js/${f}.js`);
+for (const f of ['data', 'logic', 'stories', 'render', 'profiles']) require(`../js/${f}.js`);
 const DG = globalThis.DG;
 const P = DG.Profiles;
 

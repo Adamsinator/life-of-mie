@@ -97,6 +97,11 @@
     G.wardrobe = G.wardrobe || { owned: ['worktop', 'measure', 'noacc', 'rdark'], wear: { outfit: 'worktop', acc: 'measure', glasses: 'rdark' } };
     // cozy update: there is no game over any more, and the day's accounts are kept in a ledger
     G.ledger = G.ledger || [];
+    G.stories = G.stories || {};
+    G.mail = G.mail || [];
+    G.letters = G.letters || [];
+    G.lookbook = G.lookbook || [];
+    G.keepsakes = G.keepsakes || 0;
     G.returning = G.returning || [];
     if (G.gameOver) { G.gameOver = false; if (G.money < DG.HELP_FLOOR) G.money = DG.HELP_FLOOR; }
     G.schema = Math.max(G.schema || 0, DG.SAVE_SCHEMA);
@@ -256,7 +261,8 @@
     const d = G.decor;
     const items = d.owned.reduce((a, id) => a + (byId(DG.DECOR, id) || { charm: 0 }).charm, 0);
     const pots = Math.min(3, (G.shelf || []).length);   // pottery on display
-    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm + pots + DG.styleCharm(G);
+    // keepsakes: photos and paintings from the story customers
+    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm + pots + DG.styleCharm(G) + (G.keepsakes || 0);
   };
   DG.wages = G => DG.STAFF.reduce((a, st) => a + (G.staff[st.id] ? st.wage : 0), 0);
   DG.rackCapacity = G => 2 + DG.upgradeLevel(G, 'display') + 2 * DG.upgradeLevel(G, 'floor');
@@ -309,14 +315,15 @@
 
   function buildText(c, arche) {
     const parts = [];
-    if (c.visits > 0) {
+    if (c.storyLines) parts.push(...c.storyLines);
+    else if (c.visits > 0) {
       if (c.lastS >= 85) parts.push('Mie! Your last dress was a hit. Everyone asked where I got it!');
       else if (c.lastS >= 70) parts.push("Hi again! I'm back for another one.");
       else parts.push("I'm giving you another chance. Let's do better this time, okay?");
     } else {
       parts.push(`Hi! I'm ${c.name}, ${/^[aeiou]/i.test(c.job) ? 'an' : 'a'} ${c.job}.`);
     }
-    parts.push(pick(arche.lines));
+    if (!c.storyLines) parts.push(pick(arche.lines));
     const ws = Object.entries(c.weights).sort((a, b) => b[1] - a[1]);
     ws.forEach(([k, w]) => {
       const adj = DG.ATTR_META[k].adj;
@@ -336,6 +343,7 @@
     const display = DG.upgradeLevel(G, 'display');
     let eligible = DG.ARCHETYPES.filter(a => a.minRep <= G.rep);
     if (opts.topTier) eligible = eligible.slice(-3);
+    if (opts.arche) eligible = [byId(DG.ARCHETYPES, opts.arche)];
     // Higher-tier archetypes get more likely as the shop window improves.
     const se = DG.season(G);
     const weights = eligible.map(a => (1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0)) * (se.arche[a.id] || 1));
@@ -347,7 +355,8 @@
     const busy = new Set(G.queue.map(q => q.cid).concat(G.active ? [G.active.cid] : []));
     const back = G.known.filter(k => k.lastS >= 40 && !busy.has(k.cid) && !(G.today && G.today.seen.includes(k.cid)));
     let base;
-    if (back.length && Math.random() < Math.min(0.45, 0.08 * back.length)) {
+    if (opts.base) base = opts.base;
+    else if (back.length && Math.random() < Math.min(0.45, 0.08 * back.length)) {
       base = JSON.parse(JSON.stringify(pick(back)));
     } else {
       const used = new Set(G.known.map(k => k.name).concat(G.queue.map(q => q.name)));
@@ -371,20 +380,23 @@
     // seasoned shops get more demanding customers, and regulars expect a little more each visit
     const lift = 1 + DG.BAL.ramp * clamp(G.rep, 0, 100) / 100, extra = Math.min(DG.BAL.visitMax, DG.BAL.visitStep * (base.visits || 0));
     for (const k in arche.t) targets[k] = clamp(Math.round((arche.t[k] * lift + extra + (Math.random() - 0.5)) * 2) / 2, 3, 9.5);
-    const reqs = arche.reqs.filter(([, p]) => Math.random() < p).map(([id]) => id);
+    const reqs = opts.reqs ? opts.reqs.slice() : arche.reqs.filter(([, p]) => Math.random() < p).map(([id]) => id);
 
     const c = Object.assign(base, {
       oid: 'o' + G.nextId++,
       arche: arche.id,
       title: arche.title,
-      weights: Object.assign({}, arche.w),
+      weights: Object.assign({}, opts.w || arche.w),
       targets,
       styles: arche.styles.slice(),
       reqs,
       budget,
       loyal,
     });
-    if (arche.colors) { c.liked = arche.colors.liked.slice(0, 2); c.disliked = arche.colors.disliked.slice(); }
+    if (opts.w) for (const k in opts.w) if (c.targets[k] == null) c.targets[k] = clamp(Math.round(6 * lift * 2) / 2, 3, 9.5);
+    for (const k in c.targets) if (!c.weights[k]) delete c.targets[k];
+    if (arche.colors && !opts.base) { c.liked = arche.colors.liked.slice(0, 2); c.disliked = arche.colors.disliked.slice(); }
+    if (opts.storyLines) c.storyLines = opts.storyLines;
     c.parts = buildText(c, arche);
     c.text = c.parts.join(' ');
     return c;
@@ -423,6 +435,9 @@
     G.returning = [];
     G.queue.forEach(c => G.today.seen.push(c.cid));
     for (let i = G.queue.length; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
+    // someone from the stories may drop by for the next chapter of her life
+    const sc = DG.storyArrival && DG.storyArrival(G);
+    if (sc) { if (G.queue.length >= n && G.queue.length > 1) G.queue.pop(); G.queue.unshift(sc); }
   };
 
   // SKAT on daily profit; an accountant raises the tax-free amount and lowers the rate.
@@ -686,6 +701,15 @@
     return '';
   };
 
+  // ---------- lookbook: the dresses worth remembering ----------
+  DG.addToLookbook = function (G, cust, S, design) {
+    if (S < 80 && !cust.story) return false;
+    G.lookbook.unshift({ design: JSON.parse(JSON.stringify(design)), name: cust.name, title: cust.title, story: cust.story || null, S, day: G.day });
+    // keep it light: at most 60, and story dresses are never the ones to go
+    while (G.lookbook.length > 60) { const i = G.lookbook.map(e => !e.story).lastIndexOf(true); G.lookbook.splice(i < 0 ? G.lookbook.length - 1 : i, 1); }
+    return true;
+  };
+
   // ---------- stats & goals ----------
   DG.recordDress = function (G, cust, S) {
     const st = G.stats;
@@ -799,6 +823,7 @@
 
   // Remember a customer after their visit; very unhappy customers never return.
   DG.rememberCustomer = function (G, cust, S) {
+    if (cust.story) return;
     G.known = G.known.filter(k => k.cid !== cust.cid);
     {
       G.known.push({ cid: cust.cid, name: cust.name, look: cust.look, job: cust.job, liked: cust.liked,

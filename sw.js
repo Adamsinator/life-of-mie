@@ -3,7 +3,7 @@
 // This file never touches saved games, which live in localStorage.
 const CACHE = 'life-of-mie';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'css/fonts.css', 'css/style.css',
-  'js/i18n.js', 'js/lang-da.js', 'js/data.js', 'js/logic.js', 'js/render.js', 'js/audio.js', 'js/profiles.js', 'js/minigames.js', 'js/ui.js',
+  'js/i18n.js', 'js/lang-da.js', 'js/data.js', 'js/logic.js', 'js/stories.js', 'js/render.js', 'js/audio.js', 'js/profiles.js', 'js/minigames.js', 'js/ui.js',
   'fonts/fredoka.woff2', 'fonts/nunito.woff2', 'fonts/pacifico.woff2',
   'icons/icon.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 

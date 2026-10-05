@@ -496,6 +496,17 @@
     'A little sketch from Mie. Make it your own!': 'En lille skitse fra Mie. Gør den til din egen!',
     "Mie can't think of anything we can afford today. Maybe visit the market?": 'Mie kan ikke komme i tanke om noget, vi har råd til i dag. Måske et smut på markedet?',
     '🏆 {0} goals collected: +{1} kr!': '🏆 {0} mål hentet: +{1} kr!', 'That has already been used.': 'Det er allerede brugt.',
+    'Album': 'Album', 'Stories': 'Historier', 'Lookbook': 'Lookbook', 'Letters': 'Breve', 'Life stories': 'Livshistorier',
+    'Some customers come back as their lives move on: first dates, weddings, babies, big moments. Their dresses and letters are kept here.': 'Nogle kunder kommer igen, efterhånden som livet går videre: første dates, bryllupper, babyer, store øjeblikke. Deres kjoler og breve gemmes her.',
+    'Next chapter': 'Næste kapitel', 'When the shop is better known': 'Når butikken er mere kendt', 'She will drop by one of these days': 'Hun kigger forbi en af dagene',
+    'A chapter still to come': 'Et kapitel, der venter', 'Someone you have not met yet': 'En, du ikke har mødt endnu', 'Every life has a story. Keep the shop open.': 'Alle liv har en historie. Hold butikken åben.',
+    'Every dress with four stars or more, and every dress from a life story.': 'Alle kjoler med fire stjerner eller mere, og alle kjoler fra en livshistorie.',
+    'Your first four-star dress will be the first page.': 'Din første kjole med fire stjerner bliver første side.',
+    'Thank-you notes and postcards from customers.': 'Takkekort og postkort fra kunder.', 'A new letter is waiting': 'Der ligger et nyt brev', '{0} new letters are waiting': 'Der ligger {0} nye breve',
+    'No letters yet.': 'Ingen breve endnu.', 'A letter from': 'Et brev fra', '{0} letters in the post': '{0} breve i posten',
+    'She tucked {0} kr into the envelope.': 'Hun har lagt {0} kr i kuverten.', 'She sent a little something for Elizabeth.': 'Hun har sendt en lille ting til Elizabeth.',
+    'She sent a keepsake for the shop wall (+{0} charm).': 'Hun har sendt et minde til butikkens væg (+{0} charme).', 'Keep it in the album': 'Gem det i albummet',
+    'A new page in her story': 'En ny side i hendes historie', 'Added to the lookbook': 'Lagt i lookbooken', 'Her story': 'Hendes historie',
     'Ambience': 'Stemning', 'Year {0}': 'År {0}', 'Purse': 'Pung', 'Reputation {0} of {1}': 'Omdømme {0} af {1}', '{0} of {1} stars': '{0} af {1} stjerner',
     'Happy customers': 'Glade kunder', 'Tap again: she pops back tomorrow': 'Tryk igen: hun kigger forbi i morgen', 'Tap again: they pop back tomorrow': 'Tryk igen: de kigger forbi i morgen',
     'Kindly decline': 'Sig venligt nej tak',
@@ -528,6 +539,8 @@
 
   // Sentences with names or other words inside. $1, $2 … are translated too when possible.
   const P = [
+    [/^(.+) · (\d+) of (\d+) chapters$/, '$1 · $2 af $3 kapitler'], [/^📖 Chapter (\d+): (.+)$/, '📖 Kapitel $1: $2'], [/^· (.+)$/, '· $1'],
+    [/^She sent (\d+) m of (.+) she didn't need\.$/, 'Hun har sendt $1 m $2, som hun ikke skulle bruge.'],
     [/^↶ Undo: (\d+) m (.+)$/, '↶ Fortryd: $1 m $2'], [/^↶ Undo: (\d+)× (.+)$/, '↶ Fortryd: $1× $2'], [/^Returned (.+)\.$/, '$1 er leveret tilbage.'],
     [/^Evening, (spring|summer|autumn|winter) (\d+)$/, 'Aften, $1 $2'],
     [/^(.+) in this weather\.\.\. I'll save it for another season\.$/, '$1 i det her vejr... Den gemmer jeg til en anden sæson.'],

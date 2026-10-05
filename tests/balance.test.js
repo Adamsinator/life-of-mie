@@ -1,5 +1,5 @@
 // Balance + sanity checks for the scoring model. Run: node tests/balance.test.js
-for (const f of ['data', 'logic', 'render']) require(`../js/${f}.js`);
+for (const f of ['data', 'logic', 'stories', 'render']) require(`../js/${f}.js`);
 const DG = globalThis.DG;
 const assert = require('assert');
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -340,4 +340,34 @@ console.log('all checks passed');
   }
   assert(tot / n > 60 && tot / n < 80, `idea quality ${tot / n}`);   // a starting sketch, around three stars
   console.log(`v1.8 idea checks passed (avg ${Math.round(tot / n)}%)`);
+}
+{
+  // life stories: every chapter can be played through, letters bring their gifts, nothing gets stuck
+  const G = DG.newGame(); G.rep = 100; G.money = 1e6;
+  for (let guard = 0; guard < 200; guard++) {
+    const open = DG.STORIES.filter(st => DG.storyChapter(G, st));
+    if (!open.length) break;
+    G.day = Math.max(G.day, Math.min(...open.map(st => DG.storyState(G, st.id).next))); G.queue = [];
+    const c = DG.storyArrival(G, () => 0);
+    assert(c, `a story should arrive on day ${G.day}`);
+    const st = DG.STORIES.find(x => x.id === c.story), i = c.ch;
+    assert.strictEqual(i, DG.storyState(G, st.id).ch);
+    assert(c.parts[0] === st.ch[i].lines[0] && c.parts.every(x => typeof x === 'string' && x.length), 'story text');
+    (st.ch[i].reqs || []).forEach(r => assert(DG.REQS[r] && c.reqs.includes(r), `req ${r}`));
+    const d = DG.suggestDesign(G, c, 60);
+    assert(d, `${st.id} ${i}: no design possible`);
+    DG.storyDelivered(G, c, 90, d);
+    assert(DG.addToLookbook(G, c, 60, d), 'story dresses always go in the lookbook');
+  }
+  DG.STORIES.forEach(st => assert(!DG.storyChapter(G, st), `${st.id} finished`));
+  G.day += 1;
+  const n = DG.mailToday(G).length, m0 = G.money, k0 = G.keepsakes;
+  assert.strictEqual(n, DG.STORIES.reduce((a, st) => a + st.ch.length, 0));
+  DG.mailToday(G).forEach(m => DG.openMail(G, m.id));
+  assert.strictEqual(DG.mailToday(G).length, 0); assert.strictEqual(G.letters.length, n);
+  assert(G.money > m0 && G.keepsakes > k0, 'gifts arrive');
+  assert.strictEqual(G.stats.storiesDone, DG.STORIES.length);
+  // story customers are not mixed into the ordinary regulars
+  assert(!G.known.some(k => String(k.cid).startsWith('story-')));
+  console.log(`v1.9 story checks passed (${n} chapters)`);
 }

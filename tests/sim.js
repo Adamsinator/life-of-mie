@@ -1,6 +1,6 @@
 // Bot smoke test: plays many full games through the game logic and checks invariants after every step.
 // Run: node tests/sim.js [games] [days]
-for (const f of ['data', 'logic', 'render']) require(`../js/${f}.js`);
+for (const f of ['data', 'logic', 'stories', 'render']) require(`../js/${f}.js`);
 const DG = globalThis.DG;
 const GAMES = +process.argv[2] || 60, DAYS = +process.argv[3] || 60;
 const HUMAN = process.argv[4] === 'human';   // few design attempts, ignores colours half the time
@@ -81,9 +81,12 @@ function sew(G, cust, design, skill) {
   G.stats.served++; G.stats.totalS += ev.S; G.stats.best = Math.max(G.stats.best, ev.S);
   DG.rememberCustomer(G, cust, ev.S);
   DG.recordDress(G, cust, ev.S);
+  if (cust.story) DG.storyDelivered(G, cust, ev.S, design);
+  DG.addToLookbook(G, cust, ev.S, design);
   return ev;
 }
 
+const storyDone = [];
 const results = [];
 let shownBankrupt = 0;
 for (let gi = 0; gi < GAMES; gi++) {
@@ -100,6 +103,7 @@ for (let gi = 0; gi < GAMES; gi++) {
         const svg = DG.renderShop(G) + DG.renderHome(G) + G.queue.map(c => DG.renderAvatar(c.look)).join('');
         if (/NaN|undefined/.test(svg)) flag('render produced NaN/undefined', G);
       }
+      DG.mailToday(G).forEach(m => DG.openMail(G, m.id));
       // home routine
       DG.doActivity(G, 'play'); DG.doActivity(G, 'pet');
       if (G.home.catFood < 2) DG.buyCatFood(G);
@@ -162,6 +166,7 @@ for (let gi = 0; gi < GAMES; gi++) {
   } catch (e) {
     flag(`EXCEPTION: ${e.message} @ ${(e.stack || '').split('\n')[1]}`, G);
   }
+  storyDone.push(DG.STORIES.map(st => DG.storyState(G, st.id).ch));
   results.push({ house: G.home.house, dream, skill, tries, money: G.money, rep: G.rep, day: G.day, bankrupt, firstBride, avgS: Sn ? Ssum / Sn : 0,
     goals: G.goals.claimed.length, happy: G.home.happy, upgrades: Object.values(G.upgrades).reduce((a, b) => a + b, 0), pots: G.stats.potsSold, rack: G.stats.rackSold });
 }
@@ -174,6 +179,7 @@ for (const k of ['house', 'money', 'rep', 'avgS', 'goals', 'upgrades', 'happy', 
 const dream = results.filter(r => r.dream !== null).map(r => r.dream);
 console.log(`Strandvejsvilla reached in ${dream.length}/${GAMES} games, median day ${dream.length ? q(dream, 0.5) : '-'}`);
 const brides = results.filter(r => r.firstBride !== null).map(r => r.firstBride);
+{ const avg = DG.STORIES.map((st, i) => (storyDone.reduce((a, r) => a + r[i], 0) / storyDone.length).toFixed(1) + '/' + st.ch.length); console.log(`story chapters reached (avg): ${DG.STORIES.map((st, i) => st.id + ' ' + avg[i]).join(', ')}`); }
 console.log(`first bride seen in ${brides.length}/${GAMES} games, median day ${brides.length ? q(brides, 0.5) : '-'}`);
 const bySkill = [[0, 0.65], [0.65, 1]].map(([a, b]) => { const r = results.filter(x => x.skill >= a && x.skill < b); return `${a}-${b}: avgS ${q(r.map(x => x.avgS), 0.5).toFixed(0)}, money ${q(r.map(x => x.money), 0.5).toFixed(0)}`; });
 console.log('by skill:', bySkill.join(' | '));

@@ -104,6 +104,14 @@ Nothing can be lost, but four and five stars are earned (`DG.BAL`):
 
 Calibration (best of N random designs, by stitching skill): a careless pick (N=4) lands around 67–71%, a careful design with average sewing around 88%, careful design with neat sewing around 95%. Mie's idea is about 70%. In the bot simulations careless players average 75–80% and see their first bride around day 32 (careful ones about day 17), and the Strandvejsvilla comes around day 110.
 
+## Life stories, letters and the album
+
+- **Five women with a life story** (`js/stories.js`): Freja (first date → his parents → engagement → wedding → a baby → the christening), Karla (studenterkjole → Roskilde → job interview → her first collection → her own studio), Inger (80th birthday → golden wedding → Christmas with eleven grandchildren → Lake Garda), Nadia (a café show → the newspaper → Venice → a painting of Mie's shop) and Sofie (after night shifts → Oliver's confirmation → head nurse gala → a weekend in Skagen).
+- They drop by now and then for the next chapter (about half the days a chapter is due), some only once the shop is well known. A whole story unfolds over a couple of in-game years (`DG.STORY_PACE`).
+- After each chapter a **letter** arrives the next morning, warmer if the dress was four stars or more, often with a little gift: money, fabric, something for Elizabeth or a keepsake for the shop wall (+1 charm).
+- **Album** (in the top bar): *Stories* shows each woman's chapters with her dresses, *Lookbook* keeps every four-star dress and every story dress (60 at most, story dresses are never dropped), *Letters* keeps the post, and *Goals* lives here too.
+- Story texts are written in English and Danish side by side.
+
 ## Prices
 
 All prices are realistic Copenhagen kroner: fabric from 60 kr/m (polyester) to 1.500 kr/m (cashmere), customer budgets from about 1.800 kr (students) to 45.000 kr (brides), and shop rent from 1.000 kr a day.
