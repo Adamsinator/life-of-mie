@@ -711,7 +711,7 @@
   function startThrowLoop() {
     cancelAnimationFrame(UI.raf);
     const t = UI.throwSt;
-    let lastPot = 0;
+    let wob = 0;
     const step = now => {
       if (!UI.overlay || UI.overlay.type !== 'throw') return;
       const dt = t.last ? Math.min(0.05, (now - t.last) / 1000) : 0;
@@ -727,10 +727,13 @@
         if (m) m.style.left = `${t.p * 100}%`;
         if (pr) pr.style.width = `${Math.min(100, (t.t / t.dur) * 100)}%`;
         if (fb) fb.textContent = inBand ? 'Nicely centred ✨' : t.p < t.center ? 'Press harder!' : 'Too much pressure!';
-        if (now - lastPot > 120) {
-          lastPot = now;
-          const el = document.getElementById('throwpot');
-          if (el) el.innerHTML = DG.renderPot(G.pot, 'throw', { raw: true, grow: Math.min(1, t.t / t.dur), wheel: true });
+        // the clay rises as you throw, and wobbles when it is off centre
+        const pg = document.querySelector('#throwpot .pot-grow');
+        if (pg) {
+          const gr = 0.25 + 0.75 * Math.min(1, t.t / t.dur);
+          const off = inBand ? 0 : Math.min(1, Math.abs(t.p - t.center) * 3);
+          wob += ((off * Math.sin(t.t * 14) * 2.2) - wob) * 0.25;
+          pg.setAttribute('transform', `translate(${(60 + wob).toFixed(2)} 100) skewX(${(wob * 1.5).toFixed(2)}) scale(1 ${gr.toFixed(3)}) translate(-60 -100)`);
         }
         if (t.t >= t.dur) { t.done = true; setTimeout(() => finishThrow(t.good / t.dur), 400); }
       }

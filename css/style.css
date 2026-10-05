@@ -502,3 +502,49 @@ body.has-coach .view { padding-bottom: 200px; }
 .brand .logo { flex: none; border-radius: 9px; margin-right: 2px; align-self: center; }
 .welcome-logo .logo { border-radius: 30px; box-shadow: 0 10px 28px rgba(196, 61, 99, .25); }
 @media (max-width: 560px) { .brand .logo { width: 28px; height: 28px; } }
+
+/* ---------- app feel (v1.8) ---------- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overscroll-behavior: none; }
+body { overscroll-behavior: none; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+input, textarea, .bubble, .selectable { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
+svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none; }
+.chip:active:not(:disabled), .card:active, .tab:active, .navbtn:active { transform: scale(.97); }
+.chip, .tab, .navbtn { transition: transform .08s ease-out, background-color .15s; }
+/* a soft slide between screens (only when the screen changes, since unchanged parts are kept) */
+.view { animation: viewin .22s ease-out; }
+@keyframes viewin { from { opacity: 0; transform: translateY(8px); } }
+/* mini-game touches */
+.puff { animation: puff .8s ease-out forwards; transform-box: fill-box; transform-origin: center; }
+@keyframes puff { from { opacity: .9; } to { opacity: 0; transform: translateY(-16px) scale(1.6); } }
+.wrinkle.gone { transition: opacity .5s, transform .5s; transform: scaleY(.2); transform-box: fill-box; transform-origin: center; }
+.mg-board.cut-done svg { animation: lift .6s ease-out forwards; }
+@keyframes lift { 50% { transform: translateY(-6px) scale(1.02); filter: drop-shadow(0 8px 10px rgba(0,0,0,.18)); } }
+
+/* ---------- landscape iPad: scene on the left, what you do on the right ---------- */
+@media (orientation: landscape) and (min-width: 960px) {
+  .view-shop, .view-home { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); column-gap: 16px; align-items: start; max-width: 1400px; }
+  .view-shop > *, .view-home > * { grid-column: 2; min-width: 0; }
+  .view-shop > .scene-wrap, .view-home > .scene-wrap {
+    grid-column: 1; grid-row: 1 / span 30; max-width: none; margin: 0;
+    position: sticky; top: calc(env(safe-area-inset-top, 0px) + 86px);
+  }
+  .view-home > .home-tabs { margin-top: 0; }
+  .view-home .shop-grid, .view-home .grid.upg { grid-template-columns: 1fr; }
+  .view-home .grid.upg { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  /* shop: Mie and the day's news under the scene, customers and rack on the right */
+  .view-shop > .shop-grid { display: contents; }
+  .view-shop .mie-panel { grid-column: 1; grid-row: 31; }
+  .view-shop > .scene-wrap { grid-row: 1 / span 30; position: static; }
+  .view-shop .shop-grid > .panel:not(.mie-panel):not(.rack-panel) { grid-column: 2; grid-row: 1 / span 31; }
+  .view-shop .rack-panel { grid-column: 1 / -1; grid-row: 32; }
+}
+@media (orientation: landscape) and (min-width: 960px) {
+  .view-home .chips { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+/* smaller landscape iPads: keep the top bar on one row */
+@media (min-width: 901px) and (max-width: 1150px) {
+  .brand-script, .brand-word, .sname { display: none; }
+  .hud { gap: 14px; flex-wrap: nowrap; }
+  .hud-item.rep .repbar { width: 70px; }
+  .navbtn { min-width: 0; padding-left: 8px; padding-right: 8px; }
+}

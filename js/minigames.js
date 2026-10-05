@@ -13,6 +13,16 @@
     const m = svg.getScreenCTM();
     return m ? pt.matrixTransform(m.inverse()) : { x: 0, y: 0 };
   }
+  // every pointer sample since the last event (iPad reports 120 per second, events arrive at 60)
+  const samples = e => (e.getCoalescedEvents && e.getCoalescedEvents().length ? e.getCoalescedEvents() : [e]);
+  // distance from point p to segment ab
+  function segDist(p, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy;
+    const t = L ? clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L, 0, 1) : 0;
+    return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+  }
+  // keep following a finger that slides off the board
+  const capture = (el, e) => { try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } };
   function timerLoop(dur, onTick, onEnd) {
     const t0 = now();
     let raf = 0, stopped = false;
@@ -49,25 +59,23 @@
         <polyline points="${P.map(p => p.join(',')).join(' ')}" fill="none" stroke="#2f1d2b" stroke-width="2" stroke-dasharray="6 5" opacity=".7"/>
         <polyline id="mgtrail" points="" fill="none" stroke="#c44d6c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
         <circle cx="${P[0][0]}" cy="${P[0][1]}" r="7" fill="#e3b53b" class="mg-pulse"/>
-        <text id="mgsc" x="-50" y="-50" font-size="22" text-anchor="middle" dominant-baseline="middle">✂️</text>
+        <g id="mgsc" transform="translate(-50 -50)"><text font-size="22" text-anchor="middle" dominant-baseline="middle">✂️</text></g>
       </svg></div>
       <div class="tprog"><i id="mgt"></i></div><div class="sfb" id="mgfb">Ready, steady, snip!</div>`;
     const svg = host.querySelector('svg'), trail = host.querySelector('#mgtrail'), sc = host.querySelector('#mgsc');
-    let k = 0, errSum = 0, errN = 0, down = false, finished = false;
+    let k = 0, shownK = 0, errSum = 0, errN = 0, down = false, finished = false, ang = 0, last = null;
     const finish = () => {
       if (finished) return;
       finished = true;
       stop();
+      if (k >= P.length - 1) host.querySelector('.mg-board').classList.add('cut-done');
       const progress = k / (P.length - 1);
       const acc = errN ? clamp(1 - errSum / errN / 16, 0, 1) : 0;
       const score = clamp(progress * (0.4 + 0.6 * acc), 0, 1);
       host.querySelector('#mgfb').textContent = score > 0.8 ? 'Clean cut! ✨' : score > 0.5 ? 'Not bad at all.' : 'A bit jagged...';
       setTimeout(() => done(score), 600);
     };
-    const move = e => {
-      const p = svgPoint(svg, e);
-      sc.setAttribute('x', p.x); sc.setAttribute('y', p.y);
-      if (!down || finished) return;
+    const step = p => {
       let best = k, bestD = Infinity;
       for (let i = k; i < Math.min(P.length, k + 9); i++) {
         const d = Math.hypot(p.x - P[i][0], p.y - P[i][1]);
@@ -77,17 +85,33 @@
       if (bestD < 15 && best > k) {
         if (Math.floor(best / 6) > Math.floor(k / 6)) sfx('snip');
         k = best;
-        trail.setAttribute('points', P.slice(0, k + 1).map(q => q.join(',')).join(' '));
         if (k >= P.length - 1) finish();
       }
     };
-    const pd = e => { e.preventDefault(); down = true; move(e); };
+    const move = e => {
+      let p = null;
+      for (const ev of samples(e)) {
+        p = svgPoint(svg, ev);
+        if (down && !finished) step(p);
+      }
+      if (!p) return;
+      // the scissors turn to follow the line
+      if (last && Math.hypot(p.x - last.x, p.y - last.y) > 2) {
+        const a = Math.atan2(p.y - last.y, p.x - last.x) * 180 / Math.PI;
+        ang += ((a - ang + 540) % 360 - 180) * 0.35;
+        last = p;
+      } else if (!last) last = p;
+      sc.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang.toFixed(0)})`);
+      if (k !== shownK) { shownK = k; trail.setAttribute('points', P.slice(0, k + 1).map(q => q.join(',')).join(' ')); }
+    };
+    const pd = e => { e.preventDefault(); capture(svg, e); down = true; last = null; move(e); };
     const pu = () => { down = false; };
     svg.addEventListener('pointerdown', pd);
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
+    g.addEventListener('pointercancel', pu);
     const stop = timerLoop(opts.time || 14, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
-    return () => { stop(); g.removeEventListener('pointerup', pu); };
+    return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 
   // ---------------- ironing: swipe away the wrinkles ----------------
@@ -99,11 +123,15 @@
       <div class="mg-board"><svg class="mg-svg" viewBox="0 0 300 210">
         <rect x="6" y="6" width="288" height="198" rx="8" fill="${color}"/>
         ${W.map((w, i) => `<path id="wr${i}" class="wrinkle" d="M-14 0 q3.5 -5 7 0 t7 0 t7 0 t7 0" transform="translate(${w.x.toFixed(0)} ${w.y.toFixed(0)}) rotate(${w.r.toFixed(0)})" stroke="${DG.darken ? DG.darken(color, 0.35) : '#555'}" stroke-width="2" fill="none"/>`).join('')}
+        <polyline id="sheen" points="" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+        <g id="puffs"></g>
         <g id="mgiron" transform="translate(-60 -60)"><path d="M-16 8 L16 8 L12 -6 Q0 -12 -12 -4 Z" fill="#c44d6c" stroke="#7a2a3e"/><path d="M-6 -6 q6 -10 14 -2" stroke="#2f1d2b" stroke-width="3" fill="none"/><g id="steam" opacity="0"><circle cx="-8" cy="14" r="3" fill="#fff"/><circle cx="2" cy="16" r="4" fill="#fff"/><circle cx="10" cy="13" r="3" fill="#fff"/></g></g>
       </svg></div>
       <div class="tprog"><i id="mgt"></i></div><div class="sfb" id="mgfb">${W.length} wrinkles to go</div>`;
     const svg = host.querySelector('svg'), iron = host.querySelector('#mgiron'), steam = host.querySelector('#steam');
-    let down = false, finished = false;
+    const sheen = host.querySelector('#sheen'), puffs = host.querySelector('#puffs');
+    let down = false, finished = false, prev = null, tilt = 0;
+    const trail = [];
     const left = () => W.filter(w => !w.ok).length;
     const finish = () => {
       if (finished) return;
@@ -112,27 +140,49 @@
       host.querySelector('#mgfb').textContent = score >= 1 ? 'Crisp as a fresh baguette! ✨' : score > 0.6 ? 'Nicely pressed.' : 'Still a little crumpled...';
       setTimeout(() => done(score), 600);
     };
-    const move = e => {
-      const p = svgPoint(svg, e);
-      iron.setAttribute('transform', `translate(${p.x} ${p.y})`);
-      steam.setAttribute('opacity', down ? '0.8' : '0');
-      if (!down || finished) return;
+    const puff = (x, y) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      el.setAttribute('class', 'puff');
+      el.setAttribute('transform', `translate(${x.toFixed(0)} ${y.toFixed(0)})`);
+      el.innerHTML = '<circle r="6" cx="-6" fill="#fff"/><circle r="8" cy="-4" fill="#fff"/><circle r="5" cx="8" fill="#fff"/>';
+      puffs.appendChild(el);
+      setTimeout(() => el.remove(), 800);
+    };
+    const press = p => {
+      // sweep the whole stretch since the last sample, so a quick swipe can't jump over a wrinkle
+      const a = prev || p;
       W.forEach((w, i) => {
-        if (!w.ok && Math.hypot(p.x - w.x, p.y - w.y) < 22) {
-          w.ok = true; sfx('steam');
+        if (!w.ok && segDist(w, a, p) < 22) {
+          w.ok = true; sfx('steam'); puff(w.x, w.y);
           host.querySelector('#wr' + i).classList.add('gone');
           host.querySelector('#mgfb').textContent = left() ? `${left()} wrinkles to go` : 'All smooth!';
           if (!left()) finish();
         }
       });
+      trail.push(p.x.toFixed(0) + ',' + p.y.toFixed(0));
+      if (trail.length > 24) trail.shift();
     };
-    const pd = e => { e.preventDefault(); down = true; move(e); };
-    const pu = () => { down = false; steam.setAttribute('opacity', '0'); };
+    const move = e => {
+      let p = null;
+      for (const ev of samples(e)) {
+        p = svgPoint(svg, ev);
+        if (down && !finished) press(p);
+        if (prev && Math.hypot(p.x - prev.x, p.y - prev.y) > 1.5) tilt += (clamp((p.x - prev.x) * 2, -18, 18) - tilt) * 0.3;
+        prev = p;
+      }
+      if (!p) return;
+      iron.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${tilt.toFixed(1)})`);
+      steam.setAttribute('opacity', down ? '0.8' : '0');
+      sheen.setAttribute('points', down ? trail.join(' ') : '');
+    };
+    const pd = e => { e.preventDefault(); capture(svg, e); down = true; prev = null; trail.length = 0; move(e); };
+    const pu = () => { down = false; prev = null; steam.setAttribute('opacity', '0'); sheen.setAttribute('points', ''); };
     svg.addEventListener('pointerdown', pd);
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
+    g.addEventListener('pointercancel', pu);
     const stop = timerLoop(opts.time || 8, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
-    return () => { stop(); g.removeEventListener('pointerup', pu); };
+    return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 
   // ---------------- wedging clay: tap fast to knead out air bubbles ----------------
@@ -171,15 +221,54 @@
     return () => stop();
   };
 
+  // ---------------- brush: a smoothed stroke whose width follows pressure or speed ----------------
+  const f1 = x => (Math.round(x * 10) / 10).toString();
+  // Turns raw pointer samples into a brush stroke: light smoothing, width from Pencil pressure
+  // (or, for a finger, from speed: quick flicks are thinner), and a soft tapered start.
+  DG.Brush = function (width) {
+    const R = width / 2, pts = [];
+    let sx = 0, sy = 0, sr = R, len = 0, lastT = 0;
+    return {
+      pts,
+      add(x, y, t, pressure, isPen) {
+        if (!pts.length) { sx = x; sy = y; lastT = t; }
+        else {
+          sx += (x - sx) * 0.6; sy += (y - sy) * 0.6;   // streamline
+          const lp = pts[pts.length - 1], d = Math.hypot(sx - lp.x, sy - lp.y);
+          if (d < 0.9) return false;
+          len += d;
+        }
+        let target;
+        if (isPen && pressure > 0) target = R * (0.35 + 0.95 * pressure);
+        else { const v = pts.length ? Math.hypot(x - pts[pts.length - 1].x, y - pts[pts.length - 1].y) / Math.max(4, t - lastT) : 0; target = R * clamp(1.15 - v * 0.9, 0.6, 1.15); }
+        lastT = t;
+        sr += (target - sr) * 0.35;
+        const taper = Math.min(1, 0.45 + len / 8);
+        pts.push({ x: sx, y: sy, r: Math.max(0.4, sr * taper) });
+        return true;
+      },
+      end(x, y) {
+        if (!pts.length) return;
+        const lp = pts[pts.length - 1];
+        if (Math.hypot(x - lp.x, y - lp.y) > 0.6) pts.push({ x, y, r: lp.r * 0.85 });
+        // a tap leaves a round dot of the full brush size
+        if (pts.every(q => Math.hypot(q.x - pts[0].x, q.y - pts[0].y) < 0.5)) pts[0].r = Math.max(pts[0].r, R * 0.9);
+      },
+      path() { return DG.brushOutline(pts); },
+      // compact form kept in the save: "x y r,x y r,..."
+      packed() { return pts.map(q => `${f1(q.x)} ${f1(q.y)} ${f1(q.r)}`).join(','); },
+    };
+  };
+
   // ---------------- painting a pot: free drawing clipped to the pot ----------------
   DG.MiniGames.paint = function (host, opts, done) {
     const pot = Object.assign({}, opts.pot, { paint: [] });
     const strokes = [];
-    let color = DG.PAINT_COLORS[0], width = 2.5, cur = null;
+    let color = DG.PAINT_COLORS[0], width = 2.5, cur = null, raf = 0, penSeen = false;
     const draw = () => {
       host.querySelector('#paintpot').innerHTML = DG.renderPot(Object.assign({}, pot, { paint: strokes }), 'paint', { noPlant: true });
     };
-    host.innerHTML = `${head('Paint your pot 🎨', 'Draw on the pot with your finger. More colours and more paint make it worth more.')}
+    host.innerHTML = `${head('Paint your pot 🎨', 'Draw on the pot with your finger or Apple Pencil. More colours and more paint make it worth more.')}
       <div class="paint-wrap"><div id="paintpot" class="paint-pot"></div>
       <div class="paint-tools">
         <div class="colors">${DG.PAINT_COLORS.map((c, i) => `<button class="color ${i ? '' : 'on'}" style="--c:${c}" data-pc="${c}" aria-label="Colour ${i + 1}"><span></span></button>`).join('')}</div>
@@ -190,41 +279,46 @@
     const showVal = () => { host.querySelector('#pval').textContent = strokes.length ? `Painting value ×${DG.paintMult({ paint: strokes })}` : 'Plain pot: value ×1'; };
     draw(); showVal();
     const wrap = host.querySelector('#paintpot');
-    const toPath = pts => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
+    const flush = () => { raf = 0; if (cur && cur.el) cur.el.setAttribute('d', cur.brush.path()); };
     const onDown = e => {
-      const svg = wrap.querySelector('svg'); if (!svg) return;
+      const svg = wrap.querySelector('svg'); if (!svg || cur) return;
+      // with a Pencil in use, a resting palm or finger does not paint
+      if (e.pointerType === 'pen') penSeen = true; else if (penSeen && e.pointerType === 'touch') return;
       e.preventDefault();
+      capture(wrap, e);
       const p = svgPoint(svg, e);
-      cur = { c: color, w: width, pts: [[p.x, p.y], [p.x + 0.1, p.y]] };
-      const live = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      live.setAttribute('stroke', color); live.setAttribute('stroke-width', width); live.setAttribute('fill', 'none'); live.setAttribute('stroke-linecap', 'round');
-      live.setAttribute('clip-path', 'url(#potpaintc)'); live.id = 'livestroke';
-      svg.appendChild(live);
-      live.setAttribute('d', toPath(cur.pts));
+      const brush = DG.Brush(width);
+      brush.add(p.x, p.y, e.timeStamp, e.pressure, e.pointerType === 'pen');
+      // paint inside the pot's clipped layer, under its shading, exactly where finished strokes go
+      const layer = svg.querySelector('g[clip-path]');
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      el.setAttribute('fill', color);
+      layer.insertBefore(el, layer.lastElementChild);
+      cur = { id: e.pointerId, c: color, w: width, brush, el, svg };
+      flush();
     };
     const onMove = e => {
-      if (!cur) return;
-      const svg = wrap.querySelector('svg');
-      const p = svgPoint(svg, e);
-      const last = cur.pts[cur.pts.length - 1];
-      if (Math.hypot(p.x - last[0], p.y - last[1]) < 1.2) return;
-      cur.pts.push([p.x, p.y]);
-      const live = svg.querySelector('#livestroke');
-      if (live) live.setAttribute('d', toPath(cur.pts));
+      if (!cur || e.pointerId !== cur.id) return;
+      for (const ev of samples(e)) { const p = svgPoint(cur.svg, ev); cur.brush.add(p.x, p.y, ev.timeStamp, ev.pressure, e.pointerType === 'pen'); }
+      if (!raf) raf = requestAnimationFrame(flush);
     };
-    const onUp = () => {
-      if (!cur) return;
-      if (strokes.length < 80) { strokes.push({ c: cur.c, w: cur.w, n: cur.pts.length, d: toPath(cur.pts) }); sfx('click'); }
-      cur = null; draw(); showVal();
+    const onUp = e => {
+      if (!cur || (e && e.pointerId !== cur.id)) return;
+      if (e && e.clientX != null) { const p = svgPoint(cur.svg, e); cur.brush.end(p.x, p.y); }
+      cancelAnimationFrame(raf); flush();
+      if (strokes.length < 80) { strokes.push({ c: cur.c, w: cur.w, n: cur.brush.pts.length, p: cur.brush.packed(), f: 1 }); sfx('click'); }
+      else cur.el.remove();
+      cur = null; showVal();
     };
     wrap.addEventListener('pointerdown', onDown);
     wrap.addEventListener('pointermove', onMove);
     g.addEventListener('pointerup', onUp);
+    g.addEventListener('pointercancel', onUp);
     host.querySelectorAll('[data-pc]').forEach(b => b.addEventListener('click', () => { color = b.dataset.pc; host.querySelectorAll('[data-pc]').forEach(x => x.classList.toggle('on', x === b)); }));
     host.querySelectorAll('[data-pw]').forEach(b => b.addEventListener('click', () => { width = +b.dataset.pw; host.querySelectorAll('[data-pw]').forEach(x => x.classList.toggle('on', x === b)); }));
     host.querySelector('#pundo').addEventListener('click', () => { strokes.pop(); draw(); showVal(); });
     host.querySelector('#pclear').addEventListener('click', () => { strokes.length = 0; draw(); showVal(); });
     host.querySelector('#pdone').addEventListener('click', () => done(strokes.slice()));
-    return () => g.removeEventListener('pointerup', onUp);
+    return () => { cancelAnimationFrame(raf); g.removeEventListener('pointerup', onUp); g.removeEventListener('pointercancel', onUp); };
   };
 })(typeof window !== 'undefined' ? window : globalThis);

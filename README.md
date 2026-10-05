@@ -45,6 +45,14 @@ Updates of the game must never cost anyone their progress:
 - **Frozen saves.** `tests/fixtures` holds real saves made by every earlier version. `tests/saves.test.js` checks that each opens with its day, money, reputation, upgrades, stock, customers, home, mortgage, wardrobe and goals intact, and plays on.
 - The game asks the browser for persistent storage. Safari may still clear website data after a long break, so on iPad, **Add to Home Screen** (which keeps storage) and an occasional save code are the safest.
 
+## Feel on iPad
+
+- Made for an iPad **lying down (landscape)**. Shop and home keep the scene on the left and what you do on the right; the workshop and pottery keep the preview in view while you choose.
+- Screens are patched, not rebuilt: each tap builds the new screen off-screen (translated there) and only changed parts of the page are touched.
+- Brush strokes use every Apple Pencil/finger sample (120 per second), are smoothed, and get thicker with Pencil pressure or thinner with a quick finger flick. While the Pencil is in use, a resting palm does not paint. Strokes are saved as their centre line (`x y r,...`), and their outline is drawn when shown.
+- Cutting and ironing sweep the whole distance between samples, so fast swipes never skip. The potter's wheel grows the pot with a transform each frame, with no redraws.
+- No double-tap zoom, text selection, long-press menus or rubber-band scrolling outside text fields.
+
 ## Settings
 
 Menu → Settings has these options:
@@ -160,6 +168,7 @@ Each evening SKAT is paid on the shop's profit (family spending, house purchases
 ## Testing
 
 - `npm test` runs balance, scoring, render and save tests, including every frozen save in `tests/fixtures`.
+- `npm run test:browser` checks the game in a real Chromium (needs Playwright): Danish on every screen, first-version saves in the page, damaged-save rescue, that patched screens equal freshly built ones, and the touch mini-games.
 - `npm run sim` plays many full games with bots through the game logic and checks invariants after every step: no NaN, no negative stock, meters within range, kilns and racks not over-full, no exceptions. Add `human` (`node tests/sim.js 40 60 human`) for bots that try only a few designs.
 
 ## Scoring model

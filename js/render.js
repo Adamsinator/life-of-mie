@@ -444,6 +444,48 @@
     mug: [60, 56, 22, 4], planter: [60, 56, 32, 5], jug: [60, 40, 12, 3], amphora: [60, 28, 9, 2.5] };
   DG.POT_BODY = POT_BODY;
 
+  // ---- brush strokes on pots ----
+  const f1 = x => (Math.round(x * 10) / 10).toString();
+  // pts: [{x, y, r}] centre line with radius. Returns a filled outline path (round ends).
+  DG.brushOutline = function (pts) {
+    if (!pts.length) return '';
+    if (pts.length === 1 || pts.every(q => Math.hypot(q.x - pts[0].x, q.y - pts[0].y) < 0.5)) {
+      const { x, y, r } = pts[0];
+      return `M${f1(x - r)} ${f1(y)}a${f1(r)} ${f1(r)} 0 1 0 ${f1(2 * r)} 0a${f1(r)} ${f1(r)} 0 1 0 ${f1(-2 * r)} 0Z`;
+    }
+    const L = [], R = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy) || 1;
+      dx /= d; dy /= d;
+      const { x, y, r } = pts[i];
+      L.push([x - dy * r, y + dx * r]); R.push([x + dy * r, y - dx * r]);
+    }
+    // quadratic curves through the midpoints keep the edge smooth
+    const curve = Q => {
+      let out = '';
+      for (let i = 1; i < Q.length - 1; i++) out += `Q${f1(Q[i][0])} ${f1(Q[i][1])} ${f1((Q[i][0] + Q[i + 1][0]) / 2)} ${f1((Q[i][1] + Q[i + 1][1]) / 2)}`;
+      const z = Q[Q.length - 1];
+      return out + `L${f1(z[0])} ${f1(z[1])}`;
+    };
+    const Rr = R.slice().reverse();
+    const re = pts[pts.length - 1].r, rs = pts[0].r;
+    return `M${f1(L[0][0])} ${f1(L[0][1])}` + curve(L)
+      + `A${f1(re)} ${f1(re)} 0 0 0 ${f1(Rr[0][0])} ${f1(Rr[0][1])}` + curve(Rr)
+      + `A${f1(rs)} ${f1(rs)} 0 0 0 ${f1(L[0][0])} ${f1(L[0][1])}Z`;
+  };
+  // brush strokes are saved as their centre line; the outline is worked out once per stroke
+  const outlines = new WeakMap();
+  DG.strokePath = function (st) {
+    let d = outlines.get(st);
+    if (d == null) {
+      d = DG.brushOutline(String(st.p || '').split(',').filter(Boolean).map(t => { const [x, y, r] = t.split(' ').map(Number); return { x, y, r }; }));
+      outlines.set(st, d);
+    }
+    return d;
+  };
+
   // Inner SVG content (no wrapper) for a pot. opts.raw = unglazed wet clay, opts.grow = 0..1 throwing progress.
   DG.potShapeSVG = function (pot, uid, opts = {}) {
     const clay = byId(DG.CLAYS, pot.clay), glaze = byId(DG.GLAZES, pot.glaze), deco = byId(DG.POT_DECOS, pot.deco);
@@ -475,7 +517,8 @@
         });
       }
     }
-    if (!opts.raw && pot.paint) pot.paint.forEach(st => det.push(`<path d="${st.d}" stroke="${st.c}" stroke-width="${st.w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`));
+    // brush strokes (f) are filled outlines; pots painted before brushes have plain lines
+    if (!opts.raw && pot.paint) pot.paint.forEach(st => det.push(st.f ? `<path d="${DG.strokePath(st)}" fill="${st.c}"/>` : `<path d="${st.d}" stroke="${st.c}" stroke-width="${st.w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`));
     if (opts.raw) for (let y = 40; y < 100; y += 5) det.push(`<path d="M10 ${y} Q60 ${y + 2} 110 ${y}" stroke="${darken(base, 0.18)}" stroke-width=".6" fill="none" opacity=".7"/>`);
     parts.push(`<g clip-path="url(#${P}c)">${det.join('')}<rect x="0" y="0" width="120" height="120" fill="url(#${P}g)"/></g>`);
     if (pot.shape !== 'plate') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${rw}" ry="${rh}" fill="${darken(base, 0.25)}" stroke="${line}" stroke-width=".8"/>`);
@@ -487,7 +530,7 @@
     if (pot.shape === 'teapot') parts.push(`<ellipse cx="60" cy="55" rx="15" ry="3.5" fill="${base}" stroke="${line}" stroke-width=".8"/><circle cx="60" cy="49" r="4" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
     if (!opts.raw && pot.deco === 'goldrim') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${pot.shape === 'plate' ? 44 : rw}" ry="${pot.shape === 'plate' ? 11 : rh}" fill="none" stroke="#e3b53b" stroke-width="2.2"/>`);
     const g = opts.grow == null ? 1 : 0.25 + 0.75 * opts.grow;
-    return `${defs}<g transform="translate(0 100) scale(1 ${g.toFixed(3)}) translate(0 -100)">${parts.join('')}</g>`;
+    return `${defs}<g class="pot-grow" transform="translate(0 100) scale(1 ${g.toFixed(3)}) translate(0 -100)">${parts.join('')}</g>`;
   };
 
   DG.renderPot = function (pot, uid = 'pot', opts = {}) {
