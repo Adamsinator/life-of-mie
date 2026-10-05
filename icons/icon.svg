@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+      <defs>
+        <linearGradient id="lgbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fdf0f2"/><stop offset="1" stop-color="#f6d3db"/></linearGradient>
+        <linearGradient id="lgpetal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f27a9b"/><stop offset="1" stop-color="#c43d63"/></linearGradient>
+        <linearGradient id="lgneedle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#eef1f5"/><stop offset=".5" stop-color="#b9c0ca"/><stop offset="1" stop-color="#8a929e"/></linearGradient>
+      </defs>
+      <rect width="512" height="512" rx="0" fill="url(#lgbg)"/><circle cx="256" cy="250" r="176" fill="#fff" opacity=".55"/>
+      <path d="M256 330 C259 372 250 408 256 452" stroke="#4d8a4e" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path d="M254 418 C206 412 176 378 170 334 C218 340 248 372 254 418 Z" fill="#6aa564"/>
+      <path d="M258 392 C300 384 326 356 332 318 C292 324 264 350 258 392 Z" fill="#5a9556"/>
+      <path d="M170 168 L214 214 L256 132 L298 214 L342 168 C354 256 322 324 256 334 C190 324 158 256 170 168 Z" fill="url(#lgpetal)"/>
+      <path d="M256 132 L298 214 C294 270 278 312 256 330 C234 312 218 270 214 214 Z" fill="#f59bb3"/>
+      <path d="M232 196 C236 232 244 270 256 300" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" opacity=".55"/>
+      <path d="M362 100 C440 132 420 220 344 226 C270 232 236 292 298 330 C352 362 372 414 316 444" stroke="#e3b53b" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <g transform="rotate(25 300 270)">
+        <rect x="292" y="70" width="16" height="330" rx="8" fill="url(#lgneedle)" stroke="#7d8591" stroke-width="2"/>
+        <path d="M292 392 L300 452 L308 392 Z" fill="url(#lgneedle)" stroke="#7d8591" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="297" y="84" width="6" height="30" rx="3" fill="#fbe3e8"/>
+      </g>
+      <circle cx="398" cy="320" r="7" fill="#e3b53b"/><path d="M398 300 V340 M378 320 H418" stroke="#e3b53b" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="132" cy="140" r="5" fill="#f27a9b"/><path d="M132 124 V156 M116 140 H148" stroke="#f27a9b" stroke-width="3" stroke-linecap="round"/>
+    </svg>

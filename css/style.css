@@ -495,3 +495,9 @@ body.has-coach .view { padding-bottom: 200px; }
 /* long Danish compound words wrap inside cards and chips */
 .card-title, .chip-txt, .cust-info, .goal-txt, .house, .bm-txt { min-width: 0; }
 .card-title b, .chip-txt b, .chip-txt small, .card-title span, h2, h3, .lbl, .house b { overflow-wrap: anywhere; hyphens: auto; }
+
+/* ---------- logo (v1.8) ---------- */
+.brand { align-items: center; }
+.brand .logo { flex: none; border-radius: 9px; margin-right: 2px; align-self: center; }
+.welcome-logo .logo { border-radius: 30px; box-shadow: 0 10px 28px rgba(196, 61, 99, .25); }
+@media (max-width: 560px) { .brand .logo { width: 28px; height: 28px; } }

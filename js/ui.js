@@ -86,7 +86,7 @@
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
-      <div class="brand" translate="no">${brandHtml()}</div>
+      <div class="brand" translate="no">${DG.logoSVG(34)}${brandHtml()}</div>
       <div class="hud">
         <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
         <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} <span class="sname">${se.name}</span></b></div>
@@ -980,7 +980,7 @@
 
   function welcomeScreen() {
     return `<div class="welcome"><div class="panel center">
-      ${DG.renderAvatar(DG.mieLook(G), 'ecstatic', 120)}
+      <div class="welcome-logo">${DG.logoSVG(132)}</div>
       <h1 translate="no">${brandHtml()}</h1>
       <p>Welcome! You play as Mie, a dressmaker with her own little shop in Copenhagen. Keep the name or type your own. Each player gets their own shop, saved on this device.</p>
       <div class="seg lang-pick">${[['en', 'English'], ['da', 'Dansk']].map(([v, l]) => `<button class="chip ${S.lang === v ? 'on' : ''}" data-act="setting" data-arg="lang:${v}">${l}</button>`).join('')}</div>

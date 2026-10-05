@@ -23,6 +23,11 @@ The game is fully playable in **English and Danish** (*Mies liv*). It starts in 
 
 A new player gets a short introduction, then **tips from Mie** that walk through the first order: reading wishes, designing, buying materials, sewing, the result and closing the shop. More tips appear as new things become relevant (market, family, rack, seasons, goals, pottery). Each tip shows once with the relevant button highlighted. They can be switched off in Settings and replayed from **Menu → Help**, which also has help topics for every part of the game.
 
+## Website and app icon
+
+- **Live site:** https://adamsinator.github.io/life-of-mie/. GitHub Pages deploys from `main`, so every push to `main` is live within a minute or two. Reload Safari, or reopen the home-screen app, to get the newest version.
+- **Logo:** a tulip with a sewing needle and a golden thread. It's drawn in `DG.logoSVG()` (js/render.js). `node tools/make-icons.js` renders `icons/icon.svg` and the PNG app icons (180 px for iPad/iPhone home screens, 192 and 512 px for Android), and `manifest.webmanifest` describes the installed app.
+
 ## Players and saving
 
 - On first start you choose a name (it defaults to **Mie**). That creates a **player**, and each player has their own shop. Add, rename, switch or delete players under **Menu → Players**.
