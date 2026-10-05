@@ -520,26 +520,25 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .mg-board.cut-done svg { animation: lift .6s ease-out forwards; }
 @keyframes lift { 50% { transform: translateY(-6px) scale(1.02); filter: drop-shadow(0 8px 10px rgba(0,0,0,.18)); } }
 
-/* ---------- landscape iPad: scene on the left, what you do on the right ---------- */
+/* ---------- landscape iPad: the scene fills the left of the screen, what you do is on the right ---------- */
 @media (orientation: landscape) and (min-width: 960px) {
-  .view-shop, .view-home { display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); column-gap: 16px; align-items: start; max-width: 1400px; }
+  .view-shop, .view-home { display: grid; grid-template-columns: minmax(0, 58fr) minmax(0, 42fr); column-gap: 14px; align-items: start; max-width: none; padding: 12px 14px 24px; }
   .view-shop > *, .view-home > * { grid-column: 2; min-width: 0; }
   .view-shop > .scene-wrap, .view-home > .scene-wrap {
-    grid-column: 1; grid-row: 1 / span 30; max-width: none; margin: 0;
-    position: sticky; top: calc(env(safe-area-inset-top, 0px) + 86px);
+    grid-column: 1; grid-row: 1 / span 40; max-width: none; margin: 0; width: 100%;
+    aspect-ratio: 1 / 1; max-height: calc(100vh - 110px - env(safe-area-inset-top, 0px));
+    position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px);
   }
+  .view-shop > .scene-wrap > svg, .view-home > .scene-wrap > svg { width: 100%; height: 100%; display: block; }
   .view-home > .home-tabs { margin-top: 0; }
-  .view-home .shop-grid, .view-home .grid.upg { grid-template-columns: 1fr; }
-  .view-home .grid.upg { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  /* shop: Mie and the day's news under the scene, customers and rack on the right */
-  .view-shop > .shop-grid { display: contents; }
-  .view-shop .mie-panel { grid-column: 1; grid-row: 31; }
-  .view-shop > .scene-wrap { grid-row: 1 / span 30; position: static; }
-  .view-shop .shop-grid > .panel:not(.mie-panel):not(.rack-panel) { grid-column: 2; grid-row: 1 / span 31; }
-  .view-shop .rack-panel { grid-column: 1 / -1; grid-row: 32; }
-}
-@media (orientation: landscape) and (min-width: 960px) {
-  .view-home .chips { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .view-home .shop-grid { grid-template-columns: 1fr; }
+  .view-home .grid.upg { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  /* shop: everything to the right, customers first */
+  .view-shop > .shop-grid { display: flex; flex-direction: column; gap: 12px; }
+  .view-shop .shop-grid > .panel:not(.mie-panel):not(.rack-panel) { order: 1; }
+  .view-shop .mie-panel { order: 2; }
+  .view-shop .rack-panel { order: 3; }
+  .view-shop .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* smaller landscape iPads: keep the top bar on one row */
 @media (min-width: 901px) and (max-width: 1150px) {

@@ -104,6 +104,11 @@
   const starsHtml = n => `<span class="stars5" aria-label="${Math.round(n * 2) / 2} of 5 stars"><i style="width:${clamp(Math.round(n * 2) / 2, 0, 5) * 20}%">★★★★★</i>☆☆☆☆☆</span>`;
   const moodWord = S => S >= 92 ? 'Over the moon' : S >= 80 ? 'Delighted' : S >= 65 ? 'Happy' : S >= 45 ? 'Pleased enough' : 'A polite smile';
 
+  // On a landscape iPad the scenes fill the left of the screen, so they are drawn taller.
+  const landscapeMQ = window.matchMedia('(orientation: landscape) and (min-width: 960px)');
+  const tallScene = () => landscapeMQ.matches;
+  try { landscapeMQ.addEventListener('change', () => render()); } catch (e) { /* older Safari */ }
+
   // ---------------- top bar ----------------
   function topbar() {
     const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
@@ -150,7 +155,7 @@
         <button class="btn wide" data-act="rackorder" ${G.active || G.rack.length >= cap ? 'disabled' : ''}>✂️ Sew a dress for the rack</button>
         ${G.active && !G.active.rack ? '<p class="muted small">Finish the current order first.</p>' : ''}
       </section>`;
-    return `<div class="scene-wrap">${DG.renderShop(G)}</div>
+    return `<div class="scene-wrap">${DG.renderShop(G, { tall: tallScene() })}</div>
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
@@ -852,9 +857,9 @@
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
     const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
-    if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}${wardrobeHtml()}`;
-    if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}${ledgerHtml()}`;
-    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter })}</div>${htabs}
+    if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}${wardrobeHtml()}`;
+    if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}${ledgerHtml()}`;
+    return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene() })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
         <h2>Mie's home</h2>

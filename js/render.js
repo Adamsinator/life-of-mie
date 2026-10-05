@@ -405,7 +405,8 @@
 
   const inScene = look => Object.assign({}, look, { bg: 'transparent' });
 
-  DG.renderShop = function (G) {
+  // tall: a taller view for a landscape iPad (more wall above, more floor in front, people in the foreground)
+  DG.renderShop = function (G, opts = {}) {
     const owned = id => G.decor.owned.includes(id);
     const display = DG.upgradeLevel(G, 'display');
     const se = DG.season(G);
@@ -417,6 +418,7 @@
       <linearGradient id="duskSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d3a6e"/><stop offset=".6" stop-color="#b26a8a"/><stop offset="1" stop-color="#f3a56e"/></linearGradient>
       <linearGradient id="duskRoom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3060" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a4a" stop-opacity=".25"/></linearGradient>
       <radialGradient id="lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>`);
+    if (opts.tall) out.push('<rect x="-300" y="-200" width="1000" height="360" fill="url(#wp)"/><rect x="-300" y="146" width="1000" height="6" fill="#fffaf5"/><rect x="-300" y="152" width="1000" height="300" fill="url(#planks)"/>');
     // wall, skirting, floor
     out.push('<rect width="400" height="150" fill="url(#wp)"/><rect y="146" width="400" height="6" fill="#fffaf5"/><rect y="152" width="400" height="58" fill="url(#planks)"/>');
     // window with awning and display dresses
@@ -479,13 +481,17 @@
     // staff
     const staffSlots = { apprentice: [190, 116], assistant: [296, 120] };
     DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 30, { trousers: st.id === 'apprentice' })); });
+    if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
-    G.queue.slice(0, 5).forEach((c, i) => out.push(DG.renderFigure(c.look, 'neutral', 16 + i * 30, 118 + (i % 2) * 8, 30, { legs: c.look.tights, shoes: c.look.shoes })));
-    if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 0 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
+    // waiting customers: along the window, or in the foreground of the taller view
+    G.queue.slice(0, 5).forEach((c, i) => out.push(opts.tall
+      ? DG.renderFigure(c.look, 'neutral', 14 + i * 62, 192 + (i % 2) * 12, 46, { legs: c.look.tights, shoes: c.look.shoes })
+      : DG.renderFigure(c.look, 'neutral', 16 + i * 30, 118 + (i % 2) * 8, 30, { legs: c.look.tights, shoes: c.look.shoes })));
+    if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
-    out.push('<rect class="dusk" width="400" height="210" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
+    out.push('<rect class="dusk" x="-300" y="-200" width="1000" height="700" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
     const evening = G.day > 0 && G.today && !G.queue.length && !G.active;
-    return `<svg class="shop-scene${evening ? ' evening' : ''}" viewBox="0 0 400 210" role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
+    return `<svg class="shop-scene${evening ? ' evening' : ''}" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
   };
 
   // ---------------- pottery ----------------
@@ -637,6 +643,7 @@
       <pattern id="herring" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="${STYLE.floor}"/><path d="M0 10 L10 0 M10 10 L20 0" stroke="${STYLE.line}" stroke-width="1.2"/><path d="M0 0 L10 10 M10 0 L20 10" stroke="${STYLE.line}" stroke-width=".5" opacity=".6"/></pattern>
       <linearGradient id="homesky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.1)}"/></linearGradient>
       <clipPath id="homewin"><rect x="${wx + 6}" y="${wy + 6}" width="${ww - 12}" height="${wh - 12}"/></clipPath></defs>`);
+    if (opts.tall) out.push(`<rect x="-300" y="-200" width="1000" height="350" fill="url(#homewall)"/><rect x="-300" y="150" width="1000" height="300" fill="${STYLE.herring ? 'url(#herring)' : STYLE.floor}"/><path d="M-300 150 H700" stroke="${darken(STYLE.floor, 0.25)}" stroke-width="3"/>`);
     out.push(`<rect width="400" height="150" fill="url(#homewall)"/>${STYLE.panels ? `<rect y="112" width="400" height="38" fill="${darken(STYLE.wall, 0.04)}"/><path d="M0 112 H400" stroke="${darken(STYLE.wall, 0.15)}" stroke-width="2"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="${8 + i * 50}" y="118" width="40" height="26" fill="none" stroke="${darken(STYLE.wall, 0.12)}"/>`).join('') : ''}`);
     out.push(`<rect y="150" width="400" height="60" fill="${STYLE.herring ? 'url(#herring)' : STYLE.floor}"/><path d="M0 150 H400" stroke="${darken(STYLE.floor, 0.25)}" stroke-width="3"/>`);
     if (!STYLE.herring) for (let x = 0; x < 400; x += 50) out.push(`<path d="M${x} 152 V210" stroke="${STYLE.line}" stroke-width="1"/>`);
@@ -687,7 +694,7 @@
     out.push(`<path d="M${wx + ww / 2} ${wy + 6} V${wy + wh - 6} M${wx + 6} ${wy + wh / 2} H${wx + ww - 6}" stroke="#fffaf5" stroke-width="3"/><path d="M${wx - 4} ${wy - 4} Q${wx + 8} ${wy + 38} ${wx} ${wy + wh + 4} M${wx + ww + 4} ${wy - 4} Q${wx + ww - 8} ${wy + 38} ${wx + ww} ${wy + wh + 4}" stroke="#c44d6c" stroke-width="6" fill="none"/>`);
     out.push(`<rect x="160" y="6" width="${Math.min(170, 12 + H.name.length * 4.6)}" height="14" rx="3" fill="#fffaf5" opacity=".85"/><text x="166" y="16" font-size="8" font-family="Nunito, sans-serif" font-weight="800" fill="#2f1d2b">${H.name}</text>`);
     // lamp + bookshelf
-    out.push('<path d="M150 0 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
+    out.push('<path d="M150 -60 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
     out.push('<rect x="330" y="40" width="58" height="110" fill="#8a6a48"/><path d="M330 76 H388 M330 112 H388" stroke="#6e5238" stroke-width="3"/>' +
       [[336, 50, '#c44d6c'], [344, 54, '#1d6b6b'], [352, 48, '#e9c35a'], [362, 52, '#34437f'], [338, 86, '#9db69a'], [348, 90, '#ee7d61'], [370, 88, '#6b2a5e']].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="7" height="${y < 70 ? 74 - y : 110 - y}" fill="${c}"/>`).join(''));
     // Elizabeth's drawings
@@ -716,9 +723,13 @@
     const dmood = opts.dexter || (G.home.catFood <= 0 ? 'hungry' : has('catbed') ? 'sleep' : 'sit');
     const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && dmood === 'sit' ? [82, 98] : [70, 184];
     out.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
+    // the taller view has room for a soft rug and a big plant in front
+    if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="300" rx="120" ry="22" fill="#e7c9b0"/><ellipse cx="160" cy="300" rx="108" ry="18" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
+      + '<g transform="translate(352 238)"><path d="M-14 66 l4 -24 h20 l4 24Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M0 42 Q-26 20 -20 -8 Q-4 10 0 42Z"/><path d="M0 42 Q24 16 22 -12 Q6 8 0 42Z"/><path d="M0 42 Q-2 6 8 -22 Q-10 0 0 42Z"/><path d="M0 42 Q-30 34 -34 14 Q-14 20 0 42Z"/></g></g>');
     // Elizabeth last, so she is in front of the furniture
-    out.push(DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, has('tricycle') ? 112 : 150, 130, 30, { child: true }));
-    return `<svg class="shop-scene home-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's home">${out.join('')}</svg>`;
+    out.push(opts.tall ? DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, 120, 214, 46, { child: true })
+      : DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, has('tricycle') ? 112 : 150, 130, 30, { child: true }));
+    return `<svg class="shop-scene home-scene" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 
   // Mie: loose dark-brown hair and round glasses
