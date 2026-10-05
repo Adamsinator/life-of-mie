@@ -245,8 +245,19 @@ console.log('all checks passed');
   const m0 = T.money, res = DG.endDay(T);
   assert.strictEqual(res.tax, DG.skat(5000 - res.rent - res.wages));
   assert.strictEqual(T.money, m0 - res.rent - res.wages - res.tax);
-  const H = DG.newGame(); DG.startDay(H); H.money = 2e5; assert(DG.buyHomeItem(H, 'summerhouse'));
-  H.home.happy = 52; H.home.catFood = 0; DG.endDayHome(H); assert.strictEqual(H.home.happy, 50, 'summer house floor');
-  assert(DG.claimableGoals(H).includes('dream'));
+  // housing ladder: 5 moves to the Strandvejsvilla, each raising the happiness floor
+  const H = DG.newGame(); DG.startDay(H);
+  assert.strictEqual(DG.house(H).id, 'flat');
+  H.money = 1e4; assert(DG.moveHouse(H)); assert.strictEqual(DG.house(H).id, 'frb'); assert(!DG.moveHouse(H), 'cannot afford Valby');
+  H.money = 1e6; while (DG.nextHouse(H)) DG.moveHouse(H);
+  assert.strictEqual(DG.house(H).id, 'strandvej'); assert.strictEqual(H.money, 1e6 - (25000 + 55000 + 100000 + 180000));
+  H.home.happy = 52; H.home.catFood = 0; DG.endDayHome(H); assert.strictEqual(H.home.happy, 50, 'villa happiness floor');
+  assert(DG.claimableGoals(H).includes('dream') && DG.claimableGoals(H).includes('move1'));
+  // accountant lowers SKAT
+  const A = DG.newGame(); assert.strictEqual(DG.skat(5000, A), 1200); A.upgrades.accountant = 1; assert.strictEqual(DG.skat(5000, A), 640);
+  A.upgrades.accountant = 2; assert.strictEqual(DG.skat(5000, A), 250);
+  // old saves: dreams become houses
+  const O = DG.newGame(); delete O.home.house; O.home.items = ['teddy', 'garden']; DG.ensureDefaults(O);
+  assert.strictEqual(O.home.house, 2); assert.deepStrictEqual(O.home.items, ['teddy']);
   console.log('v1.4 checks passed');
 }

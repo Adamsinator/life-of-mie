@@ -474,3 +474,12 @@ body.has-coach .view { padding-bottom: 200px; }
 /* tab bars wrap instead of overflowing on narrow screens */
 .tabs { flex-wrap: wrap; }
 .tab { flex: 1 1 auto; padding: 0 10px; white-space: nowrap; }
+
+/* ---------- housing ladder (v1.5) ---------- */
+.houses { display: grid; gap: 8px; margin-bottom: 8px; }
+.house { display: grid; gap: 3px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--card); }
+.house.now { border-color: var(--teal); background: var(--teal-soft); }
+.house.next { border-color: var(--gold); }
+.house.past, .house.later { opacity: .6; }
+.house .btn { justify-self: start; margin-top: 4px; }
+.house-step { font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }

@@ -520,7 +520,8 @@
         ${o.res.pottery && (o.res.pottery.fired.length || o.res.pottery.cracked.length) ? `<tr><td>Kiln: ${o.res.pottery.fired.length} fired${o.res.pottery.cracked.length ? `, ${o.res.pottery.cracked.length} cracked 💔` : ' perfectly'}</td><td class="num">${kr(o.res.pottery.fired.reduce((a, it) => a + it.price, 0))} to shelf</td></tr>` : ''}
         <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
         ${o.res.wages ? `<tr><td>Staff wages</td><td class="num">−${kr(o.res.wages)}</td></tr>` : ''}
-        ${o.res.tax ? `<tr><td>SKAT (40% of profit above ${kr(DG.SKAT_FREE)})</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
+        ${o.res.tax ? `<tr><td>SKAT (${Math.round(DG.skatRule(G).rate * 100)}% of profit above ${kr(DG.skatRule(G).free)})</td><td class="num">−${kr(o.res.tax)}</td></tr>` : ''}
+        ${o.res.taxSaved ? `<tr><td>🧮 Saved by your accountant</td><td class="num good">${kr(o.res.taxSaved)}</td></tr>` : ''}
         ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
       </tbody></table>
@@ -769,7 +770,7 @@
     <div class="shop-grid">
       <section class="panel">
         <h2>Mie's home</h2>
-        <p class="muted">Above the atelier live Mie, her husband Adam, their daughter Elizabeth (3) and Dexter the cat. Tap Dexter to pet him.</p>
+        <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (3) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
         <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
         <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
         <p class="muted small">Happiness drops by ${DG.homeDecay(G)} every night (each toy slows it by 1)${h.catFood <= 0 ? ', plus 8 while Dexter is hungry' : ''}.</p>
@@ -780,7 +781,14 @@
         ${h.event ? `<p class="event soft">Last night: ${esc(h.event)}</p>` : ''}
       </section>
       <section class="panel">
-        <h2>Family dreams</h2><div class="grid upg">${items('family')}</div>
+        <h2>Where we live</h2>
+        <div class="houses">${DG.HOUSES.map((hs, i) => {
+          const cur = (G.home.house || 0), state = i < cur ? 'past' : i === cur ? 'now' : i === cur + 1 ? 'next' : 'later';
+          return `<article class="house ${state}"><span class="house-step">${i === 0 ? 'Start' : `Step ${i}`}</span><b>${hs.name}</b><span class="small muted">${hs.desc}</span>
+            <span class="small">${i ? `❤️ +${hs.joy} · happiness never below ${hs.floor}` : 'Where the story begins'}</span>
+            ${state === 'now' ? '<span class="tag">Home sweet home</span>' : state === 'past' ? '<span class="muted small">Moved on ✓</span>'
+              : state === 'next' ? `<button class="btn primary" data-act="movehouse" ${G.money < hs.cost ? 'disabled' : ''}>Move here: ${kr(hs.cost)}</button>` : `<span class="muted small">${kr(hs.cost)}</span>`}</article>`;
+        }).join('')}</div>
         <h2>Toys for Elizabeth</h2><div class="grid upg">${items('elizabeth')}</div>
         <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
       </section>
@@ -841,6 +849,10 @@
       title: 'A pottery corner?', text: 'With some savings Mie could start making pottery too. Buy the pottery studio under Upgrades → Expansion.' },
     { id: 'pottery', when: () => UI.view === 'studio' && DG.upgradeLevel(G, 'pottery') && !ov(), target: '.pot-stage',
       title: 'The pottery corner', text: 'Pick shape, clay, glaze and decoration. Then knead, throw on the wheel and paint if you like. The kiln fires pots overnight.' },
+    { id: 'tax', when: () => UI.view === 'shop' && !ov() && G.money > 4000 && !DG.upgradeLevel(G, 'accountant'), target: '[data-act=view][data-arg=upgrades]',
+      title: 'SKAT is taking a bite', text: 'A busy shop pays tax on good days. An accountant (Upgrades → Equipment) lowers it.' },
+    { id: 'move', when: () => UI.view === 'home' && !ov() && DG.nextHouse(G) && G.money >= DG.nextHouse(G).cost, target: '[data-act=movehouse]',
+      title: 'Time to move?', text: 'You can afford a bigger home. Each move makes the family happier for good.' },
     { id: 'lowhappy', when: () => G.home.happy < 35 && !ov(), target: '[data-act=view][data-arg=home]',
       title: 'Mie misses her family', text: 'Family happiness is low, so Mie is distracted at work. Spend time at home.' },
   ];
@@ -866,7 +878,8 @@
       ['✂️ Workshop and sewing', 'Pick fabrics, colours, shape, details and extras. The bars show the dress and the black marks the wishes. Sewing is cut → stitch → iron (or only stitch in Quick mode). Better craft means higher quality.'],
       ['👗 Ready-to-wear rack', 'Sew without an order to use leftover fabric. Rack dresses sell to walk-ins in the evening; charm and a bigger shop window help. You can mark them down.'],
       ['🏺 Pottery', 'Buy the studio under Upgrades → Expansion. Knead (fewer cracks), throw on the wheel (holding keeps the pressure in the green), optionally paint, and the kiln fires overnight. Pots sell from the shelf and add charm.'],
-      ['🏡 Home and family', 'Family happiness drops every night. Above 75 Mie works better, below 30 worse. Play with Elizabeth and pet Dexter daily, buy toys, go on outings (some only in summer or winter) and keep Dexter fed.'],
+      ['🏡 Home and family', 'The family starts in a small flat in Nørrebro and can move up in five steps to a Strandvejsvilla in Klampenborg; each home raises the lowest family happiness can fall to. Family happiness drops every night. Above 75 Mie works better, below 30 worse. Play with Elizabeth and pet Dexter daily, buy toys, go on outings (some only in summer or winter) and keep Dexter fed.'],
+      ['🧮 SKAT and the accountant', 'Each evening SKAT takes 40% of the day\'s profit above 2.000 kr. An accountant (Upgrades → Equipment) raises the tax-free amount and lowers the rate to 32% and then 25%.'],
       ['⭐ Upgrades', 'Equipment improves work, expansions add pottery and an upstairs floor, decor adds charm, staff help every day for a wage, and marketing brings more or richer customers tomorrow.'],
       ['🏆 Goals', '18 milestones with cash rewards. Collect them on the Goals screen.'],
       ['💾 Saving', 'The game saves automatically on this device. Menu → Save can make a save code to move your game to another device. Each player has their own shop.'],
@@ -1219,6 +1232,11 @@
       case 'buyhome': {
         const it = byId(DG.HOME_ITEMS, arg);
         if (DG.buyHomeItem(G, arg)) { G.today.spent += it.cost; sfx('coin'); toast(`${it.icon} ${it.name} for ${it.who === 'dexter' ? 'Dexter' : 'Elizabeth'}!`); }
+        break;
+      }
+      case 'movehouse': {
+        const nx = DG.moveHouse(G);
+        if (nx) { G.today.spent += nx.cost; sfx('fanfare'); toast(`🏡 The family moved to: ${nx.name}!`); window.scrollTo(0, 0); }
         break;
       }
       case 'catfood': if (DG.buyCatFood(G)) { G.today.spent += DG.CAT_FOOD.cost; sfx('meow'); toast('Dexter approves. 🐟'); } break;

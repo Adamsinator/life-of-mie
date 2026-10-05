@@ -7,7 +7,12 @@ No build step and no dependencies. It is plain HTML, CSS and JavaScript.
 ## Play
 
 - **Locally:** open `index.html` in a browser, or run `npm start` and go to http://localhost:5173.
-- **On iPad:** host it on GitHub Pages (Settings → Pages → deploy from `main`, root folder), open it in Safari, then choose *Share → Add to Home Screen*. It then opens full screen like an app.
+- **On iPad via GitHub Pages:**
+  1. Settings → Pages → *Deploy from a branch*, then pick `main` and the `/ (root)` folder.
+  2. The game appears at https://adamsinator.github.io/dress-game/.
+  3. Open it in Safari and choose *Share → Add to Home Screen*. It then opens full screen like an app.
+
+  GitHub Pages needs a **public** repository, or a paid GitHub plan for a private one.
 - **Single file:** `npm run build` writes `dist/mies-atelier.html`. That one file works anywhere, for example from AirDrop or iCloud Drive.
 
 ## Getting started
@@ -92,7 +97,15 @@ The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, th
 - **Every day:** play with Elizabeth and pet Dexter (tap him, he purrs). Both are free, once a day each.
 - **Outings:** badminton with Adam, ice cream in Nyhavn, a beach day at Amager Strand (summer only), movie night with popcorn (winter only), Copenhagen Zoo, date night with Adam, a family day at Tivoli. One outing per day.
 - **Shopping:** toys for Elizabeth (crayons, teddy bear, wooden train, puppet theatre, tricycle, dollhouse) and things for Dexter (feather wand, scratching post, cat bed, cat tower). They all appear in the scene.
-- **Family dreams** for the long game: a new kitchen (9.000 kr), a garden with a swing (25.000 kr) and a **summer house in Skagen** (150.000 kr, after which happiness never drops below 50).
+- **Where they live:** the family starts in a **small flat in Nørrebro** and can move up in five steps. Each move raises the lowest level family happiness can fall to, slows its nightly drop by 1 and changes the view from the window.
+
+  | Step | Home | Cost | Happiness never below |
+  |---|---|---|---|
+  | 1 | Apartment on Frederiksberg | 8.000 kr | 10 |
+  | 2 | Rækkehus in Valby | 25.000 kr | 20 |
+  | 3 | Parcelhus in Lyngby | 55.000 kr | 30 |
+  | 4 | Villa in Hellerup | 100.000 kr | 40 |
+  | 5 | **Strandvejsvilla in Klampenborg**, with a view over Øresund | 180.000 kr | 50 |
 - **Cat food** lasts 7 days. A hungry Dexter says "Mjav!".
 - Each evening brings a little story from home.
 
@@ -103,7 +116,7 @@ The **Home** screen shows Mie's flat above the atelier: her husband **Adam**, th
 
 ## SKAT
 
-Each evening, 40% of the day's profit above 2.000 kr goes to tax. Early days are untouched; it stops a booming shop from turning money meaningless.
+Each evening, 40% of the day's profit above 2.000 kr goes to tax. An **accountant (revisor)** under Upgrades → Equipment lowers it. Level 1 (1.200 kr) makes the first 3.000 kr tax-free and lowers the rate to 32%. Level 2 (3.500 kr) makes 4.000 kr tax-free at 25%. The day-end summary shows how much the accountant saved. Early days are untouched; it stops a booming shop from turning money meaningless.
 
 ## Testing
 

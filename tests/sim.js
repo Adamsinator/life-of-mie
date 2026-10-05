@@ -103,6 +103,7 @@ for (let gi = 0; gi < GAMES; gi++) {
       // home routine
       DG.doActivity(G, 'play'); DG.doActivity(G, 'pet');
       if (G.home.catFood < 2) DG.buyCatFood(G);
+      { const nx = DG.nextHouse(G); if (nx && G.money > nx.cost * 1.5 + 3000) { G.today.spent += nx.cost; DG.moveHouse(G); } }
       if (G.money > 1500 && G.home.happy < 70) DG.doActivity(G, pick(DG.ACTIVITIES.filter(a => !a.free)).id);
       { const t = DG.HOME_ITEMS.find(i => !G.home.items.includes(i.id)); if (t && G.money > t.cost * 2 + 1500) DG.buyHomeItem(G, t.id); }
       check(G, 'home');
@@ -149,7 +150,7 @@ for (let gi = 0; gi < GAMES; gi++) {
       DG.updateGoals(G);
       DG.claimableGoals(G).forEach(id => DG.claimGoal(G, id));
       check(G, 'spend');
-      if (dream === null && G.home.items.includes('summerhouse')) dream = G.day;
+      if (dream === null && G.home.house === 5) dream = G.day;
       const res = DG.endDay(G);
       check(G, 'endday');
       hist.push(Math.round(G.money));
@@ -159,7 +160,7 @@ for (let gi = 0; gi < GAMES; gi++) {
   } catch (e) {
     flag(`EXCEPTION: ${e.message} @ ${(e.stack || '').split('\n')[1]}`, G);
   }
-  results.push({ dream, skill, tries, money: G.money, rep: G.rep, day: G.day, bankrupt, firstBride, avgS: Sn ? Ssum / Sn : 0,
+  results.push({ house: G.home.house, dream, skill, tries, money: G.money, rep: G.rep, day: G.day, bankrupt, firstBride, avgS: Sn ? Ssum / Sn : 0,
     goals: G.goals.claimed.length, happy: G.home.happy, upgrades: Object.values(G.upgrades).reduce((a, b) => a + b, 0), pots: G.stats.potsSold, rack: G.stats.rackSold });
 }
 
@@ -167,9 +168,9 @@ const q = (arr, p) => { const s = arr.slice().sort((a, b) => a - b); return s[Ma
 const col = k => results.map(r => r[k]);
 console.log(`Simulated ${GAMES} games × up to ${DAYS} days (${HUMAN ? 'human-like' : 'optimising'} bots)`);
 console.log(`bankrupt: ${results.filter(r => r.bankrupt !== null).length}/${GAMES} (days: ${results.filter(r => r.bankrupt !== null).map(r => r.bankrupt).join(', ') || '-'})`);
-for (const k of ['money', 'rep', 'avgS', 'goals', 'upgrades', 'happy', 'pots', 'rack']) console.log(`${k.padEnd(9)} p10 ${q(col(k), 0.1).toFixed(0).padStart(7)}  median ${q(col(k), 0.5).toFixed(0).padStart(7)}  p90 ${q(col(k), 0.9).toFixed(0).padStart(7)}`);
+for (const k of ['house', 'money', 'rep', 'avgS', 'goals', 'upgrades', 'happy', 'pots', 'rack']) console.log(`${k.padEnd(9)} p10 ${q(col(k), 0.1).toFixed(0).padStart(7)}  median ${q(col(k), 0.5).toFixed(0).padStart(7)}  p90 ${q(col(k), 0.9).toFixed(0).padStart(7)}`);
 const dream = results.filter(r => r.dream !== null).map(r => r.dream);
-console.log(`summer house bought in ${dream.length}/${GAMES} games, median day ${dream.length ? q(dream, 0.5) : '-'}`);
+console.log(`Strandvejsvilla reached in ${dream.length}/${GAMES} games, median day ${dream.length ? q(dream, 0.5) : '-'}`);
 const brides = results.filter(r => r.firstBride !== null).map(r => r.firstBride);
 console.log(`first bride seen in ${brides.length}/${GAMES} games, median day ${brides.length ? q(brides, 0.5) : '-'}`);
 const bySkill = [[0, 0.65], [0.65, 1]].map(([a, b]) => { const r = results.filter(x => x.skill >= a && x.skill < b); return `${a}-${b}: avgS ${q(r.map(x => x.avgS), 0.5).toFixed(0)}, money ${q(r.map(x => x.money), 0.5).toFixed(0)}`; });

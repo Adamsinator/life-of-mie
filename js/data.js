@@ -135,6 +135,7 @@
     { id: 'supplier',   name: 'Supplier network',   icon: '🚚', costs: [500, 1500],      desc: 'Level 1: wool, lace, tweed, velvet, silk, pearl buttons. Level 2: organza, brocade, cashmere, gold buttons.' },
     { id: 'embroidery', name: 'Embroidery machine', icon: '🌸', costs: [600, 1400],      desc: 'Level 1 unlocks embroidery. Level 2 unlocks crystal beading.' },
     { id: 'haggle',     name: 'Market haggling',    icon: '🤝', costs: [300, 700, 1400], desc: '8% off everything at the market, per level.' },
+    { id: 'accountant', name: 'Accountant (revisor)', icon: '🧮', costs: [1200, 3500], desc: 'Fewer taxes. Level 1: the first 3.000 kr of daily profit is tax-free and SKAT drops to 32%. Level 2: 4.000 kr tax-free and 25%.' },
     { id: 'fitting',    name: 'Cozy fitting room',  icon: '🛋️', costs: [450, 1100],      desc: '+3 satisfaction per level, and happy customers tip more.' },
     { id: 'pottery',    name: 'Pottery studio',     icon: '🏺', costs: [600, 1500], group: 'expansion', desc: 'Level 1: a potter\'s wheel and a small kiln for 3 pots. Level 2: an electric kiln for 5 pots, half as many cracks, and 2 more shelf spaces.' },
     { id: 'floor',      name: 'Upstairs floor',     icon: '🏠', costs: [2500],      group: 'expansion', desc: 'Opens the first floor: +1 customer per day, room for 1 more, and +2 rack hangers.' },
@@ -192,7 +193,7 @@
 
   // ---------------- Mie's home ----------------
   DG.FAMILY = {
-    adam:      { name: 'Adam',      look: { skin: '#efc3a0', hair: '#4a2c1a', style: 4, top: '#34437f', bg: 'transparent', glasses: false, earrings: false, beard: true } },
+    adam:      { name: 'Adam',      look: { skin: '#efc3a0', hair: '#4a2c1a', style: 4, top: '#8db4d9', bg: 'transparent', glasses: false, earrings: false, shirt: true } },
     elizabeth: { name: 'Elizabeth', look: { skin: '#f6d7bf', hair: '#b07a3e', style: 5, top: '#f1b9c2', bg: 'transparent', glasses: false, earrings: false } },
   };
   // toys: one-off purchases. joy = instant happiness, each also slows the daily drop by 1.
@@ -203,13 +204,26 @@
     { id: 'puppets',   who: 'elizabeth', name: 'Puppet theatre',    icon: '🎭', cost: 300, joy: 12, desc: 'Starring Dexter, against his will.' },
     { id: 'tricycle',  who: 'elizabeth', name: 'Tricycle',          icon: '🚲', cost: 350, joy: 12, desc: 'Fast. Too fast, says Adam.' },
     { id: 'dollhouse', who: 'elizabeth', name: 'Dollhouse',         icon: '🏠', cost: 450, joy: 15, desc: 'With a tiny atelier on the ground floor.' },
-    { id: 'kitchen',   who: 'family',    name: 'New kitchen',             icon: '🍳', cost: 9000,  joy: 20, decay: 2, desc: 'Adam finally gets his dream oven. Æbleskiver every Sunday.' },
-    { id: 'garden',    who: 'family',    name: 'Garden with a swing',     icon: '🌳', cost: 25000, joy: 25, decay: 2, desc: 'A courtyard garden with a swing for Elizabeth and sun spots for Dexter.' },
-    { id: 'summerhouse', who: 'family',  name: 'Summer house in Skagen',  icon: '🏡', cost: 150000, joy: 40, decay: 3, desc: 'The family dream. Happiness never drops below 50 again.' },
     { id: 'feather',   who: 'dexter',    name: 'Feather wand',      icon: '🪶', cost: 40,  joy: 4,  desc: 'Dexter pretends not to care. He cares.' },
     { id: 'scratch',   who: 'dexter',    name: 'Scratching post',   icon: '🪵', cost: 150, joy: 6,  desc: 'Saves the sofa. Mostly.' },
     { id: 'catbed',    who: 'dexter',    name: 'Cat bed',           icon: '🛏️', cost: 200, joy: 8,  desc: 'He still sleeps on the fabric pile.' },
     { id: 'cattower',  who: 'dexter',    name: 'Cat tower',         icon: '🗼', cost: 400, joy: 10, desc: 'King Dexter surveys his kingdom.' },
+  ];
+  // Where the family lives: start in a small flat, move up in 5 steps to a Strandvejsvilla.
+  // floor = family happiness never drops below this; each move also slows the nightly drop by 1.
+  DG.HOUSES = [
+    { id: 'flat',      name: 'Small flat in Nørrebro',          cost: 0,      joy: 0,  floor: 0,  view: 'city',
+      desc: 'Two rooms on the 4th floor, no lift. Cosy, says Mie. Small, says Adam.' },
+    { id: 'frb',       name: 'Apartment on Frederiksberg',      cost: 8000,   joy: 15, floor: 10, view: 'trees',
+      desc: 'A room of her own for Elizabeth, and a balcony for Dexter to judge the birds from.' },
+    { id: 'valby',     name: 'Rækkehus in Valby',               cost: 25000,  joy: 20, floor: 20, view: 'garden',
+      desc: 'A terraced house with a little garden and a door straight out.' },
+    { id: 'lyngby',    name: 'Parcelhus in Lyngby',             cost: 55000,  joy: 25, floor: 30, view: 'swing',
+      desc: 'A proper house with a big garden, a swing and an apple tree.' },
+    { id: 'hellerup',  name: 'Villa in Hellerup',               cost: 100000, joy: 30, floor: 40, view: 'hedge',
+      desc: 'Bay windows, herringbone floors and a wine cellar for Adam.' },
+    { id: 'strandvej', name: 'Strandvejsvilla in Klampenborg',  cost: 180000, joy: 40, floor: 50, view: 'sea',
+      desc: 'The dream: a white villa on Strandvejen with a view over Øresund.' },
   ];
   DG.CAT_FOOD = { name: 'Cat food (7 days)', icon: '🐟', cost: 70, days: 7 };
   // once per day each; outings share one daily slot
@@ -256,7 +270,8 @@
     { id: 'day30',    title: 'One month in',        desc: 'Keep the atelier open for 30 days.',               target: 30,   reward: 1000, prog: G => G.day },
     { id: 'family',   title: 'Happy home',          desc: 'Get family happiness to 90.',                      target: 90,   reward: 300,  prog: G => Math.floor(G.home.happy) },
     { id: 'artist',   title: 'Potter and painter',  desc: 'Fire a hand-painted pot.',                        target: 1,    reward: 250,  prog: G => G.stats.painted },
-    { id: 'dream',    title: 'Sommerhus!',          desc: 'Buy the family summer house in Skagen.',          target: 1,    reward: 2000, prog: G => (G.home.items.includes('summerhouse') ? 1 : 0) },
+    { id: 'move1',    title: 'Room to grow',        desc: 'Move out of the small flat in Nørrebro.',         target: 1,    reward: 500,  prog: G => G.home.house },
+    { id: 'dream',    title: 'Strandvejsvilla!',    desc: 'Move into the villa on Strandvejen.',             target: 5,    reward: 5000, prog: G => G.home.house },
     { id: 'bride',    title: 'Say yes to the dress',desc: "Make a bride's dress that scores 85% or more.",   target: 85,   reward: 1500, prog: G => G.stats.brideBest },
   ];
 

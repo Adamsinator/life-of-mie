@@ -299,10 +299,11 @@
       ? '<path d="M40 46 Q43 43 46 46 M54 46 Q57 43 60 46" stroke="#2b2b2b" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
       : '<circle cx="43" cy="46" r="2" fill="#2b2b2b"/><circle cx="57" cy="46" r="2" fill="#2b2b2b"/>';
     const glasses = look.glasses ? '<g fill="none" stroke="#3a2a22" stroke-width="1.3"><circle cx="43" cy="46" r="5.5"/><circle cx="57" cy="46" r="5.5"/><path d="M48.5 46 H51.5"/></g>' : '';
+    const shirt = look.shirt ? `<path d="M41 75 L50 86 L59 75 L55 72 L50 79 L45 72 Z" fill="#fff" stroke="${darken(look.top, 0.35)}" stroke-width=".8"/><path d="M50 86 V100" stroke="${darken(look.top, 0.35)}" stroke-width="1"/><circle cx="50" cy="91" r="1" fill="${darken(look.top, 0.4)}"/><circle cx="50" cy="97" r="1" fill="${darken(look.top, 0.4)}"/>` : '';
     const beard = look.beard ? `<path d="M34 50 Q36 68 50 68 Q64 68 66 50 Q62 60 50 60 Q38 60 34 50Z" fill="${hair}"/>` : '';
     const ear = look.earrings ? '<circle cx="33" cy="54" r="2" fill="#e9c35a"/><circle cx="67" cy="54" r="2" fill="#e9c35a"/>' : '';
     const extra = look.measure ? '<path d="M24 100 Q30 78 44 74 L48 82 Q36 86 32 100 Z" fill="#f2d54b"/><path d="M30 92 l3 1 M33 86 l3 1.4 M37 81 l3 1.6" stroke="#5a4a12" stroke-width=".8"/>' : '';
-    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${look.top}"/><rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/><ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${beard}${mouth}${glasses}${ear}${extra}</svg>`;
+    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}<path d="M16 100 Q19 76 50 73 Q81 76 84 100 Z" fill="${look.top}"/><rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/><ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${shirt}${beard}${mouth}${glasses}${ear}${extra}</svg>`;
   };
 
   // ---------------- shop interior ----------------
@@ -488,17 +489,69 @@
     const has = id => G.home.items.includes(id);
     const se = DG.season(G);
     const out = [];
-    out.push(`<defs><pattern id="homewall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#f4ead9"/><circle cx="12" cy="12" r="1.6" fill="#e3d2b5"/></pattern>
-      <linearGradient id="homesky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.1)}"/></linearGradient></defs>`);
-    out.push('<rect width="400" height="150" fill="url(#homewall)"/><rect y="150" width="400" height="60" fill="#b48b62"/><path d="M0 150 H400" stroke="#8a6a48" stroke-width="3"/>');
-    for (let x = 0; x < 400; x += 50) out.push(`<path d="M${x} 152 V210" stroke="#a37c55" stroke-width="1"/>`);
-    // window with season
-    out.push('<rect x="22" y="22" width="92" height="84" rx="3" fill="#fffaf5"/><rect x="28" y="28" width="80" height="72" fill="url(#homesky)"/>');
-    if (se.id === 'winter') out.push('<rect x="28" y="92" width="80" height="8" fill="#fff"/><circle cx="44" cy="44" r="1.4" fill="#fff"/><circle cx="80" cy="60" r="1.4" fill="#fff"/><circle cx="64" cy="38" r="1.4" fill="#fff"/>');
-    if (se.id === 'summer') out.push('<circle cx="90" cy="44" r="8" fill="#ffd75e"/>');
-    if (se.id === 'autumn') out.push('<ellipse cx="50" cy="60" rx="2.6" ry="1.4" fill="#d9822b"/><ellipse cx="86" cy="80" rx="2.6" ry="1.4" fill="#b5481f"/>');
-    if (se.id === 'spring') out.push('<circle cx="46" cy="50" r="1.6" fill="#f6c6d2"/><circle cx="84" cy="70" r="1.6" fill="#f6c6d2"/>');
-    out.push('<path d="M68 28 V100 M28 64 H108" stroke="#fffaf5" stroke-width="3"/><path d="M18 18 Q30 60 22 110 M118 18 Q106 60 114 110" stroke="#c44d6c" stroke-width="6" fill="none"/>');
+    const H = DG.house(G);
+    const STYLE = {
+      flat:      { wall: '#f4ead9', dot: '#e3d2b5', floor: '#b48b62', line: '#a37c55', win: [22, 22, 92, 84] },
+      frb:       { wall: '#e6edf2', dot: '#d3dee6', floor: '#a8805a', line: '#946d48', win: [20, 20, 100, 88] },
+      valby:     { wall: '#f3e6d6', dot: '#e8d6bf', floor: '#c49a6c', line: '#ad855a', win: [18, 18, 104, 92] },
+      lyngby:    { wall: '#e9efe2', dot: '#d8e3cd', floor: '#c9a27a', line: '#b18a62', win: [16, 16, 112, 96] },
+      hellerup:  { wall: '#f6f1ea', dot: '#ece3d6', floor: '#c79a68', line: '#a87c4f', win: [14, 14, 118, 100], herring: true, panels: true },
+      strandvej: { wall: '#fbfaf7', dot: '#f0ede6', floor: '#dcc29a', line: '#c4a77a', win: [10, 12, 126, 104], panels: true },
+    }[H.id];
+    const [wx, wy, ww, wh] = STYLE.win;
+    out.push(`<defs><pattern id="homewall" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="${STYLE.wall}"/><circle cx="12" cy="12" r="1.6" fill="${STYLE.dot}"/></pattern>
+      <pattern id="herring" width="20" height="10" patternUnits="userSpaceOnUse"><rect width="20" height="10" fill="${STYLE.floor}"/><path d="M0 10 L10 0 M10 10 L20 0" stroke="${STYLE.line}" stroke-width="1.2"/><path d="M0 0 L10 10 M10 0 L20 10" stroke="${STYLE.line}" stroke-width=".5" opacity=".6"/></pattern>
+      <linearGradient id="homesky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.1)}"/></linearGradient>
+      <clipPath id="homewin"><rect x="${wx + 6}" y="${wy + 6}" width="${ww - 12}" height="${wh - 12}"/></clipPath></defs>`);
+    out.push(`<rect width="400" height="150" fill="url(#homewall)"/>${STYLE.panels ? `<rect y="112" width="400" height="38" fill="${darken(STYLE.wall, 0.04)}"/><path d="M0 112 H400" stroke="${darken(STYLE.wall, 0.15)}" stroke-width="2"/>` + [0, 1, 2, 3, 4, 5, 6, 7].map(i => `<rect x="${8 + i * 50}" y="118" width="40" height="26" fill="none" stroke="${darken(STYLE.wall, 0.12)}"/>`).join('') : ''}`);
+    out.push(`<rect y="150" width="400" height="60" fill="${STYLE.herring ? 'url(#herring)' : STYLE.floor}"/><path d="M0 150 H400" stroke="${darken(STYLE.floor, 0.25)}" stroke-width="3"/>`);
+    if (!STYLE.herring) for (let x = 0; x < 400; x += 50) out.push(`<path d="M${x} 152 V210" stroke="${STYLE.line}" stroke-width="1"/>`);
+    // the view outside depends on where the family lives
+    const ix = wx + 6, iy = wy + 6, iw = ww - 12, ih = wh - 12, gy = iy + ih * 0.68;
+    const snow = se.id === 'winter';
+    const grass = snow ? '#f4f6f8' : se.id === 'autumn' ? '#a9a253' : '#7fb069';
+    const v = [`<rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="url(#homesky)"/>`];
+    if (se.id === 'summer') v.push(`<circle cx="${ix + iw - 16}" cy="${iy + 14}" r="8" fill="#ffd75e"/>`);
+    if (H.view === 'city') {
+      [[0, 30, '#b9b2a6'], [16, 18, '#c98f6b'], [34, 36, '#a9a39a'], [56, 24, '#d0b48a'], [72, 40, '#b7aca0']].forEach(([dx, hgt, c]) => {
+        v.push(`<rect x="${ix + dx}" y="${iy + ih - hgt}" width="18" height="${hgt}" fill="${c}"/>`);
+        for (let yy = iy + ih - hgt + 5; yy < iy + ih - 4; yy += 8) v.push(`<rect x="${ix + dx + 4}" y="${yy}" width="3" height="4" fill="#fdf3c9"/><rect x="${ix + dx + 11}" y="${yy}" width="3" height="4" fill="#fdf3c9"/>`);
+        if (snow) v.push(`<rect x="${ix + dx}" y="${iy + ih - hgt - 2}" width="18" height="3" fill="#fff"/>`);
+      });
+      v.push(`<path d="M${ix + 52} ${iy + ih - 40} l3 -16 l3 16 Z" fill="#6aa58f"/>`);   // copper spire
+    } else if (H.view === 'trees') {
+      [[14, 30, 16], [44, 24, 20], [74, 32, 15]].forEach(([dx, dy, r]) => v.push(`<rect x="${ix + dx - 2}" y="${iy + dy}" width="4" height="${ih}" fill="#7a5236"/><circle cx="${ix + dx}" cy="${iy + dy}" r="${r}" fill="${snow ? '#e8eef2' : se.id === 'autumn' ? '#d9822b' : '#5f9a5a'}"/>`));
+      v.push(`<rect x="${ix}" y="${iy + ih - 18}" width="${iw}" height="3" fill="#444"/>` + Array.from({ length: 12 }, (_, i) => `<rect x="${ix + i * iw / 12}" y="${iy + ih - 18}" width="1.6" height="18" fill="#444"/>`).join(''));
+    } else {
+      v.push(`<rect x="${ix}" y="${gy}" width="${iw}" height="${ih}" fill="${H.view === 'sea' ? '#3f7fae' : grass}"/>`);
+      if (H.view === 'garden') {
+        v.push(`<path d="M${ix} ${gy - 8} H${ix + iw}" stroke="#a0805a" stroke-width="2"/>` + Array.from({ length: 10 }, (_, i) => `<rect x="${ix + i * iw / 10}" y="${gy - 12}" width="3" height="12" fill="#a0805a"/>`).join(''));
+        v.push(`<rect x="${ix + iw * 0.7}" y="${gy - 26}" width="3" height="26" fill="#7a5236"/><circle cx="${ix + iw * 0.7 + 1.5}" cy="${gy - 28}" r="11" fill="${snow ? '#eef2f4' : '#5f9a5a'}"/>`);
+      } else if (H.view === 'swing') {
+        v.push(`<rect x="${ix + 20}" y="${gy - 34}" width="4" height="34" fill="#7a5236"/><circle cx="${ix + 22}" cy="${gy - 38}" r="16" fill="${snow ? '#eef2f4' : '#5f9a5a'}"/>`);
+        if (!snow) [[-6, -40], [4, -34], [10, -44], [-2, -30]].forEach(([dx, dy]) => v.push(`<circle cx="${ix + 22 + dx}" cy="${gy + dy}" r="2" fill="#c0392b"/>`));
+        v.push(`<path d="M${ix + iw - 40} ${gy} L${ix + iw - 30} ${gy - 30} L${ix + iw - 20} ${gy} M${ix + iw - 30} ${gy - 30} H${ix + iw - 8}" stroke="#5a3a2a" stroke-width="2" fill="none"/><path d="M${ix + iw - 22} ${gy - 30} V${gy - 10} M${ix + iw - 14} ${gy - 30} V${gy - 10}" stroke="#666"/><rect x="${ix + iw - 24}" y="${gy - 10}" width="12" height="3" fill="#c44d6c"/>`);
+      } else if (H.view === 'hedge') {
+        v.push(`<rect x="${ix}" y="${gy - 18}" width="${iw}" height="18" rx="6" fill="${snow ? '#dfe7e2' : '#3f7a4a'}"/>`);
+        if (!snow) for (let k = 0; k < 9; k++) v.push(`<circle cx="${ix + 6 + k * iw / 9}" cy="${gy + 8}" r="2" fill="${['#f1b9c2', '#f0c443', '#fff'][k % 3]}"/>`);
+      } else if (H.view === 'sea') {
+        v.push(`<path d="M${ix} ${gy - 1} q${iw / 4} -6 ${iw / 2} -2 t${iw / 2} 0 V${gy} H${ix}Z" fill="#8fa89a"/>`);   // the Swedish coast
+        for (let k = 0; k < 6; k++) v.push(`<path d="M${ix + 8 + k * 20} ${gy + 10 + (k % 3) * 8} q4 -2 8 0" stroke="#bfe0f5" stroke-width="1" fill="none"/>`);
+        [[0.25, 6], [0.62, 14]].forEach(([fx, dy]) => v.push(`<path d="M${ix + iw * fx} ${gy + dy} l8 0 l-3 4 h-3 Z" fill="#fff"/><path d="M${ix + iw * fx + 4} ${gy + dy} V${gy + dy - 12} L${ix + iw * fx + 11} ${gy + dy - 2}Z" fill="#fff"/>`));
+        v.push(`<rect x="${ix}" y="${iy + ih - 8}" width="${iw}" height="8" fill="${snow ? '#fff' : '#e9d9b5'}"/>`);
+      }
+      if (snow && H.view !== 'sea') v.push(`<rect x="${ix}" y="${iy + ih - 6}" width="${iw}" height="6" fill="#fff"/>`);
+    }
+    const r2 = rng(G.day * 13 + 3);
+    for (let k = 0; k < 8; k++) {
+      const x = ix + r2() * iw, y = iy + r2() * ih * 0.6;
+      if (snow) v.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.3" fill="#fff"/>`);
+      else if (se.id === 'autumn' && k < 4) v.push(`<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="2.4" ry="1.3" fill="#d9822b"/>`);
+      else if (se.id === 'spring' && k < 4) v.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.5" fill="#f6c6d2"/>`);
+    }
+    out.push(`<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="3" fill="#fffaf5"/><g clip-path="url(#homewin)">${v.join('')}</g>`);
+    out.push(`<path d="M${wx + ww / 2} ${wy + 6} V${wy + wh - 6} M${wx + 6} ${wy + wh / 2} H${wx + ww - 6}" stroke="#fffaf5" stroke-width="3"/><path d="M${wx - 4} ${wy - 4} Q${wx + 8} ${wy + 38} ${wx} ${wy + wh + 4} M${wx + ww + 4} ${wy - 4} Q${wx + ww - 8} ${wy + 38} ${wx + ww} ${wy + wh + 4}" stroke="#c44d6c" stroke-width="6" fill="none"/>`);
+    out.push(`<rect x="160" y="6" width="${Math.min(170, 12 + H.name.length * 4.6)}" height="14" rx="3" fill="#fffaf5" opacity=".85"/><text x="166" y="16" font-size="8" font-family="Nunito, sans-serif" font-weight="800" fill="#2f1d2b">${H.name}</text>`);
     // lamp + bookshelf
     out.push('<path d="M150 0 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
     out.push('<rect x="330" y="40" width="58" height="110" fill="#8a6a48"/><path d="M330 76 H388 M330 112 H388" stroke="#6e5238" stroke-width="3"/>' +
@@ -533,5 +586,6 @@
     return `<svg class="shop-scene home-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's home">${out.join('')}</svg>`;
   };
 
-  DG.MIE_LOOK = { skin: '#f3cdb0', hair: '#9a3b1c', style: 2, top: '#2f6f73', bg: '#f6e3d6', glasses: true, earrings: true, measure: true };
+  // Mie: loose dark-brown hair and round glasses
+  DG.MIE_LOOK = { skin: '#f3cdb0', hair: '#3b2418', style: 1, top: '#2f6f73', bg: '#f6e3d6', glasses: true, earrings: true, measure: true };
 })(typeof window !== 'undefined' ? window : globalThis);

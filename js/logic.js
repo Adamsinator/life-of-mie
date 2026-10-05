@@ -67,14 +67,32 @@
     st.seasons = st.seasons || [];
     st.painted = st.painted || 0;
     G.home = G.home || { happy: 70, items: [], catFood: 7, did: {}, event: null };
-    G.tips = G.tips || [];             // ids of tutorial tips this player has seen
+    G.tips = G.tips || [];
+    if (G.home.house == null) {
+      // older saves: family dreams become houses
+      const it = G.home.items;
+      G.home.house = it.includes('summerhouse') ? 3 : it.includes('garden') ? 2 : it.includes('kitchen') ? 1 : 0;
+      G.home.items = it.filter(id => !['kitchen', 'garden', 'summerhouse'].includes(id));
+    }
+    G.upgrades.accountant = G.upgrades.accountant || 0;             // ids of tutorial tips this player has seen
     return G;
   };
 
   // ---------- Mie's home ----------
   // Happiness drops 10/day, 1 less per toy owned (min 3), plus 8 more if Dexter has no food.
-  DG.homeDecay = G => Math.max(3, 10 - G.home.items.reduce((a, id) => a + ((byId(DG.HOME_ITEMS, id) || {}).decay || 1), 0));
-  DG.homeFloor = G => (G.home.items.includes('summerhouse') ? 50 : 0);   // the summer house keeps spirits up
+  DG.homeDecay = G => Math.max(3, 10 - G.home.items.length - (G.home.house || 0));
+  DG.house = G => DG.HOUSES[G.home.house || 0];
+  DG.nextHouse = G => DG.HOUSES[(G.home.house || 0) + 1] || null;
+  DG.homeFloor = G => DG.house(G).floor;
+  DG.moveHouse = function (G) {
+    const nx = DG.nextHouse(G);
+    if (!nx || G.money < nx.cost) return false;
+    G.money -= nx.cost;
+    G.home.house += 1;
+    G.home.happy = clamp(Math.max(G.home.happy + nx.joy, nx.floor), 0, 100);
+    DG.updateGoals(G);
+    return nx;
+  };
   DG.homeMood = function (G) {
     const h = G.home.happy;
     if (h >= 75) return { id: 'happy', label: 'Happy and rested', sat: 2, zone: 0.02 };
@@ -294,9 +312,12 @@
     for (let i = 0; i < n; i++) G.queue.push(DG.genCustomer(G, { topTier: i === 0 && booked.includes('influencer') }));
   };
 
-  DG.SKAT_FREE = 2000;
-  DG.SKAT_RATE = 0.4;
-  DG.skat = profit => Math.round(Math.max(0, profit - DG.SKAT_FREE) * DG.SKAT_RATE);
+  // SKAT on daily profit; an accountant raises the tax-free amount and lowers the rate.
+  DG.skatRule = G => {
+    const lvl = G ? DG.upgradeLevel(G, 'accountant') : 0;
+    return { free: 2000 + 1000 * lvl, rate: [0.4, 0.32, 0.25][lvl] };
+  };
+  DG.skat = (profit, G) => { const r = DG.skatRule(G); return Math.round(Math.max(0, profit - r.free) * r.rate); };
   DG.rackSaleChance = G => clamp(0.25 + 0.03 * DG.charm(G) + 0.05 * DG.upgradeLevel(G, 'display'), 0, 0.85);
 
   DG.endDay = function (G) {
@@ -323,7 +344,8 @@
     // SKAT: 40% of the day's profit above 2.000 kr
     const t = G.today || { income: 0, spent: 0 };
     const profit = t.income - t.spent - rent - wages;
-    const tax = DG.skat(profit);
+    const tax = DG.skat(profit, G);
+    const taxWithout = DG.skat(profit);   // what it would have been without an accountant
     G.money -= tax;
     if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
     G.queue = [];
@@ -333,7 +355,7 @@
       else G.gameOver = true;
     }
     DG.updateGoals(G);
-    return { rent, wages, tax, profit, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
   };
 
   // ---------- design ----------
