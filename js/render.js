@@ -517,8 +517,9 @@
       });
     }
     if (owned('rug')) out.push('<ellipse cx="236" cy="178" rx="56" ry="13" fill="#9c2f3c"/><ellipse cx="236" cy="178" rx="47" ry="9.5" fill="none" stroke="#e8c15a" stroke-width="1.6" stroke-dasharray="4 3"/>');
-    // dress form with the current order (or a toile)
-    const df = G.design && G.active ? DG.renderDress(G.design, 'shopform') : DG.renderDress({ main: null, mainColor: 'white', accent: null, accentColor: 'white', silhouette: 'aline', length: 'knee', neckline: 'round', sleeves: 'none', closure: 'none', extras: [] }, 'shopform');
+    // dress form with the current order
+    // otherwise the latest dress from the lookbook is on show, or a plain toile
+    const df = G.design && G.active ? DG.renderDress(G.design, 'shopform') : G.lookbook && G.lookbook.length ? DG.renderDress(G.lookbook[0].design, 'shopform') : DG.renderDress({ main: null, mainColor: 'white', accent: null, accentColor: 'white', silhouette: 'aline', length: 'knee', neckline: 'round', sleeves: 'none', closure: 'none', extras: [] }, 'shopform');
     out.push(`<svg x="206" y="66" width="60" height="96" viewBox="0 20 200 300">${df.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>`);
     if (owned('armchair')) out.push('<path d="M244 162 v-8 h40 v8" stroke="#5a3a2a" stroke-width="2.5" fill="none"/><path d="M242 156 q0 -26 22 -26 q22 0 22 26Z" fill="#6b2a5e"/><rect x="238" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="280" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="246" y="146" width="36" height="10" rx="3" fill="#7d3870"/>');
     // ready-to-wear rack
