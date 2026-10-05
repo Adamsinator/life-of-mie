@@ -345,7 +345,7 @@
           <button class="btn small ghost" data-act="openreq" data-arg="active">Read request</button></div>
         <div class="pchips">${prioChips(c)}</div>`}
         ${c.reqs.length ? `<ul class="reqs inline">${c.reqs.map(r => { const ok = DG.REQS[r].check(d); return `<li class="${ok ? 'ok' : 'no'}">${ok ? '✓' : '✗'} ${DG.REQS[r].short}</li>`; }).join('')}</ul>` : ''}
-        <div class="stage">${DG.renderDress(d, 'ws')}</div>
+        <div class="stage${UI.twirl ? ' twirling' : ''}" data-act="twirl">${DG.renderDress(d, 'ws')}</div>
         <div class="attrs">${attrBars(an.attrs, c)}</div>
         <p class="muted small">${c.rack ? 'Careful stitching raises quality, and with it the price tag.' : `The marks show ${esc(c.name)}'s wishes. Careful stitching raises quality further.`}</p>
         <div class="ws-actions ws-actions-left">${wsActions(an)}</div>
@@ -1370,6 +1370,7 @@
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
       case 'closeov': UI.overlay = null; break;
       case 'albumtab': UI.albumTab = arg; break;
+      case 'twirl': UI.twirl = true; clearTimeout(UI.twirlT); UI.twirlT = setTimeout(() => { UI.twirl = false; render(); }, 1300); sfx('good'); break;
       case 'tapfamily': {
         // a little moment with the family: hugs and giggles, a bit of happiness the first time each day
         UI.bounce = arg; clearTimeout(UI.bounceT); UI.bounceT = setTimeout(() => { UI.bounce = null; render(); }, 1300);

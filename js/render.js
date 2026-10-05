@@ -389,7 +389,7 @@
     const hat = look.acc === 'beret' ? `<ellipse cx="54" cy="26" rx="17" ry="6.5" transform="rotate(-12 54 26)" fill="${look.accColor}"/><circle cx="56" cy="19" r="1.6" fill="${look.accColor}"/>` : '';
     const clip = look.acc === 'clip' ? `<g transform="translate(35 32)">${[0, 1, 2, 3, 4].map(k => `<circle cx="${(Math.cos(k * 1.2566) * 2.6).toFixed(1)}" cy="${(Math.sin(k * 1.2566) * 2.6).toFixed(1)}" r="2" fill="${look.accColor}"/>`).join('')}<circle r="1.3" fill="#f0c443"/></g>` : '';
     const extra = look.measure ? '<path d="M24 100 Q30 78 44 74 L48 82 Q36 86 32 100 Z" fill="#f2d54b"/><path d="M30 92 l3 1 M33 86 l3 1.4 M37 81 l3 1.6" stroke="#5a4a12" stroke-width=".8"/>' : '';
-    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}${look.headOnly ? '' : outfit}<rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/>${look.headOnly ? '' : overNeck}${acc}<ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${hat}${clip}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${look.headOnly ? '' : shirt}${beard}${nose}${mouth}${glasses}${ear}${look.headOnly ? '' : extra}</svg>`;
+    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}${look.headOnly ? '' : outfit}<rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/>${look.headOnly ? '' : overNeck}${acc}<ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${look.style !== 4 && look.style !== 2 ? `<path d="M37 31 Q44 26 52 27" stroke="#fff" stroke-width="2.2" fill="none" opacity=".22" stroke-linecap="round"/>` : ''}${hat}${clip}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${look.headOnly ? '' : shirt}${beard}${nose}${mouth}${glasses}${ear}${look.headOnly ? '' : extra}</svg>`;
   };
 
   // ---------------- shop interior ----------------
@@ -452,7 +452,8 @@
     }
     const head = DG.renderAvatar(Object.assign({}, look, { bg: 'transparent' }), mood, 64).replace(/^<svg[^>]*>/, '<svg x="18" y="0" width="64" height="64" viewBox="0 0 100 100" overflow="visible">');
     const w = height * 100 / H;
-    return `<svg class="figure" x="${(cx - w / 2).toFixed(1)}" y="${(footY - height).toFixed(1)}" width="${w.toFixed(1)}" height="${height.toFixed(1)}" viewBox="0 0 100 ${H}" overflow="visible">${b.join('')}${head}</svg>`;
+    const shadow = `<ellipse cx="${cx}" cy="${footY}" rx="${(w * 0.34).toFixed(1)}" ry="${(w * 0.07).toFixed(1)}" fill="#3b2418" opacity=".16"/>`;
+    return shadow + `<svg class="figure" x="${(cx - w / 2).toFixed(1)}" y="${(footY - height).toFixed(1)}" width="${w.toFixed(1)}" height="${height.toFixed(1)}" viewBox="0 0 100 ${H}" overflow="visible">${b.join('')}${head}</svg>`;
   };
 
   const inScene = look => Object.assign({}, look, { bg: 'transparent' });
@@ -469,6 +470,8 @@
       <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8" stop-opacity=".7"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient>
       <linearGradient id="duskSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d3a6e"/><stop offset=".6" stop-color="#b26a8a"/><stop offset="1" stop-color="#f3a56e"/></linearGradient>
       <linearGradient id="duskRoom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3060" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a4a" stop-opacity=".25"/></linearGradient>
+      <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff8dc" stop-opacity=".38"/><stop offset="1" stop-color="#fff8dc" stop-opacity="0"/></linearGradient>
+      <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#5a2a3a" stop-opacity="0"/><stop offset="1" stop-color="#5a2a3a" stop-opacity=".22"/></radialGradient>
       <radialGradient id="lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>`);
     if (opts.tall) out.push('<rect x="-300" y="-200" width="1000" height="360" fill="url(#wp)"/><rect x="-300" y="146" width="1000" height="6" fill="#fffaf5"/><rect x="-300" y="152" width="1000" height="300" fill="url(#planks)"/>');
     // wall, skirting, floor
@@ -536,10 +539,13 @@
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
-    G.queue.slice(0, 5).forEach((c, i) => out.push(`<g class="tap" data-act="openreq" data-arg="${i}">` + (opts.tall
+    G.queue.slice(0, 5).forEach((c, i) => out.push(`<g class="tap idle" style="animation-delay:-${(i * 0.9).toFixed(1)}s" data-act="openreq" data-arg="${i}">` + (opts.tall
       ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
       : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
+    // daylight falling in through the window, and a soft warm vignette
+    out.push('<g class="sunbeam" pointer-events="none"><path d="M24 44 L118 44 L190 210 L60 210 Z" fill="url(#beam)"/></g>');
+    out.push('<rect class="vignette" x="-300" y="-200" width="1000" height="700" fill="url(#vig)" pointer-events="none"/>');
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
     out.push('<rect class="dusk" x="-300" y="-200" width="1000" height="700" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
     const evening = G.day > 0 && G.today && !G.queue.length && !G.active;

@@ -636,3 +636,10 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .shop-scene .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes hop { 40% { transform: translateY(-6px) scale(1.04, .97); } 70% { transform: translateY(0) scale(.98, 1.03); } }
 .hearts-pop { animation: up 1.2s ease-out forwards; }
+.shop-scene .idle { animation: idle 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes idle { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.2deg) translateY(-.6px); } }
+.shop-scene .sunbeam { transition: opacity 2.5s; mix-blend-mode: screen; }
+.shop-scene.evening .sunbeam { opacity: 0; }
+.stage { cursor: pointer; }
+.stage.twirling .dress-svg { animation: twirl 1.2s ease-in-out 1; transform-origin: 50% 90%; }
+@media (prefers-reduced-motion: reduce) { .shop-scene .idle { animation: none; } }
