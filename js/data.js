@@ -325,7 +325,7 @@
   // Staff: one-off hiring fee + daily wage paid with the rent.
   DG.STAFF = [
     { id: 'apprentice', name: 'Oskar, apprentice', icon: '🧑‍🎓', fee: 3000, wage: 600,
-      look: { skin: '#efc3a0', hair: '#e2c27a', style: 4, top: '#9db69a', bg: '#e2ecdf', glasses: false, earrings: false },
+      look: { skin: '#efc3a0', hair: '#e2c27a', style: 4, top: '#9db69a', bg: '#e2ecdf', glasses: false, earrings: false, masc: true },
       desc: 'Cuts patterns so carefully that every dress uses 10% less fabric, and steadies the fabric so the stitch zone is wider.' },
     { id: 'assistant', name: 'Lise, shop assistant', icon: '💁‍♀️', fee: 4000, wage: 900,
       look: { skin: '#a06a44', hair: '#1c1c1c', style: 3, top: '#d6577b', bg: '#f5dfe4', glasses: true, earrings: true },

@@ -53,7 +53,8 @@
   DG.colorDot = (id, size = 18) => `<span class="cdot" style="--c:${DG.colorHex(id)};width:${size}px;height:${size}px" title="${byId(DG.COLORS, id).name}"></span>`;
 
   // ---------------- dress ----------------
-  DG.renderDress = function (d, uid = 'dress') {
+  // opts.wearer: a customer's look — she wears the dress instead of the dress form
+  DG.renderDress = function (d, uid = 'dress', opts = {}) {
     const fm = d.main ? byId(DG.FABRICS, d.main) : null;
     const fa = d.accent ? byId(DG.FABRICS, d.accent) : null;
     const mainHex = fm ? DG.colorHex(d.mainColor) : '#efe8dc';
@@ -150,9 +151,22 @@
     defs.push(`<radialGradient id="${P}vv" cx=".5" cy=".45" r=".6"><stop offset=".4" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient>`);
 
     const out = [];
-    // dress form + stand
-    out.push(`<ellipse cx="100" cy="310" rx="34" ry="6" fill="var(--form-dark, #8c7357)"/><rect x="97.5" y="150" width="5" height="160" fill="var(--form-dark, #8c7357)"/>`);
-    out.push(`<path d="M91 40 h18 v14 C118 55 124 58 126 63 L123 84 C121 96 120 108 120 ${W} C120 ${W + 15} 123 148 124 160 L76 160 C77 148 80 ${W + 15} 80 ${W} C80 108 79 96 77 84 L74 63 C76 58 82 55 91 54 Z" fill="#e8d7be" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="40" rx="11" ry="5" fill="#d9c3a3" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="36" rx="5" ry="3" fill="#8c7357"/>`);
+    const wear = opts.wearer;
+    if (wear) {
+      // the customer herself: legs and shoes, arms and shoulders, then her head above the neckline
+      const sk = wear.skin, legC = wear.tights || sk, shoeC = wear.shoes || '#3b2a2f';
+      out.push(`<ellipse cx="100" cy="318" rx="40" ry="6" fill="#000" opacity=".12"/>`);
+      out.push(`<path d="M86 ${W + 10} Q85 260 88 312 L96 312 Q97 260 98 ${W + 10} Z M102 ${W + 10} Q103 260 104 312 L112 312 Q115 260 114 ${W + 10} Z" fill="${legC}"/>`);
+      out.push(`<path d="M80 314 q8 -9 18 0 q-9 4 -18 0Z M102 314 q10 -9 18 0 q-9 4 -18 0Z" fill="${shoeC}"/>`);
+      out.push(`<path d="M74 66 Q60 116 54 172 M126 66 Q140 116 146 172" stroke="${sk}" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="53" cy="177" r="6" fill="${sk}"/><circle cx="147" cy="177" r="6" fill="${sk}"/>`);
+      out.push(`<path d="M88 50 L112 50 Q122 56 128 63 L124 92 L76 92 L72 63 Q78 56 88 50 Z" fill="${sk}"/>`);
+      out.push(DG.renderAvatar(Object.assign({}, wear, { bg: 'transparent', headOnly: true }), opts.mood || 'happy', 100).replace(/^<svg[^>]*>/, '<svg x="50" y="-17" width="100" height="100" viewBox="0 0 100 100" overflow="visible">'));
+    } else {
+      // dress form on a turned wooden stand
+      out.push(`<ellipse cx="100" cy="314" rx="40" ry="6" fill="#000" opacity=".1"/><ellipse cx="100" cy="311" rx="34" ry="6.5" fill="#6e563d"/><ellipse cx="100" cy="308.5" rx="28" ry="4.6" fill="var(--form-dark, #8c7357)"/>`
+        + `<rect x="97.4" y="150" width="5.2" height="158" fill="var(--form-dark, #8c7357)"/><rect x="98.2" y="150" width="1.4" height="158" fill="#fff" opacity=".18"/><rect x="95" y="158" width="10" height="6" rx="1.5" fill="#c9a54a"/>`);
+      out.push(`<path d="M91 40 h18 v14 C118 55 124 58 126 63 L123 84 C121 96 120 108 120 ${W} C120 ${W + 15} 123 148 124 160 L76 160 C77 148 80 ${W + 15} 80 ${W} C80 108 79 96 77 84 L74 63 C76 58 82 55 91 54 Z" fill="#e8d7be" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="40" rx="11" ry="5" fill="#d9c3a3" stroke="#bda585" stroke-width=".8"/><ellipse cx="100" cy="36" rx="5" ry="3" fill="#c9a54a"/>`);
+    }
 
     const op = fm && fm.tex === 'sheer' ? ' opacity=".9"' : '';
     if (isPina) {
@@ -181,6 +195,21 @@
     if (fm && fm.tex === 'velvet') out.push(`<rect x="0" y="40" width="200" height="270" fill="url(#${P}vv)"/>`);
     out.push('</g>');
     out.push(`<path d="M78 ${W} L122 ${W}" stroke="${line}" stroke-width=".8"/>`);
+    // tailoring: princess seams, topstitching at the waist and hem, a facing along the neckline
+    const stitch = lighten(mainHex, 0.45);
+    const det = [];
+    if (!isPina) det.push(`<path d="M87 ${neckBottom + 3} Q84.5 ${(neckBottom + W) / 2} 86.5 ${W} M113 ${neckBottom + 3} Q115.5 ${(neckBottom + W) / 2} 113.5 ${W}" stroke="${line}" stroke-width=".7" fill="none" opacity=".45"/>`);
+    det.push(`<path d="M79 ${W + 2.6} H121" stroke="${stitch}" stroke-width=".7" stroke-dasharray="1.8 1.4" opacity=".9"/>`);
+    let hs = '';
+    for (let x = hemL + 3; x <= hemR - 3; x += 3) hs += `${hs ? 'L' : 'M'}${x.toFixed(1)} ${(hemY(x) - 3.2).toFixed(1)}`;
+    det.push(`<path d="${hs}" stroke="${stitch}" stroke-width=".7" stroke-dasharray="1.8 1.4" fill="none" opacity=".9"/>`);
+    if (!isPina && tops[neck]) det.push(`<path d="${tops[neck]}" transform="translate(0 2.6)" stroke="${stitch}" stroke-width=".6" stroke-dasharray="1.5 1.3" fill="none" opacity=".8"/>`);
+    out.push(`<g clip-path="url(#${P}c)">${det.join('')}</g>`);
+    // sleeve finishes: cuffs on long sleeves, a band on short ones, gathers on puffs
+    if (sleevePath && !isPina) {
+      const sl = d.sleeves === 'long' ? 'M47 160 Q54 166 61 162' : d.sleeves === 'short' ? 'M51 92 Q60 98 69 94' : d.sleeves === 'puff' ? 'M50 70 Q54 80 56 92 M58 64 Q60 76 62 90' : d.sleeves === 'bell' ? 'M38 166 Q52 174 64 164' : '';
+      if (sl) out.push(`<g transform="${sleeveShift}"><path d="${sl}" stroke="${darken(fa ? accHex : mainHex, 0.3)}" stroke-width="1.2" fill="none" opacity=".7"/></g><g transform="translate(200 0) scale(-1 1) ${sleeveShift}"><path d="${sl}" stroke="${darken(fa ? accHex : mainHex, 0.3)}" stroke-width="1.2" fill="none" opacity=".7"/></g>`);
+    }
 
     // ---- details ----
     const has = id => d.extras.includes(id);
@@ -278,7 +307,7 @@
       out.push(`<g clip-path="url(#${P}c)">${bd}</g>`);
     }
 
-    return `<svg class="dress-svg" viewBox="0 20 200 300" role="img" aria-label="Dress preview"><defs>${defs.join('')}</defs>${out.join('')}</svg>`;
+    return `<svg class="dress-svg${wear ? ' worn' : ''}" viewBox="${wear ? '0 -2 200 327' : '0 20 200 300'}" role="img" aria-label="Dress preview"><defs>${defs.join('')}</defs>${out.join('')}</svg>`;
   };
 
   // ---------------- portraits ----------------
@@ -302,9 +331,9 @@
       5: `<path d="M33 42 Q33 25 50 25 Q67 25 67 42 Q62 32 50 34 Q38 32 33 42Z" fill="${hair}"/>`,
     }[look.style];
     const mouth = {
-      ecstatic: `<path d="M42 55 Q50 66 58 55 Z" fill="#7a2a33"/><path d="M44 56 Q50 59 56 56" fill="#fff"/>`,
-      happy: `<path d="M43 56 Q50 63 57 56" stroke="#7a2a33" stroke-width="2" fill="none" stroke-linecap="round"/>`,
-      neutral: `<path d="M45 58 Q50 60 55 58" stroke="#7a2a33" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+      ecstatic: `<path d="M42.5 55.5 Q50 66 57.5 55.5 Z" fill="#8a2f3c"/><path d="M44.5 56.2 Q50 58.8 55.5 56.2 L55 57.4 Q50 59.6 45 57.4Z" fill="#fff"/><path d="M46 62 Q50 64.5 54 62" stroke="#d9707f" stroke-width="1.6" fill="none" stroke-linecap="round"/>`,
+      happy: `<path d="M43.5 56 Q50 62.8 56.5 56 Q50 58.6 43.5 56Z" fill="#b8475c"/><path d="M43.2 55.8 Q50 62.6 56.8 55.8" stroke="#8a2f3c" stroke-width="1.1" fill="none" stroke-linecap="round"/>`,
+      neutral: `<path d="M45.5 58 Q50 60.6 54.5 58 Q50 58.8 45.5 58Z" fill="#b8475c" stroke="#8a2f3c" stroke-width="1" stroke-linejoin="round"/>`,
       sad: `<path d="M44 60 Q50 54 56 60" stroke="#7a2a33" stroke-width="2" fill="none" stroke-linecap="round"/>`,
       angry: `<path d="M44 60 Q50 55 56 60" stroke="#7a2a33" stroke-width="2.2" fill="none" stroke-linecap="round"/>`,
     }[mood];
@@ -313,9 +342,17 @@
       : mood === 'angry'
         ? '<path d="M39 37 L46 40 M54 40 L61 37" stroke="#3a2a22" stroke-width="1.8" stroke-linecap="round"/>'
         : '<path d="M39 39 Q42.5 37 46 39 M54 39 Q57.5 37 61 39" stroke="#3a2a22" stroke-width="1.4" fill="none" stroke-linecap="round"/>';
+    // storybook eyes: big, with a coloured iris, a shine and lashes (a little flick for the women)
+    const masc = look.shirt || look.beard || look.masc;
+    const iris = look.eyes || ['#5b3a1f', '#3d6e8f', '#55804a', '#7a5230', '#4a3b6b'][((look.hair || '#0').charCodeAt(3) + (look.skin || '#0').charCodeAt(4)) % 5];
+    const lash = '#2b1d18';
+    const eye = (cx, side) => `<ellipse cx="${cx}" cy="46.6" rx="3.7" ry="4.3" fill="#fff"/><circle cx="${cx}" cy="47.2" r="2.9" fill="${iris}"/><circle cx="${cx}" cy="47.4" r="1.5" fill="#1d1410"/><circle cx="${cx + 1}" cy="45.9" r="1" fill="#fff"/><circle cx="${cx - 1.1}" cy="48.6" r=".45" fill="#fff" opacity=".8"/>`
+      + `<path d="M${cx - 4.1} 45.6 Q${cx} 41.4 ${cx + 4.1} 45.6" stroke="${lash}" stroke-width="${masc ? 1.1 : 1.6}" fill="none" stroke-linecap="round"/>`
+      + (masc ? '' : `<path d="M${cx + side * 4} 45.4 l${side * 1.7} -1.5" stroke="${lash}" stroke-width="1.2" stroke-linecap="round"/>`);
     const eyes = mood === 'ecstatic'
-      ? '<path d="M40 46 Q43 43 46 46 M54 46 Q57 43 60 46" stroke="#2b2b2b" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
-      : '<circle cx="43" cy="46" r="2" fill="#2b2b2b"/><circle cx="57" cy="46" r="2" fill="#2b2b2b"/>';
+      ? `<path d="M39.5 46.5 Q43 42.5 46.5 46.5 M53.5 46.5 Q57 42.5 60.5 46.5" stroke="${lash}" stroke-width="1.9" fill="none" stroke-linecap="round"/>${masc ? '' : `<path d="M39.6 46.3 l-1.6 -1.2 M60.4 46.3 l1.6 -1.2" stroke="${lash}" stroke-width="1.2" stroke-linecap="round"/>`}`
+      : eye(43, -1) + eye(57, 1);
+    const nose = `<path d="M50.2 48.5 Q48.6 52.4 50.8 52.8" stroke="${darken(skin, 0.28)}" stroke-width="1" fill="none" stroke-linecap="round"/>`;
     const glasses = look.glasses ? `<g fill="none" stroke="${look.glassColor || '#3a2a22'}" stroke-width="${look.glassColor && look.glassColor !== '#3a2a22' ? 1.6 : 1.3}"><circle cx="43" cy="46" r="5.5"/><circle cx="57" cy="46" r="5.5"/><path d="M48.5 46 H51.5"/></g>` : '';
     const shirt = look.shirt ? `<path d="M41 75 L50 86 L59 75 L55 72 L50 79 L45 72 Z" fill="#fff" stroke="${darken(look.top, 0.35)}" stroke-width=".8"/><path d="M50 86 V100" stroke="${darken(look.top, 0.35)}" stroke-width="1"/><circle cx="50" cy="91" r="1" fill="${darken(look.top, 0.4)}"/><circle cx="50" cy="97" r="1" fill="${darken(look.top, 0.4)}"/>` : '';
     const beard = look.beard ? `<path d="M34 50 Q36 68 50 68 Q64 68 66 50 Q62 60 50 60 Q38 60 34 50Z" fill="${hair}"/>` : '';
@@ -352,7 +389,7 @@
     const hat = look.acc === 'beret' ? `<ellipse cx="54" cy="26" rx="17" ry="6.5" transform="rotate(-12 54 26)" fill="${look.accColor}"/><circle cx="56" cy="19" r="1.6" fill="${look.accColor}"/>` : '';
     const clip = look.acc === 'clip' ? `<g transform="translate(35 32)">${[0, 1, 2, 3, 4].map(k => `<circle cx="${(Math.cos(k * 1.2566) * 2.6).toFixed(1)}" cy="${(Math.sin(k * 1.2566) * 2.6).toFixed(1)}" r="2" fill="${look.accColor}"/>`).join('')}<circle r="1.3" fill="#f0c443"/></g>` : '';
     const extra = look.measure ? '<path d="M24 100 Q30 78 44 74 L48 82 Q36 86 32 100 Z" fill="#f2d54b"/><path d="M30 92 l3 1 M33 86 l3 1.4 M37 81 l3 1.6" stroke="#5a4a12" stroke-width=".8"/>' : '';
-    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}${outfit}<rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/>${overNeck}${acc}<ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${hat}${clip}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${shirt}${beard}${mouth}${glasses}${ear}${extra}</svg>`;
+    return `<svg class="avatar" viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="50" fill="${look.bg}"/>${hairBack}${look.headOnly ? '' : outfit}<rect x="44" y="58" width="12" height="17" rx="5" fill="${sk2}"/>${look.headOnly ? '' : overNeck}${acc}<ellipse cx="50" cy="46" rx="17" ry="20" fill="${skin}"/>${hairFront}${hat}${clip}${brows}${eyes}<circle cx="38" cy="53" r="3.5" fill="#e88" opacity=".25"/><circle cx="62" cy="53" r="3.5" fill="#e88" opacity=".25"/>${look.headOnly ? '' : shirt}${beard}${nose}${mouth}${glasses}${ear}${look.headOnly ? '' : extra}</svg>`;
   };
 
   // ---------------- shop interior ----------------

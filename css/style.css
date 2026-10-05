@@ -627,3 +627,7 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 .coll-item.word { font-size: .8rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--paper); }
 .coll-item.word.have { background: var(--teal); color: var(--on-accent); }
 .event.festive { background: #fff1e0; border-color: #f0c99a; color: #5a3a1a; }
+/* she twirls in her new dress */
+.res-dress.wearing svg { transform-origin: 50% 96%; animation: twirl 1.4s ease-in-out 1, sway 3.6s ease-in-out 1.4s infinite; }
+@keyframes twirl { 0% { transform: scaleX(1); } 25% { transform: scaleX(.15); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(.15); } 100% { transform: scaleX(1); } }
+@keyframes sway { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(1.6deg); } 70% { transform: rotate(-1.6deg); } }

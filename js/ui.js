@@ -504,7 +504,7 @@
     const after = ev.S >= 88 ? `${esc(cust.name)} is going to tell all her friends about Mie's.` : ev.S >= 65 ? `${esc(cust.name)} will be back.` : `${esc(cust.name)} might pop by again another day.`;
     return `<div class="overlay"><div class="sheet result">
       <div class="res-top">
-        <div class="res-dress">${DG.renderDress(design, 'res')}</div>
+        <div class="res-dress wearing">${DG.renderDress(design, 'res', { wearer: cust.look, mood: ev.stars >= 4 ? 'ecstatic' : ev.stars >= 3 ? 'happy' : 'neutral' })}</div>
         <div class="res-say">
           <div class="mie-row">${DG.renderAvatar(cust.look, mood, 96)}<div class="bubble"><span>${esc(o.quote)}</span> <span>${esc(o.line)}</span></div></div>
           <div class="score"><span class="stars">${'★'.repeat(ev.stars)}${'☆'.repeat(5 - ev.stars)}</span><span class="mood-word">${moodWord(ev.S)}</span></div>
