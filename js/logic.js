@@ -53,16 +53,38 @@
     G.boost = G.boost || null;         // today's effects from yesterday's campaigns
     G.rack = G.rack || [];
     G.lastRackSales = G.lastRackSales || [];
+    G.upgrades.pottery = G.upgrades.pottery || 0;
+    G.upgrades.floor = G.upgrades.floor || 0;
+    G.inv.clay = G.inv.clay || {};
+    G.inv.glazes = G.inv.glazes || {};
+    G.pot = G.pot || null;          // pot being designed in the studio
+    G.kiln = G.kiln || [];          // thrown pots waiting for tonight's firing
+    G.shelf = G.shelf || [];        // fired pots for sale
+    G.goals = G.goals || { done: [], claimed: [] };
+    const st = G.stats;
+    st.byArche = st.byArche || {};
+    for (const k of ['happy', 'rackSold', 'potsMade', 'potsSold', 'potsCracked', 'teapots', 'brideBest']) st[k] = st[k] || 0;
+    st.seasons = st.seasons || [];
     return G;
+  };
+
+  // ---------- seasons ----------
+  DG.seasonIndex = G => Math.floor(Math.max(0, G.day - 1) / DG.SEASON_LENGTH) % 4;
+  DG.season = G => DG.SEASONS[DG.seasonIndex(G)];
+  DG.daysLeftInSeason = G => DG.SEASON_LENGTH - (Math.max(0, G.day - 1) % DG.SEASON_LENGTH);
+  DG.seasonFabric = (G, id) => {
+    const se = DG.season(G);
+    return se.in.includes(id) ? 'in' : se.out.includes(id) ? 'out' : null;
   };
 
   DG.charm = function (G) {
     const d = G.decor;
     const items = d.owned.reduce((a, id) => a + (byId(DG.DECOR, id) || { charm: 0 }).charm, 0);
-    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm;
+    const pots = Math.min(3, (G.shelf || []).length);   // pottery on display
+    return items + (byId(DG.WALLPAPERS, d.wallpaper) || { charm: 0 }).charm + pots;
   };
   DG.wages = G => DG.STAFF.reduce((a, st) => a + (G.staff[st.id] ? st.wage : 0), 0);
-  DG.rackCapacity = G => 2 + DG.upgradeLevel(G, 'display');
+  DG.rackCapacity = G => 2 + DG.upgradeLevel(G, 'display') + 2 * DG.upgradeLevel(G, 'floor');
 
   // ---------- unlocks & prices ----------
   DG.isUnlocked = function (G, thing) {
@@ -80,7 +102,9 @@
     const f = byId(DG.FABRICS, id);
     const ev = G.market.event;
     const sale = ev && ev.type === 'sale' && ev.fabric === id ? 0.7 : 1;
-    return Math.round(f.price * (G.market.mult[id] || 1) * DG.discount(G) * sale);
+    const se = G.day > 0 ? DG.seasonFabric(G, id) : null;
+    const seasonal = se === 'in' ? 1.12 : se === 'out' ? 0.85 : 1;
+    return Math.round(f.price * (G.market.mult[id] || 1) * DG.discount(G) * sale * seasonal);
   };
   DG.itemPrice = (G, id) => Math.round(byId(DG.ITEMS, id).price * DG.discount(G));
 
@@ -136,7 +160,8 @@
     let eligible = DG.ARCHETYPES.filter(a => a.minRep <= G.rep);
     if (opts.topTier) eligible = eligible.slice(-3);
     // Higher-tier archetypes get more likely as the shop window improves.
-    const weights = eligible.map(a => 1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0));
+    const se = DG.season(G);
+    const weights = eligible.map(a => (1 + display * 0.35 * (a.minRep / 20) + (a.minRep > 0 ? 0.3 : 0)) * (se.arche[a.id] || 1));
     let r = Math.random() * weights.reduce((x, y) => x + y, 0);
     let arche = eligible[0];
     for (let i = 0; i < eligible.length; i++) { r -= weights[i]; if (r <= 0) { arche = eligible[i]; break; } }
@@ -186,11 +211,13 @@
   };
 
   // ---------- days ----------
-  DG.rent = G => 35 + 10 * Object.values(G.upgrades).reduce((a, b) => a + b, 0);
+  DG.rent = G => 35 + 10 * Object.values(G.upgrades).reduce((a, b) => a + b, 0) + 30 * DG.upgradeLevel(G, 'floor');
   DG.dailyCosts = G => DG.rent(G) + DG.wages(G);
 
   DG.startDay = function (G) {
+    const prevSeason = G.day > 0 ? DG.seasonIndex(G) : -1;
     G.day += 1;
+    G.newSeason = DG.seasonIndex(G) !== prevSeason;
     if (G.day > 1) DG.moveMarket(G);
     const r = Math.random();
     const unlocked = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
@@ -206,8 +233,8 @@
     G.marketing = [];
     const extra = (booked.includes('flyers') ? 1 : 0) + (booked.includes('newspaper') ? 1 : 0) + (booked.includes('show') ? 2 : 0);
 
-    const cap = 2 + DG.upgradeLevel(G, 'display') + (G.staff.assistant ? 1 : 0);
-    let n = 1 + Math.floor(G.rep / 20) + (Math.random() < 0.3 ? 1 : 0);
+    const cap = 2 + DG.upgradeLevel(G, 'display') + (G.staff.assistant ? 1 : 0) + 2 * DG.upgradeLevel(G, 'floor');
+    let n = 1 + Math.floor(G.rep / 20) + (Math.random() < 0.3 ? 1 : 0) + DG.upgradeLevel(G, 'floor');
     if (G.market.event && G.market.event.type === 'rain') n -= 1;
     n = clamp(n, 1, cap) + extra;   // campaigns may exceed the usual cap
     G.today = { income: 0, spent: 0, served: 0, seen: [], startMoney: G.money };
@@ -232,6 +259,10 @@
     G.money += rackIncome;
     if (G.today) G.today.income += rackIncome;
     G.lastRackSales = sold;
+    G.stats.rackSold += sold.length;
+    const pottery = DG.endDayPottery(G);
+    G.money += pottery.income;
+    if (G.today) G.today.income += pottery.income;
     G.money -= rent + wages;
     if (!G.staff.assistant) G.rep = clamp(G.rep - 0.5 * missed, 0, 100);
     G.queue = [];
@@ -240,7 +271,8 @@
       if (!G.momUsed) { G.money += 300; G.momUsed = true; mom = true; }
       else G.gameOver = true;
     }
-    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant };
+    DG.updateGoals(G);
+    return { rent, wages, missed, mom, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery };
   };
 
   // ---------- design ----------
@@ -327,6 +359,9 @@
         issues.push(`Need ${items[id]}× ${byId(DG.ITEMS, id).name}, you have ${have}.`);
       }
     }
+    const sf = fm && G.day > 0 ? DG.seasonFabric(G, fm.id) : null;
+    if (sf === 'in') notes.push(`${fm.name} is perfect for ${DG.season(G).name.toLowerCase()}: +3 satisfaction.`);
+    if (sf === 'out') notes.push(`${fm.name} feels wrong in ${DG.season(G).name.toLowerCase()}: −4 satisfaction.`);
     if (design.accent && accentM === 0) notes.push('The accent fabric is only used for sleeves, collar, pockets and ruffles.');
     const missingCost = missing.reduce((a, m) => a + m.qty * (m.kind === 'fabric' ? DG.fabricPrice(G, m.id) : DG.itemPrice(G, m.id)), 0);
 
@@ -357,9 +392,11 @@
     const St = cust.styles.includes(design.silhouette) ? 1 : 0.5;
     const failed = cust.reqs.filter(r => !DG.REQS[r].check(design));
     const fitting = DG.upgradeLevel(G, 'fitting');
+    const sf = G.day > 0 ? DG.seasonFabric(G, design.main) : null;
+    const seasonAdj = sf === 'in' ? 3 : sf === 'out' ? -4 : 0;
 
     let S = 100 * (0.65 * A + 0.15 * C + 0.10 * St + 0.10 * craft) - 15 * failed.length + 3 * fitting + (cust.loyal ? 2 : 0)
-      + 0.25 * DG.charm(G);
+      + 0.25 * DG.charm(G) + seasonAdj;
     S = Math.round(clamp(S, 0, 100));
 
     const base = S >= 75 ? 1 : S >= 40 ? 0.4 + 0.6 * (S - 40) / 35 : 0.4;
@@ -368,7 +405,7 @@
     const repDelta = round1((S - 65) / 8);
     const stars = S >= 90 ? 5 : S >= 75 ? 4 : S >= 60 ? 3 : S >= 40 ? 2 : 1;
 
-    return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost };
+    return { S, A, C, St, craft, rows, failed, pay, tip, repDelta, stars, attrs, cost: an.cost, seasonAdj };
   };
 
   // ---------- ready-to-wear rack ----------
@@ -391,6 +428,7 @@
 
   // Complaint/praise line from the result.
   DG.feedbackLine = function (cust, ev, design) {
+    if (ev.seasonAdj < 0) return `${byId(DG.FABRICS, design.main).name}? In this weather? Really?`;
     if (ev.failed.length) return `And you forgot: ${DG.REQS[ev.failed[0]].short.toLowerCase()}!`;
     if (cust.disliked.includes(design.mainColor)) return `I told you I don't like ${byId(DG.COLORS, design.mainColor).name.toLowerCase()}...`;
     const worst = ev.rows.slice().sort((a, b) => b.w * (1 - b.fit) - a.w * (1 - a.fit))[0];
@@ -398,6 +436,106 @@
     if (ev.craft < 0.5) return 'Some of the seams look a little wobbly.';
     if (cust.liked.includes(design.mainColor)) return `And the ${byId(DG.COLORS, design.mainColor).name.toLowerCase()}! My favourite colour!`;
     return '';
+  };
+
+  // ---------- stats & goals ----------
+  DG.recordDress = function (G, cust, S) {
+    const st = G.stats;
+    st.byArche[cust.arche] = (st.byArche[cust.arche] || 0) + 1;
+    if (S >= 75) st.happy++;
+    if (cust.arche === 'bride') st.brideBest = Math.max(st.brideBest, S);
+    const se = DG.season(G).id;
+    if (!st.seasons.includes(se)) st.seasons.push(se);
+    DG.updateGoals(G);
+  };
+
+  // Goals stay complete once reached, even if e.g. reputation dips later.
+  DG.updateGoals = function (G) {
+    const fresh = [];
+    DG.GOALS.forEach(g => {
+      if (!G.goals.done.includes(g.id) && g.prog(G) >= g.target) { G.goals.done.push(g.id); fresh.push(g); }
+    });
+    return fresh;
+  };
+  DG.claimableGoals = G => G.goals.done.filter(id => !G.goals.claimed.includes(id));
+  DG.claimGoal = function (G, id) {
+    const g = byId(DG.GOALS, id);
+    if (!g || !G.goals.done.includes(id) || G.goals.claimed.includes(id)) return 0;
+    G.goals.claimed.push(id);
+    G.money += g.reward;
+    return g.reward;
+  };
+
+  // ---------- pottery ----------
+  DG.kilnCapacity = G => (DG.upgradeLevel(G, 'pottery') >= 2 ? 5 : 3);
+  DG.shelfCapacity = G => (DG.upgradeLevel(G, 'pottery') >= 2 ? 6 : 4);
+  DG.shelfSaleChance = G => clamp(0.3 + 0.02 * DG.charm(G), 0, 0.8);
+  DG.clayPrice = (G, id) => Math.round(byId(DG.CLAYS, id).price * DG.discount(G));
+  DG.glazePrice = (G, id) => Math.round(byId(DG.GLAZES, id).price * DG.discount(G));
+  DG.potItemPrice = (G, id) => Math.round(byId(DG.POT_ITEMS, id).price * DG.discount(G));
+
+  DG.newPot = G => ({ clay: Object.keys(G.inv.clay).find(k => G.inv.clay[k] > 0) || 'stoneware', shape: 'cup', glaze: 'none', deco: 'none' });
+
+  DG.analyzePot = function (pot, G) {
+    const clay = byId(DG.CLAYS, pot.clay), shape = byId(DG.POT_SHAPES, pot.shape);
+    const glaze = byId(DG.GLAZES, pot.glaze), deco = byId(DG.POT_DECOS, pot.deco);
+    const kg = shape.kg;
+    let cost = kg * DG.clayPrice(G, clay.id) + (glaze.price ? DG.glazePrice(G, glaze.id) : 0) + (deco.item ? DG.potItemPrice(G, deco.item) : 0);
+    cost = Math.round(cost);
+    const issues = [], missing = [];
+    if (!DG.isUnlocked(G, clay)) issues.push(`${clay.name} needs supplier network level ${clay.tier}.`);
+    if (!DG.isUnlocked(G, glaze)) issues.push(`${glaze.name} needs supplier network level ${glaze.tier}.`);
+    if (G.kiln.length >= DG.kilnCapacity(G)) issues.push('The kiln is full. Pots are fired overnight, so close the shop to empty it.');
+    const haveClay = round1(G.inv.clay[clay.id] || 0);
+    if (haveClay < kg) { missing.push({ kind: 'clay', id: clay.id, qty: Math.ceil(round1(kg - haveClay)) }); issues.push(`Need ${kg} kg ${clay.name}, you have ${haveClay} kg.`); }
+    if (glaze.price && !(G.inv.glazes[glaze.id] > 0)) { missing.push({ kind: 'glaze', id: glaze.id, qty: 1 }); issues.push(`Need a pot of ${glaze.name} glaze.`); }
+    if (deco.item && !(G.inv.items[deco.item] > 0)) { missing.push({ kind: 'potitem', id: deco.item, qty: 1 }); issues.push('Need a sheet of gold leaf.'); }
+    const missingCost = missing.reduce((a, m) => a + m.qty * (m.kind === 'clay' ? DG.clayPrice(G, m.id) : m.kind === 'glaze' ? DG.glazePrice(G, m.id) : DG.potItemPrice(G, m.id)), 0);
+    return { kg, cost, issues, missing, missingCost, estimate: DG.potPrice(pot, 0.8) };
+  };
+
+  // price = base · clay · glaze · decoration · (0.6 + 0.8·throwing score), rounded to 5 kr
+  DG.potPrice = function (pot, score) {
+    const v = byId(DG.POT_SHAPES, pot.shape).base * byId(DG.CLAYS, pot.clay).mult * byId(DG.GLAZES, pot.glaze).mult
+      * byId(DG.POT_DECOS, pot.deco).mult * (0.6 + 0.8 * score);
+    return Math.round(v / 5) * 5;
+  };
+  DG.crackChance = function (pot, score, G) {
+    const diff = byId(DG.POT_SHAPES, pot.shape).diff;
+    return clamp(0.32 * (1 - score) * diff * (DG.upgradeLevel(G, 'pottery') >= 2 ? 0.5 : 1), 0.03, 0.6);
+  };
+
+  // Consumes materials and puts the thrown pot in the kiln.
+  DG.throwPot = function (G, pot, score) {
+    const an = DG.analyzePot(pot, G);
+    G.inv.clay[pot.clay] = round1((G.inv.clay[pot.clay] || 0) - an.kg);
+    if (byId(DG.GLAZES, pot.glaze).price) G.inv.glazes[pot.glaze] -= 1;
+    const deco = byId(DG.POT_DECOS, pot.deco);
+    if (deco.item) G.inv.items[deco.item] -= 1;
+    const item = { pot: Object.assign({}, pot), score, cost: an.cost, price: DG.potPrice(pot, score), crack: DG.crackChance(pot, score, G) };
+    G.kiln.push(item);
+    G.stats.potsMade++;
+    return item;
+  };
+
+  // Overnight: walk-ins buy from the shelf, then the kiln is fired and unloaded onto the shelf.
+  DG.endDayPottery = function (G) {
+    const p = DG.shelfSaleChance(G);
+    const sold = [];
+    G.shelf = G.shelf.filter(it => (Math.random() < p ? (sold.push(it), false) : true));
+    const income = sold.reduce((a, it) => a + it.price, 0);
+    G.stats.potsSold += sold.length;
+    const fired = [], cracked = [];
+    const keep = [];
+    G.kiln.forEach(it => {
+      if (Math.random() < it.crack) { cracked.push(it); G.stats.potsCracked++; return; }
+      if (G.shelf.length < DG.shelfCapacity(G)) {
+        G.shelf.push(it); fired.push(it);
+        if (it.pot.shape === 'teapot') G.stats.teapots++;
+      } else keep.push(Object.assign(it, { crack: 0 }));  // fired fine, waits for shelf space
+    });
+    G.kiln = keep;
+    return { sold, income, fired, cracked };
   };
 
   // Remember a customer after their visit; very unhappy customers never return.

@@ -122,3 +122,61 @@ console.log('all checks passed');
   assert(!/NaN|undefined/.test(DG.renderShop(G2)));
   console.log('v1.1 checks passed');
 }
+
+// ---- v1.2: seasons, pottery, goals, upstairs floor ----
+{
+  const G = DG.newGame();
+  const seen = [];
+  for (let d = 0; d < 29; d++) { DG.startDay(G); seen.push(DG.season(G).id); DG.endDay(G); G.gameOver = false; G.money = 1e5; }
+  assert.deepStrictEqual([seen[0], seen[7], seen[14], seen[21], seen[28]], ['spring', 'summer', 'autumn', 'winter', 'spring']);
+
+  // seasonal prices: wool cheaper in summer than in winter
+  const S = DG.newGame(); S.day = 8; DG.FABRICS.forEach(f => { S.market.mult[f.id] = 1; });
+  const summerWool = DG.fabricPrice(S, 'wool'); S.day = 22; const winterWool = DG.fabricPrice(S, 'wool');
+  assert(summerWool < winterWool, 'wool cheaper off-season');
+
+  // summer brings more picnic customers than winter
+  const count = (day, id) => { const X = DG.newGame(); X.rep = 100; X.day = day; let n = 0; for (let i = 0; i < 2000; i++) if (DG.genCustomer(X).arche === id) n++; return n; };
+  assert(count(8, 'summer') > 3 * count(22, 'summer'), 'summer picnics in summer');
+
+  // season adjusts satisfaction
+  const cust = { weights: { comfort: 1 }, targets: { comfort: 5 }, styles: ['aline'], reqs: [], liked: [], disliked: [], budget: 500 };
+  const d = DG.newDesign(S); d.main = 'wool';
+  S.day = 22; const w = DG.evaluate(cust, d, S, 0.8);
+  S.day = 8; const su = DG.evaluate(cust, d, S, 0.8);
+  assert.strictEqual(w.seasonAdj, 3); assert.strictEqual(su.seasonAdj, -4);
+
+  // pottery: consume, fire, crack odds, shelf capacity
+  const P = DG.newGame(); DG.startDay(P); P.upgrades.pottery = 1;
+  P.inv.clay.stoneware = 20; P.inv.glazes.celadon = 5;
+  const pot = { clay: 'stoneware', shape: 'vase', glaze: 'celadon', deco: 'carved' };
+  assert.deepStrictEqual(DG.analyzePot(pot, P).issues, []);
+  for (let i = 0; i < 3; i++) DG.throwPot(P, pot, 0.8);
+  assert.strictEqual(P.inv.clay.stoneware, 15.5); assert.strictEqual(P.inv.glazes.celadon, 2);
+  assert(DG.analyzePot(pot, P).issues.some(x => x.includes('kiln is full')));
+  let cracks = 0, trials = 4000;
+  const c = DG.crackChance(pot, 0.5, P);
+  for (let i = 0; i < trials; i++) { const Q = DG.newGame(); Q.upgrades.pottery = 1; Q.kiln = [{ pot, price: 100, crack: c }]; cracks += DG.endDayPottery(Q).cracked.length; }
+  assert(Math.abs(cracks / trials - c) < 0.03, `crack rate ${cracks / trials} vs ${c}`);
+  P.upgrades.pottery = 2; assert.strictEqual(DG.crackChance(pot, 0.5, P), c / 2);
+  const cost = DG.analyzePot(pot, P).cost, price = DG.potPrice(pot, 0.8);
+  console.log(`pottery: stoneware celadon carved vase costs ${cost} kr, sells for ${price} kr (crack risk ${(DG.crackChance(pot, 0.8, P) * 100).toFixed(0)}% with electric kiln)`);
+  assert(price > cost && price < 3 * cost + 100, 'pottery is a side income, not a jackpot');
+
+  // goals: progress, stays complete, claim once
+  const Gg = DG.newGame(); DG.startDay(Gg);
+  Gg.rep = 31; DG.updateGoals(Gg); Gg.rep = 10;
+  assert(DG.claimableGoals(Gg).includes('rep30'));
+  const m0 = Gg.money; assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 300); assert.strictEqual(DG.claimGoal(Gg, 'rep30'), 0);
+  assert.strictEqual(Gg.money, m0 + 300);
+
+  // floor: more customers and hangers, more rent
+  const F = DG.newGame(); const r0 = DG.rent(F), h0 = DG.rackCapacity(F); F.upgrades.floor = 1;
+  assert.strictEqual(DG.rent(F) - r0, 40); assert.strictEqual(DG.rackCapacity(F) - h0, 2);
+
+  // v1.1 save without pottery fields migrates
+  const old = DG.newGame(); delete old.kiln; delete old.shelf; delete old.goals; delete old.inv.clay; delete old.upgrades.pottery; delete old.stats.byArche;
+  DG.ensureDefaults(old); assert.deepStrictEqual(old.kiln, []); assert.strictEqual(old.upgrades.pottery, 0);
+  for (const sh of DG.POT_SHAPES) for (const gl of DG.GLAZES) assert(!/NaN|undefined/.test(DG.renderPot({ clay: 'porcelain', shape: sh.id, glaze: gl.id, deco: 'goldrim' }, 'x', { wheel: true, grow: 0.3 })));
+  console.log('v1.2 checks passed');
+}

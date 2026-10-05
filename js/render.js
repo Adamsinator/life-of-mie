@@ -321,10 +321,11 @@
   DG.renderShop = function (G) {
     const owned = id => G.decor.owned.includes(id);
     const display = DG.upgradeLevel(G, 'display');
+    const se = DG.season(G);
     const out = [];
     out.push(`<defs>${wallpaperDef(G.decor.wallpaper)}
       <pattern id="planks" width="60" height="12" patternUnits="userSpaceOnUse"><rect width="60" height="12" fill="#c49466"/><path d="M0 11.5H60M22 0V12" stroke="#a87a50" stroke-width="1"/></pattern>
-      <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dff0fa"/><stop offset="1" stop-color="#b7d7ea"/></linearGradient>
+      <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${se.sky}"/><stop offset="1" stop-color="${darken(se.sky, 0.12)}"/></linearGradient>
       <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8" stop-opacity=".7"/><stop offset="1" stop-color="#fff6c8" stop-opacity="0"/></radialGradient></defs>`);
     // wall, skirting, floor
     out.push('<rect width="400" height="150" fill="url(#wp)"/><rect y="146" width="400" height="6" fill="#fffaf5"/><rect y="152" width="400" height="58" fill="url(#planks)"/>');
@@ -332,6 +333,18 @@
     out.push('<rect x="14" y="34" width="112" height="98" rx="3" fill="#fffaf5"/><rect x="20" y="40" width="100" height="86" fill="url(#glass)"/>');
     const winCols = ['#d6577b', '#1e7a58', '#34437f', '#d6a22a'];
     for (let i = 0; i <= display; i++) out.push(miniDress(36 + i * (68 / Math.max(1, display)), 84, winCols[i], 1.05));
+    // weather outside the window
+    const r = rng(G.day * 31 + 7);
+    let wx = '';
+    for (let i = 0; i < 14; i++) {
+      const x = 22 + r() * 96, y = 42 + r() * 80;
+      if (se.id === 'winter') wx += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1 + r()).toFixed(1)}" fill="#fff"/>`;
+      else if (se.id === 'autumn') wx += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="2.6" ry="1.4" transform="rotate(${Math.round(r() * 180)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="${['#d9822b', '#b5481f', '#e2b13c'][i % 3]}"/>`;
+      else if (se.id === 'spring' && i < 9) wx += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.6" fill="#f6c6d2"/>`;
+    }
+    if (se.id === 'summer') wx = '<circle cx="104" cy="54" r="9" fill="#ffd75e"/><circle cx="104" cy="54" r="13" fill="#ffd75e" opacity=".25"/>';
+    if (se.id === 'winter') wx += '<rect x="20" y="118" width="100" height="8" fill="#fff"/>';
+    out.push(wx);
     out.push('<path d="M20 83H120M70 40V126" stroke="#fffaf5" stroke-width="3"/>');
     let awn = '<path d="M8 22 H132 V34 H8Z" fill="#c44d6c"/>';
     for (let x = 8; x < 132; x += 15.5) awn += `<rect x="${x + 7.7}" y="22" width="7.7" height="12" fill="#fff"/><path d="M${x} 34 q3.9 7 7.75 0 q3.9 7 7.75 0" fill="#c44d6c"/>`;
@@ -343,6 +356,17 @@
     if (owned('plant')) out.push('<path d="M186 152 l4 -18 h16 l4 18Z" fill="#c26a45"/><g fill="#3f7a4a"><path d="M198 134 Q180 120 184 104 Q196 112 198 134Z"/><path d="M198 134 Q214 118 212 100 Q200 110 198 134Z"/><path d="M198 134 Q198 112 204 96 Q190 104 198 134Z"/><path d="M198 134 Q176 132 172 118 Q188 120 198 134Z"/></g>');
     if (owned('gallery')) out.push([[300, 28, 22, 28], [328, 22, 26, 34], [360, 30, 22, 24]].map(([x, y, w, h], i) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fffaf5" stroke="#c99a2e" stroke-width="2.5"/>${miniDress(x + w / 2, y + 4, ['#d6577b', '#34437f', '#1e7a58'][i], h / 46)}`).join(''));
     if (owned('mirror')) out.push('<ellipse cx="272" cy="72" rx="15" ry="26" fill="#c99a2e"/><ellipse cx="272" cy="72" rx="11.5" ry="22" fill="url(#glass)"/><path d="M265 60 L270 52 M266 72 L276 58" stroke="#fff" stroke-width="1.6" opacity=".7"/>');
+    if (DG.upgradeLevel(G, 'floor')) {
+      let st = '';
+      for (let i = 0; i < 8; i++) st += `<rect x="${296 + i * 5}" y="${146 - i * 12}" width="${44 - i * 5}" height="6" fill="#9a6b47" stroke="#7a5236" stroke-width=".6"/>`;
+      out.push(`${st}<path d="M296 150 L336 56" stroke="#5a3a2a" stroke-width="1.6"/><rect x="306" y="44" width="34" height="11" rx="2" fill="#fffaf5" stroke="#c99a2e"/><text x="323" y="52.5" font-size="7" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#2f1d2b">1. sal ↑</text>`);
+    }
+    if (DG.upgradeLevel(G, 'pottery')) {
+      out.push('<rect x="184" y="58" width="44" height="3.5" rx="1" fill="#7a5236"/><path d="M188 61.5 l3 6 M224 61.5 l-3 6" stroke="#7a5236" stroke-width="1.5"/>');
+      (G.shelf || []).slice(0, 3).forEach((it, i) => {
+        out.push(`<svg x="${184 + i * 14}" y="40" width="18" height="18" viewBox="0 20 120 90">${DG.potShapeSVG(it.pot, 'sh' + i)}</svg>`);
+      });
+    }
     if (owned('rug')) out.push('<ellipse cx="236" cy="178" rx="56" ry="13" fill="#9c2f3c"/><ellipse cx="236" cy="178" rx="47" ry="9.5" fill="none" stroke="#e8c15a" stroke-width="1.6" stroke-dasharray="4 3"/>');
     // dress form with the current order (or a toile)
     const df = G.design && G.active ? DG.renderDress(G.design, 'shopform') : DG.renderDress({ main: null, mainColor: 'white', accent: null, accentColor: 'white', silhouette: 'aline', length: 'knee', neckline: 'round', sleeves: 'none', closure: 'none', extras: [] }, 'shopform');
@@ -367,6 +391,58 @@
     G.queue.slice(0, 5).forEach((c, i) => out.push(DG.renderAvatar(inScene(c.look), 'neutral', 40).replace('<svg', `<svg x="${18 + i * 30}" y="${148 + (i % 2) * 8}"`)));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 0 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
     return `<svg class="shop-scene" viewBox="0 0 400 210" role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
+  };
+
+  // ---------------- pottery ----------------
+  const POT_BODY = {
+    cup: 'M40 60 L80 60 L77 98 Q60 102 43 98 Z',
+    bowl: 'M24 66 L96 66 Q92 97 60 99 Q28 97 24 66 Z',
+    plate: 'M14 88 Q60 70 106 88 Q60 106 14 88 Z',
+    vase: 'M50 30 L70 30 L68 42 Q94 60 85 86 Q78 100 60 100 Q42 100 35 86 Q26 60 52 42 Z',
+    teapot: 'M30 78 Q30 54 60 54 Q90 54 90 78 Q90 100 60 100 Q30 100 30 78 Z',
+  };
+  const POT_RIM = { cup: [60, 60, 20, 4], bowl: [60, 66, 36, 6], plate: [60, 87, 30, 6], vase: [60, 30, 10, 3], teapot: [60, 55, 17, 4] };
+
+  // Inner SVG content (no wrapper) for a pot. opts.raw = unglazed wet clay, opts.grow = 0..1 throwing progress.
+  DG.potShapeSVG = function (pot, uid, opts = {}) {
+    const clay = byId(DG.CLAYS, pot.clay), glaze = byId(DG.GLAZES, pot.glaze), deco = byId(DG.POT_DECOS, pot.deco);
+    const base = opts.raw ? darken(clay.hex, 0.12) : glaze.hex || clay.hex;
+    const P = `pot${uid}`;
+    const body = POT_BODY[pot.shape];
+    const [rx, ry, rw, rh] = POT_RIM[pot.shape];
+    const defs = `<defs><clipPath id="${P}c"><path d="${body}"/></clipPath>
+      <linearGradient id="${P}g" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".3" stop-color="#fff" stop-opacity="${opts.raw ? 0.1 : 0.35}"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient></defs>`;
+    const parts = [];
+    const line = darken(base, 0.35);
+    if (pot.shape === 'cup') parts.push(`<path d="M79 68 q16 4 1 22" stroke="${base}" stroke-width="5" fill="none"/><path d="M79 68 q16 4 1 22" stroke="${line}" stroke-width=".8" fill="none"/>`);
+    if (pot.shape === 'teapot') parts.push(`<path d="M30 70 Q12 78 30 92" stroke="${base}" stroke-width="5" fill="none"/><path d="M88 74 Q100 70 106 56 L110 58 Q106 78 90 88 Z" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
+    parts.push(`<path d="${body}" fill="${base}" stroke="${line}" stroke-width=".9"/>`);
+    const det = [];
+    if (!opts.raw) {
+      if (glaze.speckle) { const r = rng(5); for (let i = 0; i < 40; i++) det.push(`<circle cx="${(15 + r() * 90).toFixed(1)}" cy="${(28 + r() * 75).toFixed(1)}" r=".7" fill="#6b5a45" opacity=".6"/>`); }
+      if (pot.glaze === 'lustre') det.push('<rect x="0" y="0" width="120" height="120" fill="#fff3b0" opacity=".15"/>');
+      if (pot.deco === 'carved') for (let y = 62; y < 100; y += 8) det.push(`<path d="M10 ${y} Q60 ${y + 4} 110 ${y}" stroke="${darken(base, 0.3)}" stroke-width="1.2" fill="none"/>`);
+      if (pot.deco === 'painted') {
+        const fc = lum(base) < 0.5 ? '#f6e7c8' : '#2f4f9e';
+        [[48, 80], [62, 74], [74, 84], [56, 90]].forEach(([x, y]) => {
+          for (let k = 0; k < 5; k++) { const a = k * 1.2566; det.push(`<circle cx="${(x + Math.cos(a) * 2.6).toFixed(1)}" cy="${(y + Math.sin(a) * 2.6).toFixed(1)}" r="1.7" fill="${fc}"/>`); }
+          det.push(`<circle cx="${x}" cy="${y}" r="1.1" fill="#e9c35a"/>`);
+        });
+      }
+    }
+    if (opts.raw) for (let y = 40; y < 100; y += 5) det.push(`<path d="M10 ${y} Q60 ${y + 2} 110 ${y}" stroke="${darken(base, 0.18)}" stroke-width=".6" fill="none" opacity=".7"/>`);
+    parts.push(`<g clip-path="url(#${P}c)">${det.join('')}<rect x="0" y="0" width="120" height="120" fill="url(#${P}g)"/></g>`);
+    if (pot.shape !== 'plate') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${rw}" ry="${rh}" fill="${darken(base, 0.25)}" stroke="${line}" stroke-width=".8"/>`);
+    else parts.push(`<ellipse cx="60" cy="88" rx="30" ry="6" fill="${darken(base, 0.08)}" stroke="${line}" stroke-width=".5"/>`);
+    if (pot.shape === 'teapot') parts.push(`<ellipse cx="60" cy="55" rx="15" ry="3.5" fill="${base}" stroke="${line}" stroke-width=".8"/><circle cx="60" cy="49" r="4" fill="${base}" stroke="${line}" stroke-width=".8"/>`);
+    if (!opts.raw && pot.deco === 'goldrim') parts.push(`<ellipse cx="${rx}" cy="${ry}" rx="${pot.shape === 'plate' ? 44 : rw}" ry="${pot.shape === 'plate' ? 11 : rh}" fill="none" stroke="#e3b53b" stroke-width="2.2"/>`);
+    const g = opts.grow == null ? 1 : 0.25 + 0.75 * opts.grow;
+    return `${defs}<g transform="translate(0 100) scale(1 ${g.toFixed(3)}) translate(0 -100)">${parts.join('')}</g>`;
+  };
+
+  DG.renderPot = function (pot, uid = 'pot', opts = {}) {
+    const wheel = opts.wheel ? '<ellipse cx="60" cy="104" rx="48" ry="8" fill="#8f8a84"/><ellipse class="wheel-spin" cx="60" cy="102" rx="44" ry="6.5" fill="#b4aea6" stroke="#6f6a63" stroke-width="1" stroke-dasharray="6 5"/>' : '<ellipse cx="60" cy="103" rx="40" ry="5" fill="#000" opacity=".12"/>';
+    return `<svg class="pot-svg" viewBox="0 20 120 92" role="img" aria-label="${byId(DG.POT_SHAPES, pot.shape).name}">${wheel}${DG.potShapeSVG(pot, uid, opts)}</svg>`;
   };
 
   DG.MIE_LOOK = { skin: '#f3cdb0', hair: '#9a3b1c', style: 2, top: '#2f6f73', bg: '#f6e3d6', glasses: true, earrings: true, measure: true };

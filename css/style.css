@@ -334,3 +334,36 @@ button { font: inherit; color: inherit; touch-action: manipulation; user-select:
 .card.owned { border-color: var(--teal); background: var(--teal-soft); }
 .small-dress { width: 180px; }
 .actions.center { justify-content: center; }
+
+/* ---------- seasons, goals, pottery (v1.2) ---------- */
+.event.season { background: #eef6e9; border-color: #8fb48a; }
+.event.goal { display: block; width: 100%; text-align: left; background: var(--gold-soft); border: 1.5px solid var(--gold); cursor: pointer; font: inherit; font-weight: 800; }
+.stag { display: inline-block; width: fit-content; font-size: .7rem; font-weight: 800; border-radius: 6px; padding: 1px 6px; margin-top: 3px; }
+.stag.in { background: #dff1e6; color: var(--good); }
+.stag.out { background: #fbe1dd; color: var(--bad); }
+.clay-dot { width: 40px; height: 40px; border-radius: 50% 50% 46% 46%; background: var(--c); box-shadow: inset -6px -6px 0 rgba(0, 0, 0, .12), 0 0 0 1px var(--line); flex: none; }
+.clay-dot.small { width: 24px; height: 24px; }
+.pot-svg { width: 100%; height: auto; display: block; max-width: 260px; margin: 0 auto; }
+.pot-stage { padding: 12px 0; }
+.pot-hero { width: 180px; }
+.throw-stage .pot-svg { max-height: 30vh; width: auto; }
+.rack-item .thumb .pot-svg { height: 100px; width: auto; }
+.wheel-spin { animation: spin .5s linear infinite; }
+@keyframes spin { to { stroke-dashoffset: -22; } }
+.tprog { height: 8px; border-radius: 4px; background: var(--paper); overflow: hidden; }
+.tprog i { display: block; height: 100%; width: 0; background: var(--teal); }
+.btn.held { background: var(--rose); border-color: var(--rose); transform: scale(.98); }
+#pressbtn { -webkit-touch-callout: none; touch-action: none; }
+.goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.goal-card { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; }
+.goal-card.ready { border-color: var(--gold); background: var(--gold-soft); }
+.goal-card.claimed { opacity: .6; }
+.goal-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gbar { display: block; height: 7px; border-radius: 4px; background: var(--paper); overflow: hidden; margin-top: 4px; }
+.gbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--rose), var(--gold)); }
+.goal-reward { font-weight: 800; font-size: .85rem; white-space: nowrap; }
+@media (max-width: 900px) { .navbtn { min-width: 0; padding: 6px 2px; font-size: .68rem; } }
+@media (max-width: 560px) { .hud-item b { font-size: 1rem; } .goals { grid-template-columns: 1fr; } }
+/* keep the shop scene from filling a landscape screen */
+.scene-wrap { max-width: min(1180px, calc(40vh * 1.905)); }
+.scene-wrap.small { max-width: min(760px, calc(30vh * 1.905)); }

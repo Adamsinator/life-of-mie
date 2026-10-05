@@ -71,15 +71,18 @@
 
   // ---------------- top bar ----------------
   function topbar() {
-    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['upgrades', '⭐', 'Upgrades']];
+    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['upgrades', '⭐', 'Upgrades'], ['goals', '🏆', 'Goals']];
+    const se = DG.season(G);
+    const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
       <div class="brand"><span class="brand-script">Mie's</span><span class="brand-word">Atelier</span></div>
       <div class="hud">
         <div class="hud-item"><span class="lbl">Day</span><b>${G.day}</b></div>
+        <div class="hud-item" title="${DG.daysLeftInSeason(G)} days left of ${se.name.toLowerCase()}"><span class="lbl">Season</span><b>${se.icon} ${se.name}</b></div>
         <div class="hud-item"><span class="lbl">Bank</span><b class="${G.money < 100 ? 'low' : ''}">${kr(G.money)}</b></div>
         <div class="hud-item rep"><span class="lbl">Reputation</span><b>${Math.round(G.rep)}</b><span class="repbar"><i style="width:${clamp(G.rep, 0, 100)}%"></i></span></div>
       </div>
-      <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${id === 'workshop' && G.active ? '<i class="dot"></i>' : ''}</button>`).join('')}
+      <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${(id === 'workshop' && G.active) || (id === 'goals' && claimable) ? '<i class="dot"></i>' : ''}</button>`).join('')}
         <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">☰</span><span>Menu</span></button></nav>
     </header>`;
   }
@@ -99,6 +102,8 @@
       : ev.type === 'buzz' ? 'Fashion Week buzz: customers bring 20% bigger budgets today.'
         : 'Rainy day in Copenhagen. Fewer customers are out shopping.';
     const queue = G.queue.map((c, i) => custCard(c, i)).join('');
+    const seasonBanner = G.newSeason ? `<div class="event season">${DG.season(G).icon} ${esc(DG.season(G).hello)} In season: ${DG.season(G).in.map(id => byId(DG.FABRICS, id).name.toLowerCase()).join(', ')}.</div>` : '';
+    const goalBanner = DG.claimableGoals(G).length ? `<button class="event goal" data-act="view" data-arg="goals">🏆 ${DG.claimableGoals(G).length} goal${DG.claimableGoals(G).length > 1 ? 's' : ''} complete. Tap to collect your reward!</button>` : '';
     const camp = G.boost && G.boost.campaigns && G.boost.campaigns.length
       ? `<div class="event teal">Today's marketing: ${G.boost.campaigns.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
     const booked = G.marketing.length ? `<div class="event soft">Booked for tomorrow: ${G.marketing.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
@@ -115,7 +120,7 @@
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.MIE_LOOK, 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
-        ${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
+        ${goalBanner}${seasonBanner}${ev ? `<div class="event">${esc(evText)}</div>` : ''}${camp}${booked}
         <dl class="stats">
           <div><dt>Dresses made</dt><dd>${G.stats.served}</dd></div>
           <div><dt>Avg. satisfaction</dt><dd>${G.stats.served ? Math.round(G.stats.totalS / G.stats.served) + '%' : '–'}</dd></div>
@@ -142,11 +147,13 @@
       const p = DG.fabricPrice(G, f.id);
       const ch = (G.market.mult[f.id] || 1) / (G.market.prev[f.id] || 1) - 1;
       const sale = G.market.event && G.market.event.type === 'sale' && G.market.event.fabric === f.id;
+      const sf = DG.seasonFabric(G, f.id);
+      const stag = sf === 'in' ? `<span class="stag in">${DG.season(G).icon} in season +12%</span>` : sf === 'out' ? '<span class="stag out">off-season −15%</span>' : '';
       const arrow = sale ? '<span class="trend sale">SALE −30%</span>'
         : ch > 0.02 ? `<span class="trend up">▲ ${Math.round(ch * 100)}%</span>`
           : ch < -0.02 ? `<span class="trend down">▼ ${Math.round(-ch * 100)}%</span>` : '<span class="trend flat">●</span>';
       return `<article class="card fabric ${locked ? 'locked' : ''}">
-        <div class="card-top">${DG.swatchSVG(f.id, null, 'mk' + f.id, 56)}<div class="card-title"><b>${f.name}</b><span class="muted small">${f.desc}</span></div></div>
+        <div class="card-top">${DG.swatchSVG(f.id, null, 'mk' + f.id, 56)}<div class="card-title"><b>${f.name}</b><span class="muted small">${f.desc}</span>${stag}</div></div>
         <div class="mini-stats">${DG.ATTRS.map(k => `<div title="${DG.ATTR_META[k].label}"><span>${DG.ATTR_META[k].icon}</span><i><b style="width:${f.s[k] * 10}%"></b></i></div>`).join('')}</div>
         <div class="price-row"><span class="price">${kr(p)}<small>/m</small></span>${arrow}<span class="own">Own ${round1(G.inv.fabrics[f.id] || 0)} m</span></div>
         ${locked ? `<div class="lock">🔒 Supplier network level ${f.tier}</div>`
@@ -170,6 +177,22 @@
       <section class="panel">
         <div class="sec-head"><h2>Notions</h2><span class="muted">Each dress uses one of each notion you add.</span></div>
         <div class="grid items">${DG.ITEMS.map(itemCard).join('')}</div>
+      </section>
+      <section class="panel">
+        <div class="sec-head"><h2>Clay and glazes</h2><span class="muted">${DG.upgradeLevel(G, 'pottery') ? 'For the pottery studio.' : 'Open the pottery studio (Upgrades → Expansion) to start throwing pots.'}</span></div>
+        <div class="grid items">${DG.CLAYS.map(c => {
+          const locked = !DG.isUnlocked(G, c);
+          return `<article class="card item ${locked ? 'locked' : ''}"><div class="card-top"><span class="clay-dot" style="--c:${c.hex}"></span><div class="card-title"><b>${c.name}</b><span class="muted small">${c.desc} Own ${round1(G.inv.clay[c.id] || 0)} kg</span></div></div>
+            <div class="price-row"><span class="price">${kr(DG.clayPrice(G, c.id))}<small>/kg</small></span></div>
+            ${locked ? `<div class="lock">🔒 Supplier network level ${c.tier}</div>` : `<div class="buy-row"><button class="btn small" data-act="buyclay" data-arg="${c.id}:1">+1 kg</button><button class="btn small" data-act="buyclay" data-arg="${c.id}:5">+5 kg</button></div>`}</article>`;
+        }).join('')}${DG.GLAZES.filter(gl => gl.price).map(gl => {
+          const locked = !DG.isUnlocked(G, gl);
+          return `<article class="card item ${locked ? 'locked' : ''}"><div class="card-top"><span class="clay-dot" style="--c:${gl.hex}"></span><div class="card-title"><b>${gl.name} glaze</b><span class="muted small">Own ${G.inv.glazes[gl.id] || 0} · one per pot</span></div></div>
+            <div class="price-row"><span class="price">${kr(DG.glazePrice(G, gl.id))}</span></div>
+            ${locked ? `<div class="lock">🔒 Supplier network level ${gl.tier}</div>` : `<div class="buy-row"><button class="btn small" data-act="buyglaze" data-arg="${gl.id}:1">+1</button><button class="btn small" data-act="buyglaze" data-arg="${gl.id}:3">+3</button></div>`}</article>`;
+        }).join('')}${DG.POT_ITEMS.map(it => `<article class="card item"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">Own ${G.inv.items[it.id] || 0} · for gold rims</span></div></div>
+            <div class="price-row"><span class="price">${kr(DG.potItemPrice(G, it.id))}</span></div>
+            <div class="buy-row"><button class="btn small" data-act="buypotitem" data-arg="${it.id}:1">+1</button><button class="btn small" data-act="buypotitem" data-arg="${it.id}:3">+3</button></div></article>`).join('')}</div>
       </section>
     </div>`;
   }
@@ -203,7 +226,7 @@
     const fabs = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
     const fm = byId(DG.FABRICS, d.main), fa = byId(DG.FABRICS, d.accent);
     const fabChip = (key, f) => chip('set', `${key}:${f.id}`, d[key] === f.id,
-      `${DG.swatchSVG(f.id, d[key] === f.id ? d[key === 'main' ? 'mainColor' : 'accentColor'] : null, `${key}${f.id}`, 34)}<span class="chip-txt"><b>${f.name}</b><small>${round1(G.inv.fabrics[f.id] || 0)} m · ${kr(DG.fabricPrice(G, f.id))}/m</small></span>`);
+      `${DG.swatchSVG(f.id, d[key] === f.id ? d[key === 'main' ? 'mainColor' : 'accentColor'] : null, `${key}${f.id}`, 34)}<span class="chip-txt"><b>${f.name}</b><small>${round1(G.inv.fabrics[f.id] || 0)} m · ${kr(DG.fabricPrice(G, f.id))}/m</small>${key === 'main' && DG.seasonFabric(G, f.id) ? `<small class="stag ${DG.seasonFabric(G, f.id)}">${DG.seasonFabric(G, f.id) === 'in' ? DG.season(G).icon + ' in season' : 'off-season'}</small>` : ''}</span>`);
     return `<h3>Main fabric</h3><div class="chips">${fabs.map(f => fabChip('main', f)).join('')}</div>
       <h3>Main colour <small>♥ = ${esc(c.name)} loves it, ✕ = dislikes</small></h3>${colorRow('mainColor', fm, d.mainColor, c)}
       <h3>Accent fabric <small>used for sleeves, collar, pockets and ruffles</small></h3>
@@ -301,8 +324,8 @@
   }
 
   function viewUpgrades() {
-    const tabs = [['equipment', 'Equipment'], ['decor', 'Decor'], ['staff', 'Staff'], ['marketing', 'Marketing']];
-    const body = { equipment: upEquipment, decor: upDecor, staff: upStaff, marketing: upMarketing }[UI.upTab]();
+    const tabs = [['equipment', 'Equipment'], ['expansion', 'Expansion'], ['decor', 'Decor'], ['staff', 'Staff'], ['marketing', 'Marketing']];
+    const body = { equipment: upEquipment, expansion: upExpansion, decor: upDecor, staff: upStaff, marketing: upMarketing }[UI.upTab]();
     return `<div class="scene-wrap small">${DG.renderShop(G)}</div>
       <div class="panel"><div class="tabs" role="tablist">${tabs.map(([id, l]) => `<button role="tab" class="tab ${UI.upTab === id ? 'on' : ''}" data-act="uptab" data-arg="${id}">${l}</button>`).join('')}</div>
       <div class="tabbody">${body}</div></div>`;
@@ -348,18 +371,25 @@
 
   function upEquipment() {
     return `<div class="sec-head"><h2>Equipment and shop</h2><span class="muted">Each upgrade level adds 10 kr to the daily rent.</span></div>
-      <div class="grid upg">${DG.UPGRADES.map(u => {
-        const lvl = DG.upgradeLevel(G, u.id), max = u.costs.length;
-        const cost = u.costs[lvl];
-        return `<article class="card upgrade">
-          <div class="card-top"><span class="item-ic">${u.icon}</span><div class="card-title"><b>${u.name}</b><span class="pips">${Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</span></div></div>
-          <p class="small">${u.desc}</p>
-          ${lvl >= max ? '<div class="lock done">Fully upgraded ✓</div>'
-            : `<button class="btn primary" data-act="upgrade" data-arg="${u.id}" ${G.money < cost ? 'disabled' : ''}>Buy level ${lvl + 1}: ${kr(cost)}</button>`}
-        </article>`;
-      }).join('')}</div>
+      <div class="grid upg">${DG.UPGRADES.filter(u => u.group !== 'expansion').map(upgradeCard).join('')}</div>
       <h3>Who visits the shop</h3>
       <ul class="arche-list">${DG.ARCHETYPES.map(a => `<li class="${a.minRep <= G.rep ? 'on' : ''}"><b>${a.title}</b><span class="muted small">${a.minRep <= G.rep ? 'visiting' : `from reputation ${a.minRep}`} · ${kr(a.budget[0])} to ${kr(a.budget[1])}</span></li>`).join('')}</ul>`;
+  }
+
+  function upExpansion() {
+    return `<div class="sec-head"><h2>Grow the atelier</h2><span class="muted">Big steps. The upstairs floor adds 40 kr to the daily rent, the pottery studio 10 kr per level.</span></div>
+      <div class="grid upg">${DG.UPGRADES.filter(u => u.group === 'expansion').map(upgradeCard).join('')}</div>`;
+  }
+
+  function upgradeCard(u) {
+    const lvl = DG.upgradeLevel(G, u.id), max = u.costs.length;
+    const cost = u.costs[lvl];
+    return `<article class="card upgrade">
+      <div class="card-top"><span class="item-ic">${u.icon}</span><div class="card-title"><b>${u.name}</b><span class="pips">${Array.from({ length: max }, (_, i) => `<i class="${i < lvl ? 'on' : ''}"></i>`).join('')}</span></div></div>
+      <p class="small">${u.desc}</p>
+      ${lvl >= max ? '<div class="lock done">Fully upgraded ✓</div>'
+        : `<button class="btn primary" data-act="upgrade" data-arg="${u.id}" ${G.money < cost ? 'disabled' : ''}>Buy level ${lvl + 1}: ${kr(cost)}</button>`}
+    </article>`;
   }
 
   // ---------------- overlays ----------------
@@ -428,6 +458,7 @@
           <table class="rtable"><tbody>
             ${ev.rows.sort((a, b) => b.w - a.w).map(r => `<tr><td>${DG.ATTR_META[r.k].icon} ${DG.ATTR_META[r.k].label} <i class="hearts">${'♥'.repeat(r.w)}</i></td><td class="num">${r.v.toFixed(1)} / ${r.t}</td><td>${r.v >= r.t ? '✓' : r.fit > 0.7 ? '~' : '✗'}</td></tr>`).join('')}
             <tr><td>🎨 Colour</td><td class="num">${byId(DG.COLORS, design.mainColor).name}</td><td>${colorWord(design.mainColor) === 'a favourite' ? '♥' : colorWord(design.mainColor) === 'disliked' ? '✗' : '~'}</td></tr>
+            ${ev.seasonAdj ? `<tr><td>${DG.season(G).icon} Season</td><td class="num">${byId(DG.FABRICS, design.main).name}</td><td>${ev.seasonAdj > 0 ? '♥ +3' : '✗ −4'}</td></tr>` : ''}
             <tr><td>👗 Silhouette</td><td class="num">${byId(DG.SILHOUETTES, design.silhouette).name}</td><td>${ev.St === 1 ? '♥' : '~'}</td></tr>
             ${cust.reqs.map(r => `<tr><td>📌 ${DG.REQS[r].short}</td><td></td><td>${ev.failed.includes(r) ? '✗ −15' : '✓'}</td></tr>`).join('')}
             <tr><td>🪡 Stitching</td><td class="num">${Math.round(ev.craft * 100)}%</td><td>${ev.craft >= 0.8 ? '✓' : ev.craft >= 0.5 ? '~' : '✗'}</td></tr>
@@ -469,6 +500,8 @@
         <tr><td>Income</td><td class="num good">${kr(t.income)}</td></tr>
         <tr><td>Purchases</td><td class="num">−${kr(t.spent)}</td></tr>
         ${o.res.sold && o.res.sold.length ? `<tr><td>Rack sales (${o.res.sold.length} dress${o.res.sold.length > 1 ? 'es' : ''}, included in income)</td><td class="num good">${kr(o.res.rackIncome)}</td></tr>` : ''}
+        ${o.res.pottery && o.res.pottery.sold.length ? `<tr><td>Pottery sold (${o.res.pottery.sold.length}, included in income)</td><td class="num good">${kr(o.res.pottery.income)}</td></tr>` : ''}
+        ${o.res.pottery && (o.res.pottery.fired.length || o.res.pottery.cracked.length) ? `<tr><td>Kiln: ${o.res.pottery.fired.length} fired${o.res.pottery.cracked.length ? `, ${o.res.pottery.cracked.length} cracked 💔` : ' perfectly'}</td><td class="num">${kr(o.res.pottery.fired.reduce((a, it) => a + it.price, 0))} to shelf</td></tr>` : ''}
         <tr><td>Rent and upkeep</td><td class="num">−${kr(o.res.rent)}</td></tr>
         ${o.res.wages ? `<tr><td>Staff wages</td><td class="num">−${kr(o.res.wages)}</td></tr>` : ''}
         ${o.res.missed ? `<tr><td>Customers who left unserved</td><td class="num ${o.res.assistant ? '' : 'bad'}">${o.res.missed} ${o.res.assistant ? '(Lise gave them vouchers)' : `(−${o.res.missed * 0.5} rep)`}</td></tr>` : ''}
@@ -510,17 +543,165 @@
       case 'rackdone': return ovRackDone(o);
       case 'dayend': return ovDayEnd(o);
       case 'menu': return ovMenu();
+      case 'throw': return ovThrow();
+      case 'thrown': return ovThrown(o);
       default: return '';
     }
   }
 
+  // ---------------- pottery studio ----------------
+  function viewStudio() {
+    const lvl = DG.upgradeLevel(G, 'pottery');
+    if (!lvl) {
+      const demo = { clay: 'stoneware', shape: 'vase', glaze: 'celadon', deco: 'painted' };
+      return `<div class="empty panel"><div class="pot-hero">${DG.renderPot(demo, 'demo')}</div><h2>A pottery corner for Mie?</h2>
+        <p class="muted">Throw cups, bowls, vases and teapots on the wheel, fire them overnight in the kiln and sell them from a shelf. Pots on display also add charm to the shop.</p>
+        <button class="btn primary" data-act="goexpansion">See the pottery studio upgrade</button></div>`;
+    }
+    if (!G.pot) G.pot = DG.newPot(G);
+    const pot = G.pot;
+    const an = DG.analyzePot(pot, G);
+    const opt = (key, list, label) => `<h3>${label}</h3><div class="chips">${list.map(x => {
+      const locked = !DG.isUnlocked(G, x);
+      let sub = '';
+      if (key === 'clay') sub = `${round1(G.inv.clay[x.id] || 0)} kg · ${kr(DG.clayPrice(G, x.id))}/kg`;
+      if (key === 'shape') sub = `${x.kg} kg · ${'●'.repeat(Math.round(x.diff * 2 - 1))} difficulty`;
+      if (key === 'glaze') sub = x.price ? `own ${G.inv.glazes[x.id] || 0} · ${kr(DG.glazePrice(G, x.id))}` : 'raw clay';
+      if (key === 'deco') sub = `value ×${x.mult}${x.item ? ` · own ${G.inv.items[x.item] || 0} gold leaf` : ''}`;
+      const sw = key === 'clay' || key === 'glaze' ? `<span class="clay-dot small" style="--c:${x.hex || byId(DG.CLAYS, pot.clay).hex}"></span>` : '';
+      return chip('setpot', `${key}:${x.id}`, pot[key] === x.id, `${sw}<span class="chip-txt"><b>${x.name}</b><small>${locked ? '🔒 locked' : sub}</small></span>`, locked ? 'disabled' : '');
+    }).join('')}</div>`;
+    return `<div class="ws">
+      <section class="panel ws-left">
+        <h2>The pottery corner</h2>
+        <div class="stage pot-stage">${DG.renderPot(pot, 'studio')}</div>
+        <div class="sum-grid">
+          <div><span class="lbl">Clay</span><b>${an.kg} kg</b></div>
+          <div><span class="lbl">Materials</span><b>${kr(an.cost)}</b></div>
+          <div><span class="lbl">Est. price</span><b>${kr(an.estimate)}</b><span class="muted small">with a steady hand</span></div>
+        </div>
+        ${an.issues.length ? `<ul class="issues">${an.issues.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : '<p class="ready">Clay is wedged and the wheel is ready.</p>'}
+        <div class="actions">
+          ${an.missing.length ? `<button class="btn" data-act="buypotmissing" ${G.money < an.missingCost ? 'disabled' : ''}>🧺 Buy what's missing (${kr(an.missingCost)})</button>` : ''}
+          <button class="btn primary big" data-act="throw" ${an.issues.length ? 'disabled' : ''}>Throw on the wheel 🏺</button>
+        </div>
+      </section>
+      <div class="ws-right">
+        <section class="panel">${opt('shape', DG.POT_SHAPES, 'Shape')}${opt('clay', DG.CLAYS, 'Clay')}${opt('glaze', DG.GLAZES, 'Glaze')}${opt('deco', DG.POT_DECOS, 'Decoration')}</section>
+        <section class="panel">
+          <div class="sec-head"><h2>Kiln</h2><span class="muted">${G.kiln.length} of ${DG.kilnCapacity(G)} spaces · fired tonight when you close the shop</span></div>
+          ${G.kiln.length ? `<div class="rack">${G.kiln.map((it, i) => `<div class="rack-item"><span class="thumb">${DG.renderPot(it.pot, 'k' + i, { raw: true })}</span><span class="small">${Math.round(it.crack * 100)}% crack risk</span></div>`).join('')}</div>` : '<p class="muted">Empty. Throw a pot to fill it.</p>'}
+        </section>
+        <section class="panel">
+          <div class="sec-head"><h2>Shelf</h2><span class="muted">${G.shelf.length} of ${DG.shelfCapacity(G)} · each pot has a ${Math.round(DG.shelfSaleChance(G) * 100)}% chance to sell every evening · up to 3 pots add charm</span></div>
+          ${G.shelf.length ? `<div class="rack">${G.shelf.map((it, i) => `<div class="rack-item"><span class="thumb">${DG.renderPot(it.pot, 'st' + i)}</span><b>${kr(it.price)}</b>
+            <button class="btn small ghost" data-act="potmarkdown" data-arg="${i}" ${it.price <= 20 ? 'disabled' : ''}>Mark down 20%</button></div>`).join('')}</div>` : '<p class="muted">Nothing for sale yet.</p>'}
+        </section>
+      </div>
+    </div>`;
+  }
+
+  function ovThrow() {
+    const shape = byId(DG.POT_SHAPES, G.pot.shape);
+    return `<div class="overlay"><div class="sheet sew">
+      <h2>Throwing a ${shape.name.toLowerCase()}</h2>
+      <p class="muted"><b>Hold</b> the button to press on the clay, let go to ease off. Keep the marker inside the green band until the pot is done.</p>
+      <div class="sew-stage throw-stage" id="throwpot">${DG.renderPot(G.pot, 'throw', { raw: true, grow: 0, wheel: true })}</div>
+      <div class="track"><div class="zone" id="tzone"></div><div class="needle" id="tmark"></div></div>
+      <div class="tprog"><i id="tprog"></i></div>
+      <div class="sfb" id="tfb">Centre the clay...</div>
+      <button class="btn primary huge" data-act="press" id="pressbtn">Hold to press ✋</button>
+    </div></div>`;
+  }
+
+  function ovThrown(o) {
+    const it = o.item;
+    return `<div class="overlay"><div class="sheet center">
+      <div class="pot-hero">${DG.renderPot(it.pot, 'thrown')}</div>
+      <h2>${o.score >= 0.85 ? 'Beautifully centred!' : o.score >= 0.6 ? 'A nice, even pot.' : o.score >= 0.35 ? 'A bit lopsided...' : 'Wobbly, but it holds together.'}</h2>
+      <p>Centring ${Math.round(o.score * 100)}% · price tag ${kr(it.price)} · crack risk ${Math.round(it.crack * 100)}%</p>
+      <p class="muted small">It goes into the kiln and is fired tonight. If it survives, it appears on the shelf tomorrow morning.</p>
+      <button class="btn primary big wide" data-act="closeov">Back to the studio</button>
+    </div></div>`;
+  }
+
+  function startThrowLoop() {
+    cancelAnimationFrame(UI.raf);
+    const t = UI.throwSt;
+    let lastPot = 0;
+    const step = now => {
+      if (!UI.overlay || UI.overlay.type !== 'throw') return;
+      const dt = t.last ? Math.min(0.05, (now - t.last) / 1000) : 0;
+      t.last = now;
+      if (!t.done) {
+        t.t += dt;
+        t.p = clamp(t.p + (t.holding ? 0.85 : -0.65) * dt + (Math.random() - 0.5) * 0.04, 0, 1);
+        t.center = 0.5 + 0.24 * Math.sin(t.t * 0.95 * t.diff + t.phase);
+        const inBand = Math.abs(t.p - t.center) <= t.w / 2;
+        if (inBand) t.good += dt;
+        const z = document.getElementById('tzone'), m = document.getElementById('tmark'), pr = document.getElementById('tprog'), fb = document.getElementById('tfb');
+        if (z) { z.style.left = `${(t.center - t.w / 2) * 100}%`; z.style.width = `${t.w * 100}%`; }
+        if (m) m.style.left = `${t.p * 100}%`;
+        if (pr) pr.style.width = `${Math.min(100, (t.t / t.dur) * 100)}%`;
+        if (fb) fb.textContent = inBand ? 'Nicely centred ✨' : t.p < t.center ? 'Press harder!' : 'Too much pressure!';
+        if (now - lastPot > 120) {
+          lastPot = now;
+          const el = document.getElementById('throwpot');
+          if (el) el.innerHTML = DG.renderPot(G.pot, 'throw', { raw: true, grow: Math.min(1, t.t / t.dur), wheel: true });
+        }
+        if (t.t >= t.dur) { t.done = true; setTimeout(() => finishThrow(t.good / t.dur), 400); }
+      }
+      UI.raf = requestAnimationFrame(step);
+    };
+    UI.raf = requestAnimationFrame(step);
+  }
+
+  function startThrowing() {
+    const an = DG.analyzePot(G.pot, G);
+    if (an.issues.length) return;
+    const shape = byId(DG.POT_SHAPES, G.pot.shape);
+    const lvl = DG.upgradeLevel(G, 'pottery');
+    UI.throwSt = { t: 0, dur: 6, p: 0.2, holding: false, good: 0, last: 0, phase: Math.random() * 6, diff: shape.diff,
+      center: 0.5, w: clamp(0.3 - 0.07 * (shape.diff - 1) + (lvl >= 2 ? 0.04 : 0) + (G.staff.apprentice ? 0.02 : 0), 0.14, 0.36), done: false };
+    UI.overlay = { type: 'throw' };
+    render();
+  }
+
+  function finishThrow(score) {
+    score = clamp(score, 0, 1);
+    const item = DG.throwPot(G, G.pot, score);
+    DG.updateGoals(G);
+    UI.overlay = { type: 'thrown', item, score };
+    save();
+    render();
+  }
+
+  // ---------------- goals ----------------
+  function viewGoals() {
+    DG.updateGoals(G);
+    const done = G.goals.claimed.length;
+    return `<div class="panel"><div class="sec-head"><h2>Goals</h2><span class="muted">${done} of ${DG.GOALS.length} collected. Complete a goal, then tap to collect the reward.</span></div>
+      <div class="goals">${DG.GOALS.map(g => {
+        const claimed = G.goals.claimed.includes(g.id), ready = G.goals.done.includes(g.id) && !claimed;
+        const pr = Math.min(g.target, Math.max(0, g.prog(G)));
+        const shown = ready || claimed ? g.target : pr;
+        return `<article class="goal-card ${claimed ? 'claimed' : ready ? 'ready' : ''}">
+          <div class="goal-txt"><b>${claimed ? '✅' : ready ? '🏆' : '🎯'} ${g.title}</b><span class="muted small">${g.desc}</span>
+            <span class="gbar"><i style="width:${(shown / g.target) * 100}%"></i></span><span class="small muted">${shown.toLocaleString('da-DK')} / ${g.target.toLocaleString('da-DK')}</span></div>
+          ${claimed ? `<span class="goal-reward muted">${kr(g.reward)} collected</span>`
+            : `<button class="btn ${ready ? 'primary' : ''}" data-act="claim" data-arg="${g.id}" ${ready ? '' : 'disabled'}>${ready ? 'Collect ' : ''}${kr(g.reward)}</button>`}
+        </article>`;
+      }).join('')}</div></div>`;
+  }
+
   // ---------------- render ----------------
-  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, upgrades: viewUpgrades };
+  const VIEWS = { shop: viewShop, market: viewMarket, workshop: viewWorkshop, studio: viewStudio, upgrades: viewUpgrades, goals: viewGoals };
   function render() {
     const app = document.getElementById('app');
     app.innerHTML = topbar() + `<main class="view view-${UI.view}">${VIEWS[UI.view]()}</main>` + overlay();
     document.body.classList.toggle('modal-open', !!(UI.overlay || G.gameOver));
     if (UI.overlay && UI.overlay.type === 'sew') startSewLoop();
+    if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
   }
 
   // ---------------- sewing mini-game ----------------
@@ -615,6 +796,9 @@
     G.stats.best = Math.max(G.stats.best, ev.S);
     G.stats.earned += ev.pay + ev.tip;
     DG.rememberCustomer(G, cust, ev.S);
+    const beforeGoals = DG.claimableGoals(G).length;
+    DG.recordDress(G, cust, ev.S);
+    const newGoals = DG.claimableGoals(G).length - beforeGoals;
     G.active = null;
     G.design = null;
     UI.overlay = { type: 'result', ev, cust, design, quote: pick(DG.QUOTES[ev.stars]), line: DG.feedbackLine(cust, ev, design) };
@@ -622,6 +806,7 @@
     save();
     render();
     fresh.forEach((t, i) => setTimeout(() => toast(`New customers unlocked: ${t}!`), 400 + i * 600));
+    if (newGoals > 0) setTimeout(() => toast('🏆 Goal complete! Collect your reward on the Goals screen.'), 400 + fresh.length * 600);
   }
 
   // ---------------- actions ----------------
@@ -632,6 +817,18 @@
     G.money -= cost;
     G.today.spent += cost;
     if (kind === 'fabric') G.inv.fabrics[id] = round1((G.inv.fabrics[id] || 0) + qty);
+    else G.inv.items[id] = (G.inv.items[id] || 0) + qty;
+    return true;
+  }
+
+  function buyPottery(kind, id, qty) {
+    const price = kind === 'clay' ? DG.clayPrice(G, id) : kind === 'glaze' ? DG.glazePrice(G, id) : DG.potItemPrice(G, id);
+    const cost = price * qty;
+    if (G.money < cost) { toast(`Not enough money: that costs ${kr(cost)}.`); return false; }
+    G.money -= cost;
+    G.today.spent += cost;
+    if (kind === 'clay') G.inv.clay[id] = round1((G.inv.clay[id] || 0) + qty);
+    else if (kind === 'glaze') G.inv.glazes[id] = (G.inv.glazes[id] || 0) + qty;
     else G.inv.items[id] = (G.inv.items[id] || 0) + qty;
     return true;
   }
@@ -692,6 +889,36 @@
       }
       case 'sew': startSewing(); return;
       case 'uptab': UI.upTab = arg; break;
+      case 'goexpansion': UI.view = 'upgrades'; UI.upTab = 'expansion'; window.scrollTo(0, 0); break;
+      case 'setpot': {
+        const i = arg.indexOf(':');
+        G.pot[arg.slice(0, i)] = arg.slice(i + 1);
+        break;
+      }
+      case 'buyclay': case 'buyglaze': case 'buypotitem': {
+        const [id, q] = arg.split(':');
+        const kind = name === 'buyclay' ? 'clay' : name === 'buyglaze' ? 'glaze' : 'potitem';
+        if (buyPottery(kind, id, +q)) toast(`Bought ${q}${kind === 'clay' ? ' kg' : '×'} ${(byId(kind === 'clay' ? DG.CLAYS : kind === 'glaze' ? DG.GLAZES : DG.POT_ITEMS, id)).name}.`);
+        break;
+      }
+      case 'buypotmissing': {
+        const an = DG.analyzePot(G.pot, G);
+        if (G.money < an.missingCost) { toast('Not enough money for everything that is missing.'); break; }
+        an.missing.forEach(m => buyPottery(m.kind, m.id, m.qty));
+        toast(`Bought the missing materials for ${kr(an.missingCost)}.`);
+        break;
+      }
+      case 'throw': startThrowing(); return;
+      case 'potmarkdown': {
+        const it = G.shelf[+arg];
+        if (it) { it.price = Math.max(20, Math.round(it.price * 0.8 / 5) * 5); toast(`Marked down to ${kr(it.price)}.`); }
+        break;
+      }
+      case 'claim': {
+        const got = DG.claimGoal(G, arg);
+        if (got) toast(`🏆 ${byId(DG.GOALS, arg).title}: +${kr(got)}!`);
+        break;
+      }
       case 'rackorder': {
         if (G.active || G.rack.length >= DG.rackCapacity(G)) break;
         G.active = Object.assign({}, DG.RACK_SHOPPER);
@@ -767,7 +994,11 @@
         UI.overlay = G.gameOver ? null : { type: 'dayend', res };
         break;
       }
-      case 'nextday': DG.startDay(G); UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0); break;
+      case 'nextday': {
+        DG.startDay(G); UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0);
+        if (G.newSeason && G.day > 1) setTimeout(() => toast(`${DG.season(G).icon} ${DG.season(G).name} has arrived!`), 300);
+        break;
+      }
       case 'newgame': {
         if (!G.gameOver && UI.confirm !== 'newgame') { UI.confirm = 'newgame'; break; }
         UI.confirm = null;
@@ -784,16 +1015,26 @@
   document.addEventListener('click', e => {
     if (e.target.classList && e.target.classList.contains('dismissable')) { act('closeov'); return; }
     const b = e.target.closest('[data-act]');
-    if (!b || b.disabled || b.dataset.act === 'stitch') return;
+    if (!b || b.disabled || b.dataset.act === 'stitch' || b.dataset.act === 'press') return;
     act(b.dataset.act, b.dataset.arg);
   });
   // pointerdown keeps the stitch button snappy on touch screens
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest('[data-act="stitch"]');
     if (b) { e.preventDefault(); stitch(); }
+    if (e.target.closest('[data-act="press"]') && UI.throwSt) { e.preventDefault(); UI.throwSt.holding = true; e.target.closest('[data-act="press"]').classList.add('held'); }
   });
+  const release = () => {
+    if (UI.throwSt) UI.throwSt.holding = false;
+    const b = document.getElementById('pressbtn');
+    if (b) b.classList.remove('held');
+  };
+  ['pointerup', 'pointercancel', 'blur'].forEach(ev => (ev === 'blur' ? window : document).addEventListener(ev, release));
+  document.addEventListener('contextmenu', e => { if (e.target.closest('[data-act="press"]')) e.preventDefault(); });
+  document.addEventListener('keyup', e => { if (e.code === 'Space') release(); });
   document.addEventListener('keydown', e => {
     if (UI.overlay && UI.overlay.type === 'sew' && (e.code === 'Space' || e.key === 'Enter')) { e.preventDefault(); stitch(); }
+    else if (UI.overlay && UI.overlay.type === 'throw' && e.code === 'Space') { e.preventDefault(); if (UI.throwSt) UI.throwSt.holding = true; }
     else if (e.key === 'Escape' && UI.overlay && ['req', 'menu'].includes(UI.overlay.type)) act('closeov');
   });
 

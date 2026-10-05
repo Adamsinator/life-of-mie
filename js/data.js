@@ -136,6 +136,72 @@
     { id: 'embroidery', name: 'Embroidery machine', icon: '🌸', costs: [600, 1400],      desc: 'Level 1 unlocks embroidery. Level 2 unlocks crystal beading.' },
     { id: 'haggle',     name: 'Market haggling',    icon: '🤝', costs: [300, 700, 1400], desc: '8% off everything at the market, per level.' },
     { id: 'fitting',    name: 'Cozy fitting room',  icon: '🛋️', costs: [450, 1100],      desc: '+3 satisfaction per level, and happy customers tip more.' },
+    { id: 'pottery',    name: 'Pottery studio',     icon: '🏺', costs: [600, 1500], group: 'expansion', desc: 'Level 1: a potter\'s wheel and a small kiln for 3 pots. Level 2: an electric kiln for 5 pots, half as many cracks, and 2 more shelf spaces.' },
+    { id: 'floor',      name: 'Upstairs floor',     icon: '🏠', costs: [2500],      group: 'expansion', desc: 'Opens the first floor: +2 customers per day and +2 rack hangers.' },
+  ];
+
+  // ---------------- seasons (7 days each, starting in spring) ----------------
+  // in-season fabrics cost 12% more but please customers; off-season fabrics are 15% cheaper but annoy them.
+  DG.SEASON_LENGTH = 7;
+  DG.SEASONS = [
+    { id: 'spring', name: 'Spring', icon: '🌷', in: ['cotton', 'linen', 'chiffon', 'lace'], out: ['cashmere', 'velvet', 'wool'],
+      arche: { guest: 1.8, summer: 1.3, winter: 0.5 }, sky: '#dff0fa', hello: 'Spring has arrived! Wedding season is starting.' },
+    { id: 'summer', name: 'Summer', icon: '☀️', in: ['linen', 'cotton', 'chiffon', 'jersey'], out: ['wool', 'velvet', 'cashmere', 'tweed'],
+      arche: { summer: 2.5, guest: 1.6, winter: 0.15 }, sky: '#cbe8fb', hello: 'Summer! Everyone wants something light and breezy.' },
+    { id: 'autumn', name: 'Autumn', icon: '🍂', in: ['tweed', 'wool', 'denim', 'velvet'], out: ['chiffon', 'organza', 'linen'],
+      arche: { worker: 1.5, office: 1.4, summer: 0.3 }, sky: '#f3dcc2', hello: 'Autumn leaves are falling. Back to work and back to the office.' },
+    { id: 'winter', name: 'Winter', icon: '❄️', in: ['wool', 'velvet', 'cashmere', 'brocade'], out: ['linen', 'chiffon', 'organza'],
+      arche: { winter: 2.5, gala: 1.8, summer: 0.1 }, sky: '#dfe5ee', hello: 'Winter is here. Time for warm dresses and glittering galas.' },
+  ];
+
+  // ---------------- pottery ----------------
+  DG.CLAYS = [
+    { id: 'terracotta', name: 'Terracotta', price: 8,  mult: 0.8, hex: '#c4693d', tier: 0, desc: 'Warm, rustic and forgiving.' },
+    { id: 'stoneware',  name: 'Stoneware',  price: 14, mult: 1.0, hex: '#b9a68e', tier: 0, desc: 'Sturdy everyday clay.' },
+    { id: 'porcelain',  name: 'Porcelain',  price: 34, mult: 1.6, hex: '#f2efe8', tier: 1, desc: 'Translucent and precious. Needs supplier level 1.' },
+  ];
+  // kg of clay, base value, throwing difficulty
+  DG.POT_SHAPES = [
+    { id: 'cup',    name: 'Cup',    kg: 0.5, base: 35,  diff: 1.0 },
+    { id: 'bowl',   name: 'Bowl',   kg: 0.8, base: 50,  diff: 1.2 },
+    { id: 'plate',  name: 'Plate',  kg: 1.0, base: 55, diff: 1.1 },
+    { id: 'vase',   name: 'Vase',   kg: 1.5, base: 95, diff: 1.6 },
+    { id: 'teapot', name: 'Teapot', kg: 2.0, base: 160, diff: 2.0 },
+  ];
+  DG.GLAZES = [
+    { id: 'none',     name: 'Unglazed',        price: 0,  mult: 0.8, hex: null },
+    { id: 'cream',    name: 'Speckled cream',  price: 15, mult: 1.1, hex: '#efe6d2', speckle: true },
+    { id: 'celadon',  name: 'Celadon',         price: 25, mult: 1.25, hex: '#a9c9b4' },
+    { id: 'cobalt',   name: 'Cobalt blue',     price: 30, mult: 1.3, hex: '#2f4f9e' },
+    { id: 'copper',   name: 'Copper red',      price: 50, mult: 1.5, hex: '#a3262e', tier: 1 },
+    { id: 'lustre',   name: 'Gold lustre',     price: 90, mult: 1.9, hex: '#d4a93a', tier: 2 },
+  ];
+  DG.POT_DECOS = [
+    { id: 'none',    name: 'Plain',          mult: 1.0 },
+    { id: 'carved',  name: 'Carved lines',   mult: 1.08 },
+    { id: 'painted', name: 'Painted flowers',mult: 1.15 },
+    { id: 'goldrim', name: 'Gold rim',       mult: 1.25, item: 'goldleaf' },
+  ];
+  DG.POT_ITEMS = [{ id: 'goldleaf', name: 'Gold leaf', price: 40, icon: '🟨' }];
+
+  // ---------------- goals ----------------
+  DG.GOALS = [
+    { id: 'first',    title: 'First stitch',        desc: 'Deliver your first dress.',                       target: 1,    reward: 100,  prog: G => G.stats.served },
+    { id: 'happy5',   title: 'Word of mouth',       desc: 'Deliver 5 dresses that score 75% or more.',       target: 5,    reward: 200,  prog: G => G.stats.happy },
+    { id: 'worker5',  title: 'Built to last',       desc: 'Make 5 dresses for hands-on workers.',            target: 5,    reward: 250,  prog: G => G.stats.byArche.worker || 0 },
+    { id: 'regulars', title: 'Familiar faces',      desc: 'Have 3 regular customers at the same time.',      target: 3,    reward: 200,  prog: G => G.known.length },
+    { id: 'perfect',  title: 'Masterpiece',         desc: 'Deliver a dress that scores 95% or more.',        target: 95,   reward: 300,  prog: G => G.stats.best },
+    { id: 'rack3',    title: 'Off the rack',        desc: 'Sell 3 ready-to-wear dresses.',                    target: 3,    reward: 200,  prog: G => G.stats.rackSold },
+    { id: 'pots5',    title: 'Muddy hands',         desc: 'Sell 5 pieces of pottery.',                        target: 5,    reward: 250,  prog: G => G.stats.potsSold },
+    { id: 'charm10',  title: 'Cosy corner',         desc: 'Reach 10 shop charm.',                             target: 10,   reward: 300,  prog: G => DG.charm(G) },
+    { id: 'rep30',    title: 'Talk of the town',    desc: 'Reach reputation 30.',                             target: 30,   reward: 300,  prog: G => Math.floor(G.rep) },
+    { id: 'teapot',   title: 'Tea time',            desc: 'Fire a teapot in the kiln without it cracking.',  target: 1,    reward: 400,  prog: G => G.stats.teapots },
+    { id: 'seasons',  title: 'All year round',      desc: 'Deliver a dress in all four seasons.',             target: 4,    reward: 500,  prog: G => G.stats.seasons.length },
+    { id: 'bank5k',   title: 'Nest egg',            desc: 'Have 5.000 kr in the bank.',                       target: 5000, reward: 500,  prog: G => Math.floor(G.money) },
+    { id: 'floor',    title: 'Moving on up',        desc: 'Open the upstairs floor.',                         target: 1,    reward: 500,  prog: G => DG.upgradeLevel(G, 'floor') },
+    { id: 'rep60',    title: 'Copenhagen icon',     desc: 'Reach reputation 60.',                             target: 60,   reward: 600,  prog: G => Math.floor(G.rep) },
+    { id: 'day30',    title: 'One month in',        desc: 'Keep the atelier open for 30 days.',               target: 30,   reward: 1000, prog: G => G.day },
+    { id: 'bride',    title: 'Say yes to the dress',desc: "Make a bride's dress that scores 85% or more.",   target: 85,   reward: 1500, prog: G => G.stats.brideBest },
   ];
 
   // Decor: bought once, shown in the shop scene. Charm raises satisfaction (+0.25 each) and budgets (+1% each).
