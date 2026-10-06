@@ -106,7 +106,17 @@
 
   // On a landscape iPad the scenes fill the left of the screen, so they are drawn taller.
   const landscapeMQ = window.matchMedia('(orientation: landscape) and (min-width: 960px)');
-  const tallScene = () => landscapeMQ.matches;
+  // the scene's real shape in the landscape layout, measured after each render (so the camera never crops its sides)
+  let sceneAspect = 1;
+  const tallScene = () => (landscapeMQ.matches ? sceneAspect : false);
+  function measureScene() {
+    const el = document.querySelector('.view > .scene-wrap');
+    if (!el || !el.clientHeight || !landscapeMQ.matches) return false;
+    const a = Math.max(0.9, Math.min(1.8, el.clientWidth / el.clientHeight));
+    if (Math.abs(a - sceneAspect) < 0.02) return false;
+    sceneAspect = a; return true;
+  }
+  window.addEventListener('resize', () => { clearTimeout(UI.fitT); UI.fitT = setTimeout(() => { if (measureScene()) render(); }, 150); });
   try { landscapeMQ.addEventListener('change', () => render()); } catch (e) { /* older Safari */ }
 
   // ---------------- top bar ----------------
@@ -1276,6 +1286,8 @@
     if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
     mountMiniGame();
+    // the first render guesses the scene's shape; once it is on screen, measure it and redraw once if it differs
+    if (!UI.refitting && measureScene()) { UI.refitting = true; render(); UI.refitting = false; }
   }
 
   function mountMiniGame() {

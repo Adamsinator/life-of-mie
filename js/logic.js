@@ -244,9 +244,9 @@
   // so it stays on the wall or on the floor. The taller landscape view has a deeper floor (tallY); a spot chosen
   // there is kept, and simply drawn nearer the wall in the shorter view.
   DG.DECOR_MOVE = {
-    rug:        { x: [-170, 105], y: [-12, 22], tallY: [-12, 120], box: [180, 165, 112, 26] },
-    plant:      { x: [-150, 175], y: [0, 40],   tallY: [0, 130],   box: [170, 94, 42, 60] },
-    armchair:   { x: [-210, 100], y: [0, 40],   tallY: [0, 130],   box: [236, 128, 56, 36] },
+    rug:        { x: [-170, 105], y: [-12, 22], tallY: [-12, 60], box: [180, 165, 112, 26] },
+    plant:      { x: [-150, 175], y: [0, 40],   tallY: [0, 90],   box: [170, 94, 42, 60] },
+    armchair:   { x: [-210, 100], y: [0, 40],   tallY: [0, 80],   box: [236, 128, 56, 36] },
     mirror:     { x: [-240, 105], y: [-30, 40], box: [257, 46, 30, 52] },
     gallery:    { x: [-280, 12],  y: [-14, 70], box: [298, 20, 86, 46] },
     chandelier: { x: [-170, 110], y: [0, 0],    box: [186, 14, 100, 40] },

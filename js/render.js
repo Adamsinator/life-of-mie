@@ -462,8 +462,12 @@
 
   // A scene is two layers: the painted room (watercolour filter, never redrawn) and, on top, the people,
   // Dexter and the weather outside, which move.
+  const tallAspect = opts => Math.max(0.9, Math.min(1.8, typeof opts.tall === 'number' ? opts.tall : 1.3));
+  const tallTop = opts => 250 - 400 / tallAspect(opts);   // the highest y the tall camera shows
   function sceneLayers(cls, opts, label, room, people) {
-    const vb = opts.vb || (opts.tall ? '0 -60 400 400' : '0 0 400 210'), par = opts.vb ? ' preserveAspectRatio="xMidYMid slice"' : opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : '';
+    // landscape iPad: the camera fits the scene's real shape (opts.tall is its width/height). The full width always
+    // shows and the floor always ends at y 250, so a squarer scene shows more wall above, never more floor.
+    const vb = opts.vb || (opts.tall ? `0 ${(250 - 400 / tallAspect(opts)).toFixed(1)} 400 ${(400 / tallAspect(opts)).toFixed(1)}` : '0 0 400 210'), par = opts.vb ? ' preserveAspectRatio="xMidYMid slice"' : opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : '';
     return `<svg class="${cls}" viewBox="${vb}"${par} role="img" aria-label="${label}">${room.join('')}</svg>`
       + `<svg class="scene-people" viewBox="${vb}"${par} aria-hidden="false">${people.join('')}</svg>`;
   }
@@ -508,6 +512,26 @@
       <radialGradient id="vig" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#5a2a3a" stop-opacity="0"/><stop offset="1" stop-color="#5a2a3a" stop-opacity=".22"/></radialGradient>
       <radialGradient id="lamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd27a" stop-opacity=".75"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient></defs>`);
     if (opts.tall) out.push('<rect x="-300" y="-200" width="1000" height="360" fill="url(#wp)"/><rect x="-300" y="146" width="1000" height="6" fill="#fffaf5"/><rect x="-300" y="152" width="1000" height="300" fill="url(#planks)"/>');
+    if (opts.tall) {
+      // the upper wall: a cornice, bunting, and a high shelf of fabric bolts (it is a dressmaker's)
+      const top = tallTop(opts);
+      out.push(`<rect x="-300" y="${top}" width="1000" height="10" fill="#fffaf5"/><rect x="-300" y="${top + 10}" width="1000" height="3" fill="#ecd8d5"/>`);
+      if (top <= -120) {
+        // a squarer screen shows more wall: the shop's name painted high up, and two pendant lamps (only when all of it fits)
+        out.push(`<text x="200" y="-78" font-size="22" text-anchor="middle" font-family="Pacifico, cursive" fill="#c44d6c" opacity=".85" translate="no">Mie's Atelier</text><path d="M120 -70 H280" stroke="#c99a2e" stroke-width="1"/><circle cx="200" cy="-70" r="2" fill="#c99a2e"/>`);
+        [70, 330].forEach(x => out.push(`<path d="M${x} ${top} V-112" stroke="#555" stroke-width="1"/><path d="M${x - 12} -100 Q${x} -116 ${x + 12} -100 Z" fill="#1d6b6b"/><ellipse cx="${x}" cy="-99" rx="5" ry="2" fill="#fff6c8"/><ellipse cx="${x}" cy="-90" rx="24" ry="12" fill="#fff6c8" opacity=".25"/>`));
+      }
+      let bun = '<path d="M-10 -40 Q100 -30 200 -40 T410 -40" stroke="#c99a2e" stroke-width=".8" fill="none"/>';
+      for (let k = 0; k < 21; k++) { const x = -6 + k * 20, y = -40 + 4 * Math.sin((x + 10) / 200 * Math.PI) ; bun += `<path d="M${x} ${y.toFixed(1)} l8 0 l-4 9Z" fill="${['#c44d6c', '#e9c35a', '#1d6b6b', '#f1b9c2', '#34437f'][k % 5]}"/>`; }
+      out.push(bun);
+      let bolts = '<rect x="196" y="-12" width="190" height="4" rx="1" fill="#9a6b47"/><path d="M204 -8 l4 8 M378 -8 l-4 8" stroke="#7a5236" stroke-width="2"/>';
+      ['#d6577b', '#1e7a58', '#e9c35a', '#34437f', '#f1b9c2', '#9db69a', '#c44d6c', '#fffaf5', '#6b2a5e', '#e88a3a', '#7fb3d5'].forEach((c, k) => {
+        const x = 202 + k * 16.5;
+        bolts += `<rect x="${x}" y="-30" width="14" height="18" rx="2" fill="${c}"/><ellipse cx="${x + 7}" cy="-30" rx="7" ry="2.2" fill="${darken(c, 0.15)}"/><circle cx="${x + 7}" cy="-30" r="1.2" fill="#fffaf5"/><path d="M${x + 3} -26 v12 M${x + 10} -26 v12" stroke="${darken(c, 0.2)}" stroke-width=".5"/>`;
+      });
+      out.push(bolts);
+      out.push('<g transform="translate(70 -24)"><rect x="-22" y="-10" width="44" height="22" rx="3" fill="#fffaf5" stroke="#c99a2e" stroke-width="1.5"/><path d="M-12 6 l8 -12 l6 8 l4 -4 l8 8Z" fill="#9db69a"/><circle cx="10" cy="-3" r="3" fill="#e9c35a"/></g>');
+    }
     // wall, skirting, floor
     out.push('<rect width="400" height="150" fill="url(#wp)"/><rect y="146" width="400" height="6" fill="#fffaf5"/><rect y="152" width="400" height="58" fill="url(#planks)"/>');
     // window with awning and display dresses
@@ -571,11 +595,11 @@
     // staff
     const staffSlots = { apprentice: [205, 194], assistant: [311, 198] };
     if (!opts.arrange) DG.STAFF.forEach(st => { if (G.staff[st.id]) top.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
-    if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
+    if (opts.tall) out.push('<ellipse cx="170" cy="238" rx="190" ry="10" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
     (opts.arrange ? [] : G.queue.slice(0, 5)).forEach((c, i) => top.push(`<g class="tap idle${opts.walkIn ? ' walk-in' : ''}" style="${opts.walkIn ? `--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;animation-delay:${(i * 0.35).toFixed(2)}s, ${(1.3 + i * 0.35).toFixed(2)}s` : `animation-delay:-${(i * 0.9).toFixed(1)}s`}" data-act="openreq" data-arg="${i}">` + (opts.tall
-      ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
+      ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 236 + (i % 2) * 8, 104, { legs: c.look.tights, shoes: c.look.shoes })
       : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
     if (owned('chandelier')) out.push(place('chandelier', '<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join('')));
     // daylight falling in through the window, and a soft warm vignette
@@ -811,8 +835,19 @@
     out.push(`<rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="3" fill="#fffaf5"/><g clip-path="url(#homewin)">${v.join('')}</g>`);
     out.push(`<path d="M${wx + ww / 2} ${wy + 6} V${wy + wh - 6} M${wx + 6} ${wy + wh / 2} H${wx + ww - 6}" stroke="#fffaf5" stroke-width="3"/><path d="M${wx - 4} ${wy - 4} Q${wx + 8} ${wy + 38} ${wx} ${wy + wh + 4} M${wx + ww + 4} ${wy - 4} Q${wx + ww - 8} ${wy + 38} ${wx + ww} ${wy + wh + 4}" stroke="#c44d6c" stroke-width="6" fill="none"/>`);
     out.push(`<rect x="160" y="6" width="${Math.min(170, 12 + H.name.length * 4.6)}" height="14" rx="3" fill="#fffaf5" opacity=".85"/><text x="166" y="16" font-size="8" font-family="Nunito, sans-serif" font-weight="800" fill="#2f1d2b">${H.name}</text>`);
+    if (opts.tall) {
+      const top = tallTop(opts);
+      out.push(`<rect x="-300" y="${top}" width="1000" height="8" fill="${lighten(STYLE.wall, 0.5)}"/><rect x="-300" y="${top + 8}" width="1000" height="2" fill="${darken(STYLE.wall, 0.12)}"/>`);
+      if (top <= -106) {
+        let lights = '<path d="M-10 -96 Q60 -80 130 -96 T270 -96 T410 -96" stroke="#7a6a5a" stroke-width=".8" fill="none"/>';
+        for (let k = 0; k < 22; k++) { const x = -6 + k * 19, y = -96 + 8 * Math.abs(Math.sin(k * 0.71)); lights += `<circle cx="${x}" cy="${y.toFixed(1)}" r="2.4" fill="#ffd98a"/><circle cx="${x}" cy="${y.toFixed(1)}" r="5" fill="#ffd98a" opacity=".2"/>`; }
+        out.push(lights + '<rect x="96" y="-64" width="70" height="4" rx="1" fill="#8a6a48"/><path d="M104 -64 l3 -10 h8 l3 10Z" fill="#c26a45"/><path d="M111 -74 q-6 -8 -2 -14 q4 6 2 14 q6 -8 10 -6 q-4 4 -10 6Z" fill="#4d8a4e"/><rect x="128" y="-78" width="6" height="14" fill="#c44d6c"/><rect x="135" y="-76" width="6" height="12" fill="#1d6b6b"/><rect x="142" y="-80" width="5" height="16" fill="#e9c35a"/><circle cx="156" cy="-69" r="5" fill="#fffaf5" stroke="#c99a2e"/>');
+      }
+      [[200, -30, 26, 20, '#c44d6c'], [232, -36, 20, 26, '#1d6b6b'], [258, -28, 30, 18, '#e9c35a'], [294, -34, 22, 24, '#34437f']].forEach(([x, y, w, h, c]) => out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fffaf5" stroke="#8a6a48" stroke-width="2"/><circle cx="${x + w / 2}" cy="${y + h * 0.42}" r="${Math.min(w, h) * 0.2}" fill="${c}"/><path d="M${x + 4} ${y + h - 3} q${w / 2 - 4} -${h * 0.35} ${w - 8} 0" fill="${c}" opacity=".7"/>`));
+      out.push('<circle cx="60" cy="-26" r="12" fill="#fffaf5" stroke="#8a6a48" stroke-width="2"/><path d="M60 -26 V-34 M60 -26 L66 -23" stroke="#4b3a2f" stroke-width="1.4"/>');
+    }
     // lamp + bookshelf
-    out.push('<path d="M150 -60 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
+    out.push('<path d="M150 -200 V22" stroke="#555"/><path d="M138 34 L162 34 L156 22 L144 22 Z" fill="#e9c35a"/><ellipse cx="150" cy="38" rx="26" ry="10" fill="#fff6c8" opacity=".5"/>');
     out.push('<rect x="330" y="40" width="58" height="110" fill="#8a6a48"/><path d="M330 76 H388 M330 112 H388" stroke="#6e5238" stroke-width="3"/>' +
       [[336, 50, '#c44d6c'], [344, 54, '#1d6b6b'], [352, 48, '#e9c35a'], [362, 52, '#34437f'], [338, 86, '#9db69a'], [348, 90, '#ee7d61'], [370, 88, '#6b2a5e']].map(([x, y, c]) => `<rect x="${x}" y="${y}" width="7" height="${y < 70 ? 74 - y : 110 - y}" fill="${c}"/>`).join(''));
     // Elizabeth's drawings
@@ -856,12 +891,12 @@
     const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && (dmood === 'sit' || dmood === 'tower') ? [82, 98] : dmood === 'fetch' && has('feather') ? [128, 186] : [70, 184];
     top.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
     // the taller view has room for a soft rug and a big plant in front
-    if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="300" rx="120" ry="22" fill="#e7c9b0"/><ellipse cx="160" cy="300" rx="108" ry="18" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
-      + '<g transform="translate(352 238)"><path d="M-14 66 l4 -24 h20 l4 24Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M0 42 Q-26 20 -20 -8 Q-4 10 0 42Z"/><path d="M0 42 Q24 16 22 -12 Q6 8 0 42Z"/><path d="M0 42 Q-2 6 8 -22 Q-10 0 0 42Z"/><path d="M0 42 Q-30 34 -34 14 Q-14 20 0 42Z"/></g></g>');
+    if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="228" rx="120" ry="16" fill="#e7c9b0"/><ellipse cx="160" cy="228" rx="108" ry="12" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
+      + '<g transform="translate(352 176)"><path d="M-14 66 l4 -24 h20 l4 24Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M0 42 Q-26 20 -20 -8 Q-4 10 0 42Z"/><path d="M0 42 Q24 16 22 -12 Q6 8 0 42Z"/><path d="M0 42 Q-2 6 8 -22 Q-10 0 0 42Z"/><path d="M0 42 Q-30 34 -34 14 Q-14 20 0 42Z"/></g></g>');
     // Elizabeth last, so she is in front of the furniture
     // she grows a little every year (3 years old at the start)
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
-    const eh = (opts.tall ? 92 : 62) * grow, footY = opts.tall ? 306 : 190;
+    const eh = (opts.tall ? 80 : 62) * grow, footY = opts.tall ? 238 : 190;
     const ex = opts.tall ? 143 : has('tricycle') ? 127 : 165;
     top.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, ex, footY, eh, { child: true })}${opts.bounce === 'elizabeth' ? hearts(ex, footY - eh) : ''}</g>`);
     // Pooh sits next to her, or is hugged when she is tapped
@@ -873,7 +908,7 @@
   // ---------------- the garden (or balcony boxes while the family lives in the flat) ----------------
   // Painted room: sky, fence or balcony, lawn; upper layer: the six beds you tap, Elizabeth with her watering can.
   DG.BED_POS = [[64, 176], [118, 164], [172, 178], [226, 164], [280, 178], [334, 164]];
-  const BED_TALL = [[120, 218], [240, 218], [340, 212], [60, 286], [180, 286], [300, 286]];
+  const BED_TALL = [[110, 190], [230, 190], [340, 186], [56, 236], [176, 236], [296, 236]];
   DG.renderGarden = function (G, opts = {}) {
     const se = DG.season(G).id, flat = !G.home.house, out = [], top = [];
     const snow = se === 'winter', lawn = snow ? '#f4f6f8' : se === 'autumn' ? '#a9a253' : se === 'summer' ? '#86b86a' : '#8fc274';
@@ -903,18 +938,18 @@
       if (se === 'autumn') { const r = rng(G.day * 5 + 1); for (let k = 0; k < 22; k++) out.push(`<ellipse cx="${(r() * 420 - 10).toFixed(1)}" cy="${(140 + r() * 70).toFixed(1)}" rx="2.6" ry="1.4" fill="${['#d9822b', '#b5481f', '#e2b13c'][k % 3]}"/>`); }
     }
     // the beds: soil in the lawn, or a terracotta box on the balcony
-    const POS = opts.tall && !flat ? BED_TALL : DG.BED_POS, K = opts.tall && !flat ? 1.55 : 1;
+    const POS = opts.tall && !flat ? BED_TALL : DG.BED_POS, K = opts.tall && !flat ? 1.3 : 1;
     const at = (i, svg) => `<g transform="translate(${POS[i][0]} ${POS[i][1]}) scale(${K})">${svg}</g>`;
     if (flat) out.push('<path d="M-300 152 H700 M-300 188 H700" stroke="#2f2a2a" stroke-width="2.4"/>' + Array.from({ length: 50 }, (_, k) => `<path d="M${-300 + k * 20} 152 V188" stroke="#2f2a2a" stroke-width="1.4"/>`).join(''));
     POS.forEach((_, i) => out.push(at(i, flat ? `<path d="M-20 -6 h40 l-4 14 h-32Z" fill="#c26a45" stroke="#9a4e30" stroke-width="1"/>${snow ? '<path d="M-21 -6 q21 -6 42 0Z" fill="#fff"/>' : ''}` : `<ellipse cx="0" cy="0" rx="22" ry="7" fill="${snow ? '#fff' : '#7a5236'}"/>${snow ? '' : '<ellipse cx="0" cy="-1" rx="18" ry="4.5" fill="#8f6440"/>'}`)));
-    if (flat) out.push(`<g transform="translate(40 ${opts.tall ? 236 : 196})"><rect x="-7" y="-16" width="14" height="16" rx="2" fill="#2f2a2a"/><rect x="-5" y="-14" width="10" height="12" fill="#ffd27a"/><path d="M-5 -16 q5 -7 10 0" stroke="#2f2a2a" stroke-width="1.6" fill="none"/></g>`);
+    if (flat) out.push(`<g transform="translate(40 ${opts.tall ? 222 : 196})"><rect x="-7" y="-16" width="14" height="16" rx="2" fill="#2f2a2a"/><rect x="-5" y="-14" width="10" height="12" fill="#ffd27a"/><path d="M-5 -16 q5 -7 10 0" stroke="#2f2a2a" stroke-width="1.6" fill="none"/></g>`);
     if (snow) { const r = rng(G.day * 11 + 2); for (let k = 0; k < 34; k++) out.push(`<circle cx="${(r() * 440 - 20).toFixed(1)}" cy="${(r() * 200 - 50).toFixed(1)}" r="${(1 + r() * 1.4).toFixed(1)}" fill="#fff" opacity=".85"/>`); }
     // an apple tree at the back of the garden
     if (!flat) out.push(`<path d="M30 132 V70" stroke="#7a5236" stroke-width="7"/><circle cx="30" cy="62" r="30" fill="${snow ? '#eef2f4' : se === 'autumn' ? '#c98a3a' : '#5f9a5a'}"/>${se === 'summer' || se === 'autumn' ? [[18, 56], [38, 50], [26, 74], [44, 68]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#d6273b"/>`).join('') : se === 'spring' ? [[18, 56], [38, 48], [26, 72], [44, 66], [32, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fbe3ea"/>`).join('') : ''}`);
     if (!flat) out.push('<g transform="translate(36 96)"><path d="M-6 0 L0 -6 L6 0Z" fill="#c44d6c"/><rect x="-5" y="0" width="10" height="10" fill="#e9c35a"/><circle cx="0" cy="5" r="2" fill="#4b3a2f"/></g>');
     // the balcony: fairy lights along the railing, a café chair and a little table with a mug
     if (flat) out.push('<path d="M-300 150 Q-200 158 -100 150 T100 150 T300 150 T500 150 T700 150" stroke="#4b3a2f" stroke-width=".8" fill="none"/>' + Array.from({ length: 30 }, (_, k) => { const x = -300 + k * 34, y = 150 + 4 * Math.abs(Math.sin(k * 1.57)); return `<circle cx="${x}" cy="${y.toFixed(1)}" r="2.2" fill="#ffd98a"/><circle cx="${x}" cy="${y.toFixed(1)}" r="5" fill="#ffd98a" opacity=".22"/>`; }).join('')
-      + `<g transform="translate(${opts.tall ? 330 : 360} ${opts.tall ? 250 : 206})"><path d="M-10 0 v-14 h20 v14 M0 -14 v14" stroke="#2f2a2a" stroke-width="1.6" fill="none"/><ellipse cx="0" cy="-15" rx="13" ry="3" fill="#2f2a2a"/><rect x="-3" y="-22" width="6" height="7" rx="1" fill="#fffaf5"/></g>`);
+      + `<g transform="translate(${opts.tall ? 330 : 360} ${opts.tall ? 232 : 206})"><path d="M-10 0 v-14 h20 v14 M0 -14 v14" stroke="#2f2a2a" stroke-width="1.6" fill="none"/><ellipse cx="0" cy="-15" rx="13" ry="3" fill="#2f2a2a"/><rect x="-3" y="-22" width="6" height="7" rx="1" fill="#fffaf5"/></g>`);
     // what grows in each bed (tap to plant or to pick)
     G.home.garden.beds.forEach((b, i) => {
       const x = 0, y = 0, st = DG.tulipStage(G, b), t = b && (DG.TULIPS.find(k => k.id === b.c) || DG.TULIPS[0]);
@@ -930,9 +965,9 @@
     });
     // Elizabeth helps with her watering can (a bucket and spade in winter)
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3)), eh = 70 * grow;
-    const ex = opts.tall ? 372 : 380, ey = opts.tall ? 316 : 206, eH = opts.tall ? eh * 1.45 : eh;
+    const ex = opts.tall ? 372 : 380, ey = opts.tall ? 244 : 206, eH = opts.tall ? eh * 1.3 : eh;
     top.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, 'happy', ex, ey, eH, { child: true })}`
-      + (snow ? '' : `<g transform="translate(${ex + 12} ${ey - eH * 0.42}) scale(${opts.tall ? 1.4 : 1})"><path d="M0 0 h10 l-1 9 h-8Z" fill="#6aa58f"/><path d="M10 2 l7 -5" stroke="#6aa58f" stroke-width="2"/><path d="M2 0 q3 -6 6 0" stroke="#4d7a6a" fill="none"/></g>`) + '</g>');
+      + (snow ? '' : `<g transform="translate(${ex + 12} ${ey - eH * 0.42}) scale(${opts.tall ? 1.25 : 1})"><path d="M0 0 h10 l-1 9 h-8Z" fill="#6aa58f"/><path d="M10 2 l7 -5" stroke="#6aa58f" stroke-width="2"/><path d="M2 0 q3 -6 6 0" stroke="#4d7a6a" fill="none"/></g>`) + '</g>');
     return sceneLayers('shop-scene garden-scene', opts, flat ? 'The balcony' : 'The garden', out, top);
   };
 
