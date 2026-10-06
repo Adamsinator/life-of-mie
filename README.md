@@ -45,6 +45,16 @@ Updates of the game must never cost anyone their progress:
 - **Frozen saves.** `tests/fixtures` holds real saves made by every earlier version. `tests/saves.test.js` checks that each opens with its day, money, reputation, upgrades, stock, customers, home, mortgage, wardrobe and goals intact, and plays on.
 - The game asks the browser for persistent storage. Safari may still clear website data after a long break, so on iPad, **Add to Home Screen** (which keeps storage) and an occasional save code are the safest.
 
+## Look: Akvarel
+
+The whole game is styled as a hand-painted storybook (`css/akvarel.css`, loaded after `css/style.css`):
+
+- **Paper and ink:** warm watercolour paper with a fine grain (made once at start-up on a canvas, no image file), panels and cards like sheets of paper with an ink outline and slightly uneven corners, pastel washes for chips, tabs and banners.
+- **Lettering:** Caveat (handwritten) for headings, names, money, speech and buttons; Quicksand for running text. Both are bundled in `fonts/`.
+- **Painted art:** an SVG watercolour filter (`#akvarel` in `index.html`) gives the shop, home, dresses, pots and thumbnails soft, slightly wobbly painted edges with paper grain; portraits get a lighter version. Things that move while you play (the potter's wheel, cutting, ironing, painting) are left unfiltered so they stay at 60 frames per second, and the scenes themselves hold still under the filter.
+- **The dock:** the menu is a strip of paper at the bottom of the screen with hand-drawn ink icons over a watercolour wash; the top strip only holds the shop's name, the day, the purse and the stars.
+- **Night paper:** the dark theme is indigo paper with cream ink.
+
 ## Feel on iPad
 
 - Made for an iPad **lying down (landscape)**. Shop and home keep the scene on the left and what you do on the right; the workshop and pottery keep the preview in view while you choose.

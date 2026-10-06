@@ -2,9 +2,9 @@
 // (GitHub Pages updates arrive as usual); the copy kept here is only used when there is no connection.
 // This file never touches saved games, which live in localStorage.
 const CACHE = 'life-of-mie';
-const CORE = ['./', 'index.html', 'manifest.webmanifest', 'css/fonts.css', 'css/style.css',
+const CORE = ['./', 'index.html', 'manifest.webmanifest', 'css/fonts.css', 'css/style.css', 'css/akvarel.css',
   'js/i18n.js', 'js/lang-da.js', 'js/data.js', 'js/logic.js', 'js/stories.js', 'js/render.js', 'js/audio.js', 'js/profiles.js', 'js/minigames.js', 'js/ui.js',
-  'fonts/fredoka.woff2', 'fonts/nunito.woff2', 'fonts/pacifico.woff2',
+  'fonts/fredoka.woff2', 'fonts/nunito.woff2', 'fonts/pacifico.woff2', 'fonts/caveat.woff2', 'fonts/quicksand.woff2',
   'icons/icon.svg', 'icons/apple-touch-icon.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {

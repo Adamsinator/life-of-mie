@@ -112,32 +112,36 @@
 
     // ---- bodice ----
     const strapless = ['sweetheart', 'offshoulder', 'halter'].includes(neck);
+    // shoulders slope down from the neck to the shoulder point (69,66); the armhole curves in to the underarm (75,86)
     const tops = {
-      round: 'M72 62 L88 58 Q100 80 112 58 L128 62',
-      vneck: 'M72 62 L88 58 L100 95 L112 58 L128 62',
-      square: 'M72 62 L86 59 L86 78 L114 78 L114 59 L128 62',
-      collar: 'M72 62 L90 56 Q100 70 110 56 L128 62',
-      sweetheart: 'M72 84 C74 74 84 72 92 76 Q100 81 100 86 Q100 81 108 76 C116 72 126 74 128 84',
-      offshoulder: 'M66 72 Q100 80 134 72',
-      halter: 'M76 84 L94 50 L106 50 L124 84',
+      round: 'M69 66 L88 55 Q100 79 112 55 L131 66',
+      vneck: 'M69 66 L88 55 L100 95 L112 55 L131 66',
+      square: 'M69 66 L86 57 L86 78 L114 78 L114 57 L131 66',
+      collar: 'M69 66 L90 54 Q100 69 110 54 L131 66',
+      sweetheart: 'M75 86 C75 75 84 72 92 76 Q100 81 100 86 Q100 81 108 76 C116 72 125 75 125 86',
+      offshoulder: 'M66 72 Q100 80 134 72 L125 86',
+      halter: 'M75 86 L94 50 L106 50 L125 86',
     };
     const neckBottom = { round: 80, vneck: 95, square: 78, collar: 70, sweetheart: 86, offshoulder: 78, halter: 70 }[neck];
-    const bodiceFrom = top => `${top} L128 84 L122 ${W} L78 ${W} L72 84 Z`;
+    const bodiceFrom = (top, strapped) => strapped
+      ? `${top} Q127 77 125 86 L122 ${W} L78 ${W} L75 86 Q73 77 69 66 Z`
+      : `${top} L122 ${W} L78 ${W} L75 86 Z`;
     const isPina = sil === 'pinafore';
-    const bodice = isPina ? bodiceFrom('M76 84 L80 78 L120 78 L124 84') : bodiceFrom(tops[neck]);
+    const bodice = isPina ? bodiceFrom('M75 86 L80 78 L120 78 L125 86') : bodiceFrom(tops[neck], !strapless);
     const blouseFill = fa ? accFill : '#fbfaf6';
     const blouseLine = fa ? accLine : '#cfc6b8';
 
-    // ---- sleeves (left shape, mirrored for right) ----
+    // ---- sleeves (left shape, mirrored for right), each set into the armhole ----
+    const arm = 'L75 86 Q71 76 70 65 Z';
     const sleeveShapes = {
-      cap: 'M72 62 Q60 64 58 78 Q64 82 72 84 Z',
-      short: 'M72 62 Q60 62 55 70 L50 98 Q60 102 70 98 L72 84 Z',
-      long: 'M72 62 Q60 62 55 70 L46 170 Q53 174 61 170 L68 95 L72 84 Z',
-      puff: 'M72 62 C50 54 42 82 54 94 Q63 100 72 88 Z',
-      bell: 'M72 62 Q60 62 56 72 L50 130 Q44 160 34 172 Q52 180 66 168 Q64 140 68 100 L72 84 Z',
+      cap: `M70 65 Q58 67 56 80 Q63 86 ${arm.slice(1)}`,
+      short: `M70 65 Q58 66 53 76 L48 100 Q58 105 69 101 ${arm}`,
+      long: `M70 65 Q58 66 53 76 L44 170 Q51 174 59 170 L67 100 ${arm}`,
+      puff: `M70 65 C52 54 40 80 52 95 Q61 102 ${arm.slice(1)}`,
+      bell: `M70 65 Q58 66 54 76 L48 130 Q42 160 32 172 Q50 180 64 168 Q62 140 67 100 ${arm}`,
     };
     const sleevePath = sleeveShapes[d.sleeves];
-    const sleeveShift = strapless && !isPina ? 'translate(-2 10)' : '';
+    const sleeveShift = strapless && !isPina ? 'translate(4 19)' : '';   // off the shoulder: set against the bodice side
     const sleeveFill = isPina ? blouseFill : accFill;
     const sleeveLine = isPina ? blouseLine : (fa ? accLine : line);
     const sleeves = sleevePath
@@ -171,7 +175,7 @@
     const op = fm && fm.tex === 'sheer' ? ' opacity=".9"' : '';
     if (isPina) {
       // blouse underneath the pinafore
-      out.push(`<path d="${bodiceFrom(tops[neck])}" fill="${blouseFill}" stroke="${blouseLine}" stroke-width=".8"/>`);
+      out.push(`<path d="${bodiceFrom(tops[neck], !strapless)}" fill="${blouseFill}" stroke="${blouseLine}" stroke-width=".8"/>`);
       out.push(sleeves);
     } else {
       out.push(sleeves);
@@ -207,7 +211,7 @@
     out.push(`<g clip-path="url(#${P}c)">${det.join('')}</g>`);
     // sleeve finishes: cuffs on long sleeves, a band on short ones, gathers on puffs
     if (sleevePath && !isPina) {
-      const sl = d.sleeves === 'long' ? 'M47 160 Q54 166 61 162' : d.sleeves === 'short' ? 'M51 92 Q60 98 69 94' : d.sleeves === 'puff' ? 'M50 70 Q54 80 56 92 M58 64 Q60 76 62 90' : d.sleeves === 'bell' ? 'M38 166 Q52 174 64 164' : '';
+      const sl = d.sleeves === 'long' ? 'M45 162 Q52 168 60 164' : d.sleeves === 'short' ? 'M49 96 Q58 101 69 97' : d.sleeves === 'puff' ? 'M50 70 Q54 80 56 92 M58 64 Q60 76 62 90' : d.sleeves === 'bell' ? 'M38 166 Q52 174 64 164' : '';
       if (sl) out.push(`<g transform="${sleeveShift}"><path d="${sl}" stroke="${darken(fa ? accHex : mainHex, 0.3)}" stroke-width="1.2" fill="none" opacity=".7"/></g><g transform="translate(200 0) scale(-1 1) ${sleeveShift}"><path d="${sl}" stroke="${darken(fa ? accHex : mainHex, 0.3)}" stroke-width="1.2" fill="none" opacity=".7"/></g>`);
     }
 
