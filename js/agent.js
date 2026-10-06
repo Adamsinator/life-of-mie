@@ -100,21 +100,58 @@
 
   // ---------------- tiny pixel helpers ----------------
   const R = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), w, h); };
+  // a 5x7 pixel font, as in the games of the 90s (capitals, ÆØÅ, digits and the punctuation the texts use)
+  const GLYPHS = {
+    A: '01110100011000111111100011000110001', B: '11110100011000111110100011000111110', C: '01110100011000010000100001000101110',
+    D: '11110100011000110001100011000111110', E: '11111100001000011110100001000011111', F: '11111100001000011110100001000010000',
+    G: '01110100011000010111100011000101111', H: '10001100011000111111100011000110001', I: '01110001000010000100001000010001110',
+    J: '00111000100001000010000101001001100', K: '10001100101010011000101001001010001', L: '10000100001000010000100001000011111',
+    M: '10001110111010110101100011000110001', N: '10001110011010110011100011000110001', O: '01110100011000110001100011000101110',
+    P: '11110100011000111110100001000010000', Q: '01110100011000110001101011001001101', R: '11110100011000111110101001001010001',
+    S: '01111100001000001110000010000111110', T: '11111001000010000100001000010000100', U: '10001100011000110001100011000101110',
+    V: '10001100011000110001100010101000100', W: '10001100011000110101101011010101010', X: '10001100010101000100010101000110001',
+    Y: '10001100010101000100001000010000100', Z: '11111000010001000100010001000011111',
+    'Æ': '01111101001010011111101001010010111', 'Ø': '01110100111010110101101011100101110', 'Å': '00100000000111010001111111000110001',
+    '0': '01110100111010110101110011000101110', '1': '00100011000010000100001000010001110', '2': '01110100010000100110010001000011111',
+    '3': '11110000010000101110000010000111110', '4': '00010001100101010010111110001000010', '5': '11111100001111000001000011000101110',
+    '6': '00110010001000011110100011000101110', '7': '11111000010001000100010000100001000', '8': '01110100011000101110100011000101110',
+    '9': '01110100011000101111000010001001100',
+    '.': '00000000000000000000000000110001100', ',': '00000000000000000000011000010001000', ':': '00000011000110000000011000110000000',
+    '!': '00100001000010000100001000000000100', '?': '01110100010000100010001000000000100', "'": '00100001000100000000000000000000000',
+    '"': '01010010100000000000000000000000000', '-': '00000000000000011111000000000000000', '/': '00001000100001000100010000100010000',
+    '(': '00010001000100001000010000010000010', ')': '01000001000001000010000100010001000', '%': '11001110100001000100010000101110011',
+    '+': '00000001000010011111001000010000000', '©': '01110100011011110100101111000101110', '★': '00100001001111101110011100110110001',
+    '☆': '00100010101101110001010101010111011', '·': '00000000000000000100000000000000000', '_': '00000000000000000000000000000011111',
+  };
+  const glyphW = scale => 6 * scale;
+  const textW = (s, scale) => String(s).length * glyphW(scale) - scale;
+  const scaleOf = size => (size >= 28 ? 4 : size >= 12 ? 2 : 1);
+  function blit(c, s, x, y, col, k) {
+    c.fillStyle = col;
+    let cx = x;
+    for (const ch0 of String(s).toUpperCase()) {
+      const gl = GLYPHS[ch0];
+      if (gl) for (let i = 0; i < 35; i++) if (gl[i] === '1') c.fillRect(cx + (i % 5) * k, y + Math.floor(i / 5) * k, k, k);
+      cx += glyphW(k);
+    }
+  }
   function txt(c, s, x, y, col = '#fff', size = 8, align = 'left', shadow = '#000') {
-    c.font = `bold ${size}px "Courier New", monospace`; c.textAlign = align; c.textBaseline = 'top';
-    if (shadow) { c.fillStyle = shadow; c.fillText(s, Math.round(x) + 1, Math.round(y) + 1); }
-    c.fillStyle = col; c.fillText(s, Math.round(x), Math.round(y));
+    const k = scaleOf(size), w = textW(s, k);
+    x = Math.round(align === 'center' ? x - w / 2 : align === 'right' ? x - w : x); y = Math.round(y);
+    if (shadow) blit(c, s, x + k, y + k, shadow, k);
+    blit(c, s, x, y, col, k);
   }
   function wrap(c, s, x, y, maxW, col, size = 8, lh = 11) {
-    c.font = `bold ${size}px "Courier New", monospace`;
+    const k = scaleOf(size);
     let line = '', yy = y;
     for (const w of s.split(' ')) {
       const t2 = line ? line + ' ' + w : w;
-      if (c.measureText(t2).width > maxW && line) { txt(c, line, x, yy, col, size); line = w; yy += lh; } else line = t2;
+      if (textW(t2, k) > maxW && line) { txt(c, line, x, yy, col, size); line = w; yy += lh; } else line = t2;
     }
     if (line) txt(c, line, x, yy, col, size);
     return yy + lh;
   }
+  const lock = (c, x, y) => { R(c, x + 2, y, 6, 2, '#e9c35a'); R(c, x + 1, y + 1, 2, 4, '#e9c35a'); R(c, x + 7, y + 1, 2, 4, '#e9c35a'); R(c, x, y + 5, 10, 8, '#e9a93a'); R(c, x + 4, y + 7, 2, 3, '#5a3a1a'); };
   const heart = (c, x, y, full) => { const col = full ? '#e8364d' : '#4a2a33'; R(c, x + 1, y, 2, 1, col); R(c, x + 4, y, 2, 1, col); R(c, x, y + 1, 7, 2, col); R(c, x + 1, y + 3, 5, 1, col); R(c, x + 2, y + 4, 3, 1, col); R(c, x + 3, y + 5, 1, 1, col); };
 
   // Adam: no beard, a light blue shirt and a tie, and (on duty) sunglasses
@@ -223,7 +260,7 @@
       R(c, 0, 30, cv.width, 150, '#2a2c33');
       for (let x = 0; x < cv.width; x += 12) for (let y = 34; y < 176; y += 8) R(c, x + ((y / 8) % 2) * 6, y, 11, 7, '#30333b');
       for (let x = 40; x < cv.width; x += 120) { R(c, x, 40, 30, 4, '#fff6c8'); R(c, x - 10, 44, 50, 30, 'rgba(255,246,200,0.06)'); }
-      for (let x = 100; x < cv.width; x += 300) { R(c, x, 70, 60, 16, '#3f6f9a'); txt(c, 'M', x + 4, 72, '#fff', 12, 'left', null); txt(c, 'KGS. NYTORV', x + 16, 75, '#fff', 7, 'left', null); }
+      for (let x = 100; x < cv.width; x += 300) { R(c, x, 69, 90, 18, '#3f6f9a'); txt(c, 'M', x + 4, 71, '#fff', 12, 'left', null); txt(c, 'KGS. NYTORV', x + 20, 74, '#fff', 7, 'left', null); }
     } else if (theme === 'bridge') {   // the sea, Sweden on the horizon, pylons and cables
       R(c, 0, 150, cv.width, 66, '#3f7fae'); for (let x = 0; x < cv.width; x += 14) R(c, x + (x % 28 ? 0 : 6), 160 + (x % 3) * 12, 6, 1, '#8fc0e0');
       R(c, 0, 146, cv.width, 4, '#7d8a72');
@@ -491,6 +528,8 @@
   }
 
   // ---------------- drawing ----------------
+  // The game is drawn at its own 384x216 and the screen scales it up with hard pixel edges (image-rendering: pixelated);
+  // with the pixel font every letter stays sharp, and nothing large has to be repainted each frame.
   function draw() {
     const c = ctx;
     c.imageSmoothingEnabled = false;
@@ -564,12 +603,13 @@
       S.boxes.push({ x, y, w, h, i, open });
       txt(c, String(i + 1), x + w / 2, y + 8, open ? '#ffd27a' : '#3a4a6a', 16, 'center');
       const th = THEMES[lv.id];
-      R(c, x + 8, y + 32, w - 16, 30, th.sky[1]); R(c, x + 8, y + 54, w - 16, 8, th.ground); R(c, x + 8, y + 54, w - 16, 2, th.top);
-      if (!open) { R(c, x + 8, y + 32, w - 16, 30, 'rgba(0,0,0,.6)'); txt(c, '🔒', x + w / 2 - 5, y + 40, '#fff', 10, 'left', null); }
-      c.font = 'bold 8px "Courier New", monospace';
-      const nm = lv.name(), small = c.measureText(nm).width > w - 10;
-      if (small) wrap(c, nm.replace('sundsbroen', 'sunds- broen').replace('Bridge', ' Bridge'), x + 6, y + 68, w - 10, open ? '#fff' : '#3a4a6a', 7, 9);
-      else wrap(c, nm, x + 6, y + 68, w - 10, open ? '#fff' : '#3a4a6a', 8, 10);
+      S.thumbs = S.thumbs || {};
+      if (!S.thumbs[lv.id]) S.thumbs[lv.id] = paintBackground(lv.id, 40);
+      c.imageSmoothingEnabled = true; c.drawImage(S.thumbs[lv.id], 0, 0, W, H, x + 8, y + 32, w - 16, 30); c.imageSmoothingEnabled = false;
+      R(c, x + 8, y + 56, w - 16, 6, th.ground); R(c, x + 8, y + 56, w - 16, 1, th.top);
+      if (!open) { R(c, x + 8, y + 32, w - 16, 30, 'rgba(0,0,0,.55)'); lock(c, x + w / 2 - 5, y + 40); }
+      const nm = lv.name().replace('Øresundsbroen', 'Øresunds- broen');
+      wrap(c, nm, x + 6, y + 68, w - 10, open ? '#fff' : '#5a6a8a', 8, 10);
       const b = best[i];
       if (b) { txt(c, '★'.repeat(b.stars) + '☆'.repeat(3 - b.stars), x + w / 2, y + 96, '#ffd27a', 9, 'center'); txt(c, String(b.score), x + w / 2, y + 107, '#7fd0ff', 7, 'center'); }
     });
