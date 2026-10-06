@@ -331,6 +331,8 @@
     'Cut the pattern': 'Klip mønsteret ud', 'Cut the skirt panel': 'Klip skørtedelen ud', 'Cut the bodice': 'Klip overdelen ud', 'Cut a sleeve': 'Klip et ærme ud', 'Trace the dashed line with your finger, all the way round. Start at the gold dot.': 'Følg den stiplede linje med fingeren hele vejen rundt. Start ved den gyldne prik.',
     'Ready, steady, snip!': 'Klar, parat, klip!', 'Clean cut!': 'Rent snit!', 'Not bad at all.': 'Slet ikke dårligt.', 'A bit jagged...': 'Lidt takket...',
     'Iron the dress': 'Stryg kjolen', 'Hold and swipe the iron over every wrinkle before time runs out.': 'Hold og stryg strygejernet hen over hver fold, før tiden løber ud.',
+    'Hold the iron on each wrinkle until it smooths out. Keep it moving, or it scorches!': 'Hold strygejernet på hver fold, til den glatter sig ud. Hold det i bevægelse, ellers svider du stoffet!',
+    'Ouch, a scorch mark! Keep the iron moving.': 'Av, et brændemærke! Hold strygejernet i bevægelse.', 'A little singed in places...': 'Lidt svedet hist og her...',
     '{0} wrinkles to go': '{0} folder tilbage', 'All smooth!': 'Helt glat!', 'Crisp as a fresh baguette!': 'Sprød som en frisk baguette!', 'Nicely pressed.': 'Pænt presset.', 'Still a little crumpled...': 'Stadig lidt krøllet...',
     'Knead the clay': 'Ælt leret', 'Tap as fast as you can to push the air bubbles out. {0} kneads is perfect.': 'Tryk så hurtigt du kan for at presse luftboblerne ud. {0} æltninger er perfekt.',
     'Knead!': 'Ælt!', 'Perfectly wedged!': 'Perfekt æltet!', 'Good enough.': 'Godt nok.', 'There may be a bubble or two...': 'Der er måske en boble eller to...',

@@ -933,7 +933,7 @@
     return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
-        <h2>Mie's home <button class="icon-btn" data-act="adamjob" aria-label="Adam's work" title="Adam's work">💼</button></h2>
+        <h2>Mie's home</h2>
         <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (${DG.elizabethAge(G)}) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
         <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
         <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
@@ -1506,6 +1506,12 @@
         const key = 'tap-' + arg;
         if (G.home.did[key] !== G.day) { G.home.did[key] = G.day; G.home.happy = clamp(G.home.happy + 2, 0, 100); }
         sfx(arg === 'pooh' ? 'squish' : arg === 'dexter' ? 'purr' : 'good');
+        // Adam's secret: three quick taps on him and he slips off to his "office job"
+        if (arg === 'adam') {
+          const t = Date.now();
+          UI.adamTaps = (UI.adamTaps || []).filter(x => t - x < 1500).concat(t);
+          if (UI.adamTaps.length >= 3) { UI.adamTaps = []; UI.bounce = null; clearTimeout(UI.bounceT); setTimeout(() => act('adamjob'), 250); }
+        }
         break;
       }
       case 'readmail': { const m = DG.mailToday(G)[0]; if (m) { UI.overlay = { type: 'letter', m }; sfx('good'); } break; }

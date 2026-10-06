@@ -21,6 +21,8 @@
     const t = L ? clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L, 0, 1) : 0;
     return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
   }
+  // how light a colour is, 0 (black) to 1 (white)
+  const lum = hex => { const n = parseInt(String(hex).replace('#', '').slice(0, 6), 16); return isNaN(n) ? 1 : (0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; };
   // keep following a finger that slides off the board
   const capture = (el, e) => { try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } };
   function timerLoop(dur, onTick, onEnd) {
@@ -73,33 +75,42 @@
     // dense curves: thin out to roughly even 6-unit steps so tracing feels the same everywhere
     const even = [pts[0]];
     for (const q of pts) { const l = even[even.length - 1]; if (Math.hypot(q[0] - l[0], q[1] - l[1]) >= 5.5) even.push(q); }
-    even.push(pts[pts.length - 1]);
+    // end exactly on the last point (replacing a near one, so two points never sit on top of each other)
+    const end = pts[pts.length - 1], le = even[even.length - 1];
+    if (Math.hypot(end[0] - le[0], end[1] - le[1]) < 3) even[even.length - 1] = end; else even.push(end);
     return { pts: even, key };
   }
   DG.MiniGames = {};
   DG.MiniGames.cut = function (host, opts, done) {
     const piece = samplePiece(opts.design), P = piece.pts;
     const color = opts.color || '#e8d7be';
+    // tailor's chalk: white on dark cloth, dark on light cloth, always with a contrasting edge
+    const dark = lum(color) < 0.45;
+    const chalk = dark ? { line: '#fbf6ee', halo: '#000', cut: '#ff9bb8' } : { line: '#2f1d2b', halo: '#fff', cut: '#c44d6c' };
+    const pts = P.map(p => p.join(',')).join(' ');
     const what = { bodice: 'the bodice', sleeve: 'a sleeve' }[piece.key] || 'the skirt panel';
     host.innerHTML = `${head(`Cut ${what} ✂️`, 'Trace the dashed line with your finger, all the way round. Start at the gold dot.')}
       <div class="mg-board"><svg class="mg-svg" viewBox="0 0 300 210">
         <rect x="6" y="6" width="288" height="198" rx="8" fill="${color}"/><rect x="6" y="6" width="288" height="198" rx="8" fill="url(#mgweave)" opacity=".25"/>
         <defs><pattern id="mgweave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 3H6M3 0V6" stroke="#000" stroke-width=".5"/></pattern></defs>
-        <polyline points="${P.map(p => p.join(',')).join(' ')}" fill="none" stroke="#2f1d2b" stroke-width="2" stroke-dasharray="6 5" opacity=".7"/>
-        <polyline id="mgtrail" points="" fill="none" stroke="#c44d6c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="${pts}" fill="none" stroke="${chalk.halo}" stroke-width="5" stroke-linejoin="round" opacity=".45"/>
+        <polyline class="mg-line" points="${pts}" fill="none" stroke="${chalk.line}" stroke-width="2.2" stroke-dasharray="6 5"/>
+        <path id="mgtrail" d="" fill="none" stroke="${chalk.cut}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         <circle cx="${P[0][0]}" cy="${P[0][1]}" r="7" fill="#e3b53b" class="mg-pulse"/>
         <g id="mgsc" transform="translate(-50 -50)"><text font-size="22" text-anchor="middle" dominant-baseline="middle">✂️</text></g>
       </svg></div>
       <div class="tprog"><i id="mgt"></i></div><div class="sfb" id="mgfb">Ready, steady, snip!</div>`;
     const svg = host.querySelector('svg'), trail = host.querySelector('#mgtrail'), sc = host.querySelector('#mgsc');
-    let k = 0, shownK = 0, errSum = 0, errN = 0, down = false, finished = false, ang = 0, last = null;
+    // k: how far along the line the cut has come. The red trail is where the scissors really went,
+    // so a cut beside the line shows (and costs accuracy) instead of snapping onto it
+    let k = 0, errSum = 0, errN = 0, down = false, finished = false, ang = 0, last = null, cutD = '', cutN = 0, lastCut = null;
     const finish = () => {
       if (finished) return;
       finished = true;
       stop();
       if (k >= P.length - 1) host.querySelector('.mg-board').classList.add('cut-done');
       const progress = k / (P.length - 1);
-      const acc = errN ? clamp(1 - errSum / errN / 16, 0, 1) : 0;
+      const acc = errN ? clamp(1 - errSum / errN / 12, 0, 1) : 0;
       const score = clamp(progress * (0.4 + 0.6 * acc), 0, 1);
       host.querySelector('#mgfb').textContent = score > 0.8 ? 'Clean cut! ✨' : score > 0.5 ? 'Not bad at all.' : 'A bit jagged...';
       setTimeout(() => done(score), 600);
@@ -110,7 +121,14 @@
         const d = Math.hypot(p.x - P[i][0], p.y - P[i][1]);
         if (d < bestD) { bestD = d; best = i; }
       }
-      errSum += Math.min(bestD, 30); errN++;
+      // the distance to the line itself (not just its sample points)
+      let off = Infinity;
+      for (let i = Math.max(0, k - 2); i < Math.min(P.length - 1, k + 9); i++) off = Math.min(off, segDist(p, { x: P[i][0], y: P[i][1] }, { x: P[i + 1][0], y: P[i + 1][1] }));
+      errSum += Math.min(off, 30); errN++;
+      if (!lastCut || Math.hypot(p.x - lastCut.x, p.y - lastCut.y) > 1.5) {
+        if (cutN < 1500) { cutD += `${lastCut ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`; cutN++; }
+        lastCut = p;
+      }
       if (bestD < 15 && best > k) {
         if (Math.floor(best / 6) > Math.floor(k / 6)) sfx('snip');
         k = best;
@@ -131,10 +149,10 @@
         last = p;
       } else if (!last) last = p;
       sc.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang.toFixed(0)})`);
-      if (k !== shownK) { shownK = k; trail.setAttribute('points', P.slice(0, k + 1).map(q => q.join(',')).join(' ')); }
+      if (down && trail.getAttribute('d') !== cutD) trail.setAttribute('d', cutD);
     };
-    const pd = e => { e.preventDefault(); capture(svg, e); down = true; last = null; move(e); };
-    const pu = () => { down = false; };
+    const pd = e => { e.preventDefault(); capture(svg, e); down = true; last = null; lastCut = null; move(e); };
+    const pu = () => { down = false; lastCut = null; };
     svg.addEventListener('pointerdown', pd);
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
@@ -146,27 +164,40 @@
   // ---------------- ironing: swipe away the wrinkles ----------------
   DG.MiniGames.iron = function (host, opts, done) {
     const color = opts.color || '#e8d7be';
+    const design = opts.design || {};
+    // each wrinkle needs a moment of steam (deeper creases longer); an iron left resting in one spot scorches,
+    // and delicate fabrics scorch sooner
+    const delicate = ['silk', 'chiffon', 'satin', 'organza', 'lace'].includes(design.main);
+    const SCORCH = delicate ? 0.6 : 0.95, R = 16;
     const W = [];
-    for (let i = 0; i < 11; i++) W.push({ x: 30 + Math.random() * 240, y: 30 + Math.random() * 150, r: Math.random() * 180, ok: false });
-    host.innerHTML = `${head('Iron the dress ♨️', 'Hold and swipe the iron over every wrinkle before time runs out.')}
+    for (let i = 0; i < 13; i++) {
+      let w, tries = 0;
+      do w = { x: 30 + Math.random() * 240, y: 30 + Math.random() * 150 }; while (tries++ < 20 && W.some(o => Math.hypot(o.x - w.x, o.y - w.y) < 30));
+      const deep = Math.random() < 0.35;
+      W.push(Object.assign(w, { r: Math.random() * 180, need: deep ? 0.55 : 0.28, heat: 0, ok: false, deep }));
+    }
+    const crease = DG.darken ? DG.darken(color, 0.35) : '#555';
+    host.innerHTML = `${head('Iron the dress ♨️', 'Hold the iron on each wrinkle until it smooths out. Keep it moving, or it scorches!')}
       <div class="mg-board"><svg class="mg-svg" viewBox="0 0 300 210">
         <rect x="6" y="6" width="288" height="198" rx="8" fill="${color}"/>
-        ${W.map((w, i) => `<path id="wr${i}" class="wrinkle" d="M-14 0 q3.5 -5 7 0 t7 0 t7 0 t7 0" transform="translate(${w.x.toFixed(0)} ${w.y.toFixed(0)}) rotate(${w.r.toFixed(0)})" stroke="${DG.darken ? DG.darken(color, 0.35) : '#555'}" stroke-width="2" fill="none"/>`).join('')}
-        <polyline id="sheen" points="" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+        <g id="scorch"></g>
+        ${W.map((w, i) => `<path id="wr${i}" class="wrinkle" d="${w.deep ? 'M-16 0 q4 -6 8 0 t8 0 t8 0 t8 0 M-12 5 q3 -4 6 0 t6 0 t6 0 t6 0' : 'M-14 0 q3.5 -5 7 0 t7 0 t7 0 t7 0'}" transform="translate(${w.x.toFixed(0)} ${w.y.toFixed(0)}) rotate(${w.r.toFixed(0)})" stroke="${crease}" stroke-width="${w.deep ? 2.4 : 2}" fill="none"/>`).join('')}
+        <polyline id="sheen" points="" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
         <g id="puffs"></g>
         <g id="mgiron" transform="translate(-60 -60)"><path d="M-16 8 L16 8 L12 -6 Q0 -12 -12 -4 Z" fill="#c44d6c" stroke="#7a2a3e"/><path d="M-6 -6 q6 -10 14 -2" stroke="#2f1d2b" stroke-width="3" fill="none"/><g id="steam" opacity="0"><circle cx="-8" cy="14" r="3" fill="#fff"/><circle cx="2" cy="16" r="4" fill="#fff"/><circle cx="10" cy="13" r="3" fill="#fff"/></g></g>
       </svg></div>
       <div class="tprog"><i id="mgt"></i></div><div class="sfb" id="mgfb">${W.length} wrinkles to go</div>`;
     const svg = host.querySelector('svg'), iron = host.querySelector('#mgiron'), steam = host.querySelector('#steam');
-    const sheen = host.querySelector('#sheen'), puffs = host.querySelector('#puffs');
-    let down = false, finished = false, prev = null, tilt = 0;
-    const trail = [];
+    const sheen = host.querySelector('#sheen'), puffs = host.querySelector('#puffs'), scorchG = host.querySelector('#scorch');
+    let down = false, finished = false, prev = null, tilt = 0, burns = 0, rest = null, lastT = 0;
+    const trail = [], path = [];   // path: where the iron went since the last frame
     const left = () => W.filter(w => !w.ok).length;
+    const fb = t => { host.querySelector('#mgfb').textContent = t; };
     const finish = () => {
       if (finished) return;
       finished = true; stop();
-      const score = 1 - left() / W.length;
-      host.querySelector('#mgfb').textContent = score >= 1 ? 'Crisp as a fresh baguette! ✨' : score > 0.6 ? 'Nicely pressed.' : 'Still a little crumpled...';
+      const score = clamp(1 - left() / W.length - burns * 0.15, 0, 1);
+      fb(score >= 0.98 ? 'Crisp as a fresh baguette! ✨' : score > 0.6 ? 'Nicely pressed.' : burns ? 'A little singed in places...' : 'Still a little crumpled...');
       setTimeout(() => done(score), 600);
     };
     const puff = (x, y) => {
@@ -177,25 +208,40 @@
       puffs.appendChild(el);
       setTimeout(() => el.remove(), 800);
     };
-    const press = p => {
-      // sweep the whole stretch since the last sample, so a quick swipe can't jump over a wrinkle
-      const a = prev || p;
+    // once a frame: steam every wrinkle the iron touched since the last frame, and watch for scorching
+    const tick = t => {
+      const dt = Math.min(0.05, lastT ? t - lastT : 0);
+      lastT = t;
+      if (!down || !prev || finished) { path.length = 0; return; }
+      const seg = path.length ? path.splice(0) : [prev];
       W.forEach((w, i) => {
-        if (!w.ok && segDist(w, a, p) < 22) {
+        if (w.ok) return;
+        let d = Infinity;
+        for (let j = 0; j < seg.length; j++) d = Math.min(d, segDist(w, j ? seg[j - 1] : seg[0], seg[j]));
+        if (d >= R) return;
+        w.heat += dt;
+        const el = host.querySelector('#wr' + i);
+        el.style.opacity = (1 - 0.75 * w.heat / w.need).toFixed(2);
+        if (w.heat >= w.need) {
           w.ok = true; sfx('steam'); puff(w.x, w.y);
-          host.querySelector('#wr' + i).classList.add('gone');
-          host.querySelector('#mgfb').textContent = left() ? `${left()} wrinkles to go` : 'All smooth!';
+          el.classList.add('gone');
+          fb(left() ? `${left()} wrinkles to go` : 'All smooth!');
           if (!left()) finish();
         }
       });
-      trail.push(p.x.toFixed(0) + ',' + p.y.toFixed(0));
-      if (trail.length > 24) trail.shift();
+      if (!rest || Math.hypot(prev.x - rest.x, prev.y - rest.y) > 7) rest = { x: prev.x, y: prev.y, t };
+      else if (t - rest.t > SCORCH) {
+        burns++; sfx('bad');
+        scorchG.insertAdjacentHTML('beforeend', `<path d="M-12 8 L12 8 L9 -4 Q0 -9 -9 -3 Z" transform="translate(${rest.x.toFixed(0)} ${rest.y.toFixed(0)})" fill="#5a3a1c" opacity=".45"/>`);
+        fb('Ouch, a scorch mark! Keep the iron moving.');
+        rest = { x: prev.x, y: prev.y, t };
+      }
     };
     const move = e => {
       let p = null;
       for (const ev of samples(e)) {
         p = svgPoint(svg, ev);
-        if (down && !finished) press(p);
+        if (down && !finished) { path.push(p); trail.push(p.x.toFixed(0) + ',' + p.y.toFixed(0)); if (trail.length > 24) trail.shift(); }
         if (prev && Math.hypot(p.x - prev.x, p.y - prev.y) > 1.5) tilt += (clamp((p.x - prev.x) * 2, -18, 18) - tilt) * 0.3;
         prev = p;
       }
@@ -204,13 +250,13 @@
       steam.setAttribute('opacity', down ? '0.8' : '0');
       sheen.setAttribute('points', down ? trail.join(' ') : '');
     };
-    const pd = e => { e.preventDefault(); capture(svg, e); down = true; prev = null; trail.length = 0; move(e); };
-    const pu = () => { down = false; prev = null; steam.setAttribute('opacity', '0'); sheen.setAttribute('points', ''); };
+    const pd = e => { e.preventDefault(); capture(svg, e); down = true; prev = null; rest = null; trail.length = 0; path.length = 0; move(e); };
+    const pu = () => { down = false; rest = null; steam.setAttribute('opacity', '0'); sheen.setAttribute('points', ''); };
     svg.addEventListener('pointerdown', pd);
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
     g.addEventListener('pointercancel', pu);
-    const stop = timerLoop(opts.time || 12, (t, f) => { const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
+    const stop = timerLoop(opts.time || 14, (t, f) => { tick(t); const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
     return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 

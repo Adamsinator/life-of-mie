@@ -90,9 +90,14 @@ const server = http.createServer((req, res) => {
   assert(!(await p.$('.morning-ov')) && await p.$('.view-shop'), 'the door opens into the shop');
   console.log('  morning door opens');
 
-  // Adam's secret: the 💼 opens the spreadsheet, the sunglasses open Agent Adam, and every mission runs
+  // Adam's secret: three quick taps on Adam open the spreadsheet, the sunglasses open Agent Adam, and every mission runs
   await p.evaluate(() => { window.__mie.act('view', 'home'); window.__mie.act('hometab', 'family'); });
-  await p.click('[data-act=adamjob]');
+  const adam = '[data-act=tapfamily][data-arg=adam]';
+  await p.click(adam); await p.waitForTimeout(500);
+  assert(!(await p.$('.agent')), 'one tap is just a hug');
+  await p.waitForTimeout(1200);
+  for (let i = 0; i < 3; i++) { await p.click(adam, { force: true }); await p.waitForTimeout(150); }
+  await p.waitForSelector('.agent .w95', { timeout: 2000 });
   assert(await p.$('.agent .w95'), 'the cover story opens');
   await p.click('.w95-shades');
   await p.waitForFunction(() => document.querySelector('.agent canvas'), null, { timeout: 4000 });
@@ -143,17 +148,42 @@ const server = http.createServer((req, res) => {
     window.__stop = DG.MiniGames[k](h, o, r => { window.__res = r; });
   }, [kind, opts]);
   const unmount = () => p.evaluate(() => { window.__stop(); document.getElementById('mgtest').remove(); });
-  await mount('iron', { time: 30 });
+  // ironing takes care: wild sweeps leave creases, steaming each wrinkle clears them, a resting iron scorches
+  const wrinkles = () => p.evaluate(() => { const m = document.querySelector('#mgtest svg').getScreenCTM(); return [...document.querySelectorAll('#mgtest .wrinkle')].map(w => { const t = /translate\(([\d.-]+) ([\d.-]+)\)/.exec(w.getAttribute('transform')); return [m.a * +t[1] + m.e, m.d * +t[2] + m.f, m.a]; }); });
+  await mount('iron', { time: 4 });
   let bb = await p.locator('#mgtest svg').boundingBox();
   await p.mouse.move(bb.x + 5, bb.y + 5); await p.mouse.down();
   for (let row = 0; row < 8; row++) {
     const y = bb.y + bb.height * (0.08 + row * 0.12);
-    await p.mouse.move(bb.x + bb.width * 0.97, y, { steps: 3 });   // fast: few samples per sweep
+    await p.mouse.move(bb.x + bb.width * 0.97, y, { steps: 3 });
     await p.mouse.move(bb.x + bb.width * 0.03, y + bb.height * 0.06, { steps: 3 });
   }
   await p.mouse.up();
-  await p.waitForFunction(() => window.__res !== undefined, null, { timeout: 3000 });
-  assert(await p.evaluate(() => window.__res) >= 0.9, 'fast ironing sweeps should catch the wrinkles');
+  await p.waitForFunction(() => window.__res !== undefined, null, { timeout: 6000 });
+  assert(await p.evaluate(() => window.__res) < 0.9, 'a few wild sweeps should not iron everything');
+  await unmount();
+  await mount('iron', { time: 30, design: { main: 'cotton' } });
+  const wr = await wrinkles();
+  await p.mouse.move(wr[0][0], wr[0][1]); await p.mouse.down();
+  for (const [x, y, k] of wr) for (let a = 0; a < 14; a += 0.5) { await p.mouse.move(x + 9 * k * Math.cos(a), y + 9 * k * Math.sin(a)); await p.waitForTimeout(16); }
+  await p.mouse.up();
+  await p.waitForFunction(() => window.__res !== undefined, null, { timeout: 6000 });
+  assert.strictEqual(await p.evaluate(() => window.__res), 1, 'steaming every wrinkle irons the dress');
+  await unmount();
+  await mount('iron', { time: 30, design: { main: 'silk' } });
+  bb = await p.locator('#mgtest svg').boundingBox();
+  await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.waitForTimeout(900); await p.mouse.up();
+  assert(/scorch/.test(await p.evaluate(() => document.querySelector('#mgfb').textContent)), 'a resting iron scorches silk');
+  await unmount();
+  // cutting finishes as soon as the line is traced all the way round, and the cut shows where the scissors went
+  await mount('cut', { time: 30, color: '#1f1f1f', design: { silhouette: 'aline', sleeves: 'none' } });
+  const line = await p.evaluate(() => { const m = document.querySelector('#mgtest svg').getScreenCTM(); return document.querySelector('#mgtest .mg-line').getAttribute('points').split(' ').map(q => { const [x, y] = q.split(',').map(Number); return [m.a * x + m.e, m.d * y + m.f]; }); });
+  await p.mouse.move(...line[0]); await p.mouse.down();
+  for (const q of line) await p.mouse.move(q[0], q[1], { steps: 2 });
+  await p.mouse.up();
+  await p.waitForFunction(() => window.__res !== undefined, null, { timeout: 2000 });
+  assert(await p.evaluate(() => window.__res) > 0.95, 'a clean cut along the line scores well and ends at once');
+  assert(await p.evaluate(() => document.querySelector('#mgtrail').getAttribute('d').length > 100), 'the cut is drawn');
   await unmount();
   await mount('paint', { pot: 1 });
   bb = await p.locator('#paintpot svg').boundingBox();

@@ -141,7 +141,9 @@
       bell: `M70 65 Q58 66 54 76 L48 130 Q42 160 32 172 Q50 180 64 168 Q62 140 67 100 ${arm}`,
     };
     const sleevePath = sleeveShapes[d.sleeves];
-    const sleeveShift = strapless && !isPina ? 'translate(4 19)' : '';   // off the shoulder: set against the bodice side
+    // off the shoulder: set against the bodice side. On the dress form (no arms inside) sleeves hang from its
+    // shoulders and fall in towards the body, the way fabric does
+    const sleeveShift = !opts.wearer ? 'rotate(-7 70 66)' : strapless && !isPina ? 'translate(4 19)' : '';
     const sleeveFill = isPina ? blouseFill : accFill;
     const sleeveLine = isPina ? blouseLine : (fa ? accLine : line);
     const sleeves = sleevePath
@@ -162,8 +164,12 @@
       out.push(`<ellipse cx="100" cy="318" rx="40" ry="6" fill="#000" opacity=".12"/>`);
       out.push(`<path d="M86 ${W + 10} Q85 260 88 312 L96 312 Q97 260 98 ${W + 10} Z M102 ${W + 10} Q103 260 104 312 L112 312 Q115 260 114 ${W + 10} Z" fill="${legC}"/>`);
       out.push(`<path d="M80 314 q8 -9 18 0 q-9 4 -18 0Z M102 314 q10 -9 18 0 q-9 4 -18 0Z" fill="${shoeC}"/>`);
-      out.push(`<path d="M74 66 Q60 116 54 172 M126 66 Q140 116 146 172" stroke="${sk}" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="53" cy="177" r="6" fill="${sk}"/><circle cx="147" cy="177" r="6" fill="${sk}"/>`);
-      out.push(`<path d="M88 50 L112 50 Q122 56 128 63 L124 92 L76 92 L72 63 Q78 56 88 50 Z" fill="${sk}"/>`);
+      // a dress with shoulders covers hers: the skin stays just under its shoulder seam, so none peeks out
+      const covered = !strapless, a0 = covered ? 71 : 66;
+      out.push(`<path d="M74 ${a0} Q60 116 54 172 M126 ${a0} Q140 116 146 172" stroke="${sk}" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="53" cy="177" r="6" fill="${sk}"/><circle cx="147" cy="177" r="6" fill="${sk}"/>`);
+      out.push(covered
+        ? `<path d="M90 48 L110 48 L113 56.5 L129 66.5 L124 92 L76 92 L71 66.5 L87 56.5 Z" fill="${sk}"/>`
+        : `<path d="M88 50 L112 50 Q122 56 128 63 L124 92 L76 92 L72 63 Q78 56 88 50 Z" fill="${sk}"/>`);
       out.push(DG.renderAvatar(Object.assign({}, wear, { bg: 'transparent', headOnly: true }), opts.mood || 'happy', 100).replace(/^<svg[^>]*>/, '<svg x="50" y="-17" width="100" height="100" viewBox="0 0 100 100" overflow="visible">'));
     } else {
       // dress form on a turned wooden stand
