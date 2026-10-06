@@ -26,10 +26,8 @@
     }
     return r;
   }
-  function trRaw(s) {
-    const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
-    const core = m[2];
-    if (!core || !/[A-Za-z]/.test(core)) return core ? m[1] + core.replace(NUM, daNum) + m[3] : s;
+  // dictionary lookup, also with the numbers masked as {0}, {1}…
+  function exact(core) {
     let out = I.exact.get(core);
     if (out == null) {
       const nums = [];
@@ -37,13 +35,44 @@
       const t = nums.length ? I.exact.get(masked) : null;
       if (t != null) out = t.replace(/\{(\d+)\}/g, (_, i) => daNum(nums[+i]));
     }
-    if (out == null) {
-      for (const [re, rep] of I.patterns) {
-        const mm = re.exec(core);
-        // $1 is translated as well, %1 (names) is kept as it is
-        if (mm) { out = rep.replace(/([$%])(\d)/g, (_, k, i) => (k === '$' ? tr(mm[+i] || '') : mm[+i] || '')); break; }
+    return out;
+  }
+  // $1 is translated as well, %1 (names) is kept as it is. bounded: no capture may run across a sentence end
+  function pattern(core, bounded) {
+    for (const [re, rep] of I.patterns) {
+      const mm = re.exec(core);
+      if (mm && !(bounded && mm.slice(1).some(c => c && /[.!?]\s/.test(c)))) return rep.replace(/([$%])(\d)/g, (_, k, i) => (k === '$' ? tr(mm[+i] || '') : mm[+i] || ''));
+    }
+    return null;
+  }
+  function trRaw(s) {
+    const m = /^(\s*)([\s\S]*?)(\s*)$/.exec(s);
+    const core = m[2];
+    if (!core || !/[A-Za-z]/.test(core)) return core ? m[1] + core.replace(NUM, daNum) + m[3] : s;
+    let out = exact(core);
+    // several sentences in one text: translate them one by one (a pattern must never run across sentences)
+    if (out == null && /[.!?] +["“]?[A-ZÆØÅ]/.test(core)) {
+      // a sentence ends at . ! ? followed by a space (not inside 41.500), with any emoji after it
+      const parts = core.match(/\S[\s\S]*?(?:[.!?]+["”]?(?:\s*[\p{Extended_Pictographic}\uFE0F\u200D]+)*(?=\s|$)|$)\s*/gu);
+      if (parts && parts.length > 1) {
+        // greedy: from each sentence take the longest run (up to 4 sentences) that has a translation
+        const t = [];
+        let hit = false;
+        for (let i = 0; i < parts.length;) {
+          let j = Math.min(parts.length, i + 4), got = null;
+          for (; j > i; j--) {
+            if (j - i === parts.length) continue;
+            const src = parts.slice(i, j).join('');
+            // a run of sentences must be in the dictionary as a whole; a single sentence gets the full treatment
+            const x = j - i > 1 ? exact(src.trim()) ?? pattern(src.trim(), true) : tr(src.trim());
+            if (x != null && x !== src.trim()) { got = x + (/\s$/.test(src) ? ' ' : ''); break; }
+          }
+          if (got != null) { t.push(got); hit = true; i = j; } else { t.push(parts[i]); i++; }
+        }
+        if (hit) out = t.join('').trim();
       }
     }
+    if (out == null) out = pattern(core, false);
     // "🎯 Title ✓": translate the text between leading and trailing symbols
     if (out == null) {
       const sym = /^([^\p{L}\p{N}"“(+−-]+)?([\s\S]*?)([\s✓✗✕♥✨🌙]*[\p{Extended_Pictographic}✓✗✕♥✨🌙][\s\p{Extended_Pictographic}\uFE0F\u200D✓✗✕♥✨🌙]*)?$/u.exec(core);
@@ -86,8 +115,19 @@
     for (let c = node.firstChild; c; c = c.nextSibling) translateTree(c);
   }
   DG.translateTree = translateTree;
-  // drop queued mutations (used after the screen has been patched with already-translated content)
-  DG.i18nSkipPending = () => { if (observer) observer.takeRecords(); };
+  // drop queued mutations inside root (it was just patched with already-translated content);
+  // anything else that changed meanwhile (a toast added to the page) is still translated
+  DG.i18nSkipPending = root => {
+    if (!observer) return;
+    const muts = observer.takeRecords();
+    if (I.lang !== 'en') handle(root ? muts.filter(mu => !root.contains(mu.target)) : []);
+  };
+  function handle(muts) {
+    for (const mu of muts) {
+      if (mu.type === 'characterData') translateTree(mu.target);
+      else mu.addedNodes.forEach(translateTree);
+    }
+  }
 
   let observer = null;
   DG.setLang = function (lang) {
@@ -96,13 +136,7 @@
     if (!g.document) return;
     g.document.documentElement.lang = I.lang;
     if (!observer && g.MutationObserver) {
-      observer = new g.MutationObserver(muts => {
-        if (I.lang === 'en') return;
-        for (const mu of muts) {
-          if (mu.type === 'characterData') translateTree(mu.target);
-          else mu.addedNodes.forEach(translateTree);
-        }
-      });
+      observer = new g.MutationObserver(muts => { if (I.lang !== 'en') handle(muts); });
       observer.observe(g.document.body, { childList: true, subtree: true, characterData: true });
     }
     translateTree(g.document.body);

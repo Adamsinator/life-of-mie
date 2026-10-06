@@ -48,7 +48,7 @@
     document.querySelectorAll('.toast').forEach(x => x.remove());
     const t = document.createElement('div');
     t.className = 'toast';
-    t.textContent = msg;
+    t.textContent = DG.tr(msg);
     document.body.appendChild(t);
     // placed once the screen has updated: below the top bar, or at the bottom while a window is open
     // so it never covers that window's title
@@ -480,7 +480,7 @@
     if (!c) return '';
     return `<div class="overlay dismissable"><div class="sheet req">
       <div class="req-head">${DG.renderAvatar(c.look, 'happy', 104)}<div><h2 translate="no">${esc(c.name)}</h2><span class="muted">${c.story ? `📖 Chapter ${c.ch + 1}: ${esc(c.title)}` : `${esc(c.title)}${c.visits ? ` · visit no. ${c.visits + 1}` : ''}`}</span></div></div>
-      <div class="bubble big">${(c.parts || [c.text]).slice(0, c.introN || 2).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
+      <div class="bubble big">${(c.parts ? c.parts.slice(0, c.introN || 2) : [c.text || '']).map(x => `<span>${esc(x)}</span>`).join(' ')}</div>
       ${briefHtml(c, isActive ? G.design : null)}
       <div class="actions">
         ${isActive ? '<button class="btn primary" data-act="closeov">Back to work</button>'
@@ -1252,7 +1252,7 @@
     tpl.innerHTML = html;
     DG.translateTree(tpl.content);
     morphChildren(app, tpl.content);
-    DG.i18nSkipPending();
+    DG.i18nSkipPending(app);
   }
 
   // what you hear in the background: the season's weather, and quiet once the day's work is done

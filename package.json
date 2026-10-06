@@ -4,7 +4,7 @@
   "private": true,
   "description": "Life of Mie: a dress-making shop and family life game for the browser, made for iPad.",
   "scripts": {
-    "test": "node tests/balance.test.js && node tests/saves.test.js && node tests/agent.test.js",
+    "test": "node tests/balance.test.js && node tests/saves.test.js && node tests/agent.test.js && node tests/i18n.test.js",
     "test:browser": "node tests/browser.test.js",
     "sim": "node tests/sim.js 40 60",
     "build": "node tools/build-single.js",

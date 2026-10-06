@@ -59,6 +59,11 @@ const server = http.createServer((req, res) => {
     const english = (txt.match(/\b(the|and|with|your|customers?|today|price)\b/gi) || []);
     assert(english.length < 3, `${v}: English words in Danish mode: ${english.join(', ')}`);
   }
+  // toasts are added outside the app and must be translated too
+  await p.evaluate(() => { window.__mie.state.money = 9999; window.__mie.act('view', 'market'); });
+  await p.click('[data-act=buyf]');
+  const toastTxt = await p.evaluate(() => document.querySelector('.toast').textContent);
+  assert(/^Købte /.test(toastTxt), `toast not in Danish: ${toastTxt}`);
   console.log('  Danish screens ok');
 
   // 2. a save from the very first version opens in the page
