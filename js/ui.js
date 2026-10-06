@@ -1694,12 +1694,11 @@
         DG.Agent.open({
           lang: S.lang, progress: G.agent,
           onResult(r) {
-            const prev = G.agent.best[r.level];
-            if (!prev) { bonus += 2000; G.money += 2000; if (G.today) G.today.income = (G.today.income || 0) + 2000; }
-            if (!prev || r.score > prev.score || r.stars > prev.stars) G.agent.best[r.level] = { score: Math.max(r.score, prev ? prev.score : 0), stars: Math.max(r.stars, prev ? prev.stars : 0) };
-            if (G.agent.best.length >= DG.Agent.LEVELS.length && G.agent.best.every(Boolean)) G.agent.done = true;
+            // the game keeps its own progress in G.agent; the first clear of each mission pays Adam overtime
+            if (r.first) { bonus += 2000; G.money += 2000; if (G.today) G.today.income = (G.today.income || 0) + 2000; }
             save();
           },
+          onSave() { save(); },
           onClose() {
             document.getElementById('app').style.display = '';
             applySettings(); render();

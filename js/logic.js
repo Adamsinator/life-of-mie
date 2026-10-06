@@ -107,7 +107,15 @@
     G.returning = G.returning || [];
     if (!G.collections.tulips) G.collections.tulips = [];
     if (!G.stickers) G.stickers = [];   // stickers already stuck in the album
-    if (!G.agent) G.agent = { best: [], done: false };   // Adam's secret missions (see js/agent.js)
+    if (!G.agent) G.agent = { best: {}, done: false };   // Adam's secret missions (see js/agent.js)
+    if (Array.isArray(G.agent.best)) {   // the first version kept the five missions in a list
+      const old = G.agent.best; G.agent.best = {};
+      ['office', 'nyhavn', 'tivoli', 'metro', 'bridge'].forEach((id, i) => { if (old[i]) G.agent.best[id] = old[i]; });
+    }
+    if (typeof G.agent.coins !== 'number') G.agent.coins = 0;
+    if (!Array.isArray(G.agent.owned)) G.agent.owned = ['pistol'];
+    if (!G.agent.weapon) G.agent.weapon = 'pistol';
+    G.agent.up = Object.assign({ hp: 0, boots: 0, nades: 0, vest: 0, magnet: 0 }, G.agent.up || {});
     // life at home: the tulip garden, Elizabeth's doll dresses and Dexter's tricks (all additive)
     if (!G.home.garden) G.home.garden = { beds: [null, null, null, null, null, null] };
     if (!G.home.kid) G.home.kid = { dresses: [], day: 0 };
