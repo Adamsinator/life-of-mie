@@ -171,8 +171,7 @@
         <button class="btn wide" data-act="rackorder" ${G.active || G.rack.length >= cap ? 'disabled' : ''}>✂️ Sew a dress for the rack</button>
         ${G.active && !G.active.rack ? '<p class="muted small">Finish the current order first.</p>' : ''}
       </section>`;
-    const walkIn = UI.walkIn; UI.walkIn = false;   // the morning's customers come in through the door
-    return `<div class="scene-wrap">${DG.renderShop(G, { tall: tallScene(), walkIn })}</div>
+    return `<div class="scene-wrap">${DG.renderShop(G, { tall: tallScene() })}</div>
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
@@ -1724,7 +1723,7 @@
         break;
       }
       case 'nextday': {
-        DG.startDay(G); UI.walkIn = true; UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0);
+        DG.startDay(G); UI.overlay = null; UI.view = 'shop'; window.scrollTo(0, 0);
         if (G.newSeason && G.day > 1) setTimeout(() => toast(`${DG.season(G).icon} ${DG.season(G).name} has arrived!`), 300);
         break;
       }
