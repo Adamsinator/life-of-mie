@@ -82,7 +82,7 @@
     'Cat bed': 'Kattekurv', 'He still sleeps on the fabric pile.': 'Han sover stadig på stofbunken.',
     'Cat tower': 'Kattetårn', 'King Dexter surveys his kingdom.': 'Kong Dexter skuer ud over sit rige.',
     'Cat food ({0} days)': 'Kattemad ({0} dage)',
-    'Play with Elizabeth': 'Leg med Elizabeth', 'Pet Dexter': 'Ae Dexter', 'Dinner at home': 'Aftensmad derhjemme', 'Welcome back': 'Velkommen tilbage', 'Garden': 'Have', 'The garden': 'Haven', 'The balcony': 'Altanen',
+    'Play with Elizabeth': 'Leg med Elizabeth', 'Pet Dexter': 'Ae Dexter', 'Dinner at home': 'Aftensmad derhjemme', 'Welcome back': 'Velkommen tilbage', 'Wardrobe': 'Garderobe', 'Garden': 'Have', 'The garden': 'Haven', 'The balcony': 'Altanen',
     'Autumn is tulip time: plant bulbs now and they bloom in spring.': 'Efterår er tulipantid: Læg løgene nu, så blomstrer de til foråret.',
     'The garden sleeps under the snow. The bulbs are dreaming of spring.': 'Haven sover under sneen. Løgene drømmer om foråret.',
     'Tap a tulip to pick a bouquet for the dinner table.': 'Tryk på en tulipan for at plukke en buket til middagsbordet.',

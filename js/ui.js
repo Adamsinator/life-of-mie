@@ -109,22 +109,9 @@
   const tallScene = () => landscapeMQ.matches;
   try { landscapeMQ.addEventListener('change', () => render()); } catch (e) { /* older Safari */ }
 
-  // hand-drawn dock icons: an ink line over a little watercolour wash
-  const ic = (wash, body) => `<svg viewBox="0 0 32 32" aria-hidden="true"><ellipse class="wash" cx="16" cy="17" rx="12" ry="10.5" fill="${wash}"/><g class="inkline">${body}</g></svg>`;
-  const NAV_IC = {
-    shop: ic('var(--wash-rose)', '<path d="M5 13h22l-2.4-6.5H7.4z"/><path d="M7 13v13h18V13"/><path d="M13.5 26v-7h5v7"/><path d="M5 13q2.75 3 5.5 0q2.75 3 5.5 0q2.75 3 5.5 0q2.75 3 5.5 0"/>'),
-    market: ic('var(--wash-butter)', '<path d="M6 13h20l-2.6 13H8.6z"/><path d="M11 13l5-6.5 5 6.5"/><path d="M11 18v4M16 18v4M21 18v4"/>'),
-    workshop: ic('var(--wash-sky)', '<circle cx="9.5" cy="23" r="3.6"/><circle cx="22.5" cy="23" r="3.6"/><path d="M12 20.5L25 6M20 20.5L7 6"/>'),
-    studio: ic('var(--wash-rose)', '<path d="M11 6h10"/><path d="M12.5 6c0 3.6-5.5 5.8-5.5 11.5a9 9 0 0018 0c0-5.7-5.5-7.9-5.5-11.5"/><path d="M9 18q7 3 14 0"/>'),
-    home: ic('var(--wash-sage)', '<path d="M5 15l11-9 11 9"/><path d="M8 13.5V26h16V13.5"/><path d="M16 20.3c-1.8-1.9-4.3.1-2.4 2l2.4 1.8 2.4-1.8c1.9-1.9-.6-3.9-2.4-2z"/>'),
-    upgrades: ic('var(--wash-butter)', '<path d="M16 5.5l3.2 6.6 7.2 1-5.2 5 1.3 7.2L16 21.9l-6.5 3.4 1.3-7.2-5.2-5 7.2-1z"/>'),
-    album: ic('var(--wash-lilac)', '<path d="M7 6h14a4 4 0 014 4v16H11a4 4 0 01-4-4z"/><path d="M7 22a4 4 0 014-4h14"/><path d="M14 10.5c-1.3-1.3-3.2.1-1.8 1.5L14 13.4l1.8-1.4c1.4-1.4-.5-2.8-1.8-1.5z"/>'),
-    menu: ic('var(--wash-sage)', '<path d="M8 10.5h16M8 16h16M8 21.5h16"/>'),
-  };
-
   // ---------------- top bar ----------------
   function topbar() {
-    const navs = [['shop', NAV_IC.shop, 'Shop'], ['market', NAV_IC.market, 'Market'], ['workshop', NAV_IC.workshop, 'Workshop'], ['studio', NAV_IC.studio, 'Pottery'], ['home', NAV_IC.home, 'Home'], ['upgrades', NAV_IC.upgrades, 'Upgrades'], ['album', NAV_IC.album, 'Album']];
+    const navs = [['shop', '🏪', 'Shop'], ['market', '🧺', 'Market'], ['workshop', '✂️', 'Workshop'], ['studio', '🏺', 'Pottery'], ['home', '🏡', 'Home'], ['upgrades', '⭐', 'Upgrades'], ['album', '📖', 'Album']];
     const se = DG.season(G);
     const claimable = DG.claimableGoals(G).length;
     return `<header class="topbar">
@@ -135,7 +122,7 @@
         <div class="hud-item rep" title="Reputation ${Math.round(G.rep)} of 100"><span class="lbl">Reputation</span><b>${starsHtml(1 + G.rep / 25)}</b></div>
       </div>
       <nav class="nav">${navs.map(([id, ic, l]) => `<button class="navbtn ${UI.view === id ? 'on' : ''}" data-act="view" data-arg="${id}"><span class="ic">${ic}</span><span>${l}</span>${(id === 'workshop' && G.active) || (id === 'album' && (claimable || DG.mailToday(G).length)) ? '<i class="dot"></i>' : ''}</button>`).join('')}
-        <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">${NAV_IC.menu}</span><span>Menu</span></button></nav>
+        <button class="navbtn" data-act="menu" aria-label="Menu"><span class="ic">☰</span><span>Menu</span></button></nav>
     </header>`;
   }
 
@@ -928,7 +915,7 @@
       return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">❤️ +${it.joy} now, and a slower daily drop</span></div></div>
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
-    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['garden', '🌷 Garden'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
+    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['garden', '🌷 Garden'], ['wardrobe', '👗 Wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
     if (UI.homeTab === 'garden') return `<div class="scene-wrap">${DG.renderGarden(G, { tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${gardenHtml()}`;
     if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${wardrobeHtml()}`;
     if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${ledgerHtml()}`;
@@ -1957,14 +1944,6 @@
   });
 
   // ---------------- boot ----------------
-  // watercolour paper: a little warm grain, made once here instead of shipping an image
-  try {
-    const cv = document.createElement('canvas'); cv.width = cv.height = 180;
-    const cx = cv.getContext('2d'), img = cx.createImageData(180, 180);
-    for (let i = 0; i < img.data.length; i += 4) { const v = 200 + Math.random() * 55; img.data[i] = v; img.data[i + 1] = v * 0.96; img.data[i + 2] = v * 0.88; img.data[i + 3] = Math.random() < 0.5 ? 18 : 34; }
-    cx.putImageData(img, 0, 0);
-    document.documentElement.style.setProperty('--grain', `url(${cv.toDataURL()})`);
-  } catch (e) { /* plain paper then */ }
   applySettings();
   // play offline too (only where the game is served as files, not in the single-file build)
   try {

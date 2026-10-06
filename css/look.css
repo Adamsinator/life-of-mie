@@ -1,0 +1,71 @@
+/* Layout for the newer scenes (on top of style.css, in the same crisp boutique look):
+   two-layer scenes, the morning street, dinner, arranging the shop, the garden, Elizabeth's sewing corner and Dexter's training. */
+
+/* every scene is two layers: the room, and above it the people, Dexter and the weather (so the room never has to be redrawn) */
+.scene-wrap { position: relative; }
+.scene-people { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.scene-people .tap, .scene-people .dexter-hit { pointer-events: auto; cursor: pointer; }
+.scene-people .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
+/* the morning's customers come in through the door, then stand still */
+.scene-people .walk-in { animation: walkin 1.3s ease-out backwards; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes walkin { from { transform: translateX(var(--dx)) scale(.8); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateX(calc(var(--dx) * .25)) translateY(-2px) scale(.95); } }
+.weather .fall { animation: fall 6s linear infinite; }
+@keyframes fall { from { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(var(--sway), calc(var(--h) * .5)) rotate(100deg); } to { transform: translate(0, var(--h)) rotate(220deg); } }
+@media (prefers-reduced-motion: reduce) { .scene-people .walk-in, .weather .fall { animation: none; } }
+
+/* evening: dinner at home beside the diary (two columns on a landscape iPad) */
+.sheet.dayend { max-width: 940px; width: 100%; }
+.dayend-grid { display: grid; gap: 16px; }
+.dayend-side { display: grid; gap: 12px; align-content: start; }
+.dayend-side .diary { margin: 0; }
+.dinner { display: grid; gap: 8px; }
+.dinner-wrap { margin: 0; max-width: none; }
+.dinner-wrap .shop-scene { width: 100%; height: auto; display: block; }
+.dinner-cap { margin: 0; color: var(--muted); font-size: .98rem; line-height: 1.35; text-align: center; }
+@media (min-width: 820px) and (orientation: landscape) { .dayend-grid { grid-template-columns: 1.15fr 1fr; align-items: start; } }
+
+/* opening the app: the street outside, full screen, with a card */
+.morning-ov { padding: 0; place-items: stretch; background: var(--paper); animation: none; }
+.morning-scene { position: absolute; inset: 0; }
+.morning-scene > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.morning-card { margin: 0; position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(500px, calc(100% - 32px));
+  text-align: center; padding: 18px 22px 20px; display: grid; gap: 8px; justify-items: center; border-radius: 20px; box-shadow: 0 10px 30px rgba(47, 29, 43, .18); }
+.morning-card h2 { margin: 0; }
+.morning-sub { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0 .35em; color: var(--muted); }
+.morning-sub .hint::before { content: '· '; }
+.scene-people .m-door { cursor: pointer; transform-box: fill-box; transform-origin: 0% 50%; transition: transform .45s ease-in; }
+.scene-people .m-door.open { transform: scaleX(.22) skewY(-6deg); }
+.scene-people .m-bell { transform-box: fill-box; transform-origin: 50% 0%; }
+.scene-people .m-bell.ring { animation: bellring .7s ease-out 1; }
+@keyframes bellring { 20% { transform: rotate(18deg); } 45% { transform: rotate(-12deg); } 70% { transform: rotate(6deg); } 100% { transform: rotate(0); } }
+
+/* arranging the shop by hand */
+.arrange-btn { position: absolute; top: 12px; left: 12px; z-index: 2; font: 700 .95rem var(--f-display); padding: 7px 14px; border: 0; border-radius: 999px;
+  background: rgba(255, 253, 251, .94); color: var(--ink); box-shadow: var(--shadow); cursor: pointer; }
+.arrange-bar { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: rgba(255, 253, 251, .96); border-radius: 14px; box-shadow: var(--shadow); font-weight: 700; color: var(--ink); }
+.arrange-bar span { flex: 1 1 auto; }
+.scene-wrap.arranging { touch-action: none; }
+.scene-people .drag { pointer-events: auto; cursor: grab; touch-action: none; }
+.scene-people .drag .drag-box { fill: #fff; fill-opacity: .001; stroke: var(--rose); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.scene-people .drag.lifted { cursor: grabbing; }
+.scene-people .drag.lifted .drag-box { stroke: var(--gold); stroke-width: 1.8; }
+
+/* the garden, Elizabeth's sewing corner and Dexter's training */
+.garden-panel { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.garden-hint { margin: 0; font: 600 1.1rem/1.35 var(--f-display); text-align: center; }
+.bulbs, .kid-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.bulb, .kid-pick { background: var(--card); border: 2px solid var(--line); border-radius: 12px; padding: 4px 6px; cursor: pointer; min-width: 52px; min-height: 52px; display: grid; place-items: center; }
+.bulb.on, .kid-pick.on { border-color: var(--rose); background: var(--rose-soft); }
+.kid-pick.deco { font-size: 1.6rem; }
+.sheet.kidsew, .sheet.train { max-width: 520px; display: grid; gap: 14px; justify-items: center; text-align: center; }
+.kid-stage { display: flex; align-items: center; gap: 12px; }
+.train-dex { min-height: 186px; display: grid; place-items: center; }
+.train-paws { margin: 0; font-size: 1.4rem; letter-spacing: .15em; min-height: 1.6em; color: var(--ink); }
+.tricks-known { font-size: 1.3rem; letter-spacing: .1em; }
+.scene-people .bed { cursor: pointer; }
+.overlay.solo { background: var(--paper); }
+
+/* four home tabs fit on one row next to the scene */
+.home-tabs { flex-wrap: nowrap; }
+.home-tabs .tab { flex: 1 1 auto; min-width: 0; padding: 4px 8px; white-space: normal; line-height: 1.15; }

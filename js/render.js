@@ -946,7 +946,7 @@
     out.push('<rect x="80" y="0" width="210" height="250" fill="#f6e3dc"/><path d="M80 0 h210" stroke="#d6b7aa" stroke-width="3"/>');
     [100, 160, 220].forEach(x => out.push(`<rect x="${x}" y="14" width="24" height="30" fill="#f4efe6" stroke="#b79686" stroke-width="1.4"/><path d="M${x + 12} 14 v30 M${x} 28 h24" stroke="#b79686"/>` + (se.id === 'spring' || se.id === 'summer' ? `<rect x="${x - 2}" y="44" width="28" height="5" fill="#7a5236"/><circle cx="${x + 6}" cy="42" r="3" fill="#d6577b"/><circle cx="${x + 14}" cy="41" r="3" fill="#f0c443"/><circle cx="${x + 21}" cy="42" r="3" fill="#d6577b"/>` : '')));
     // sign board
-    out.push('<rect x="100" y="58" width="170" height="26" rx="3" fill="#2f6f73"/><rect x="104" y="62" width="162" height="18" rx="2" fill="none" stroke="#e9c35a" stroke-width="1"/><text x="185" y="77" font-size="15" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" fill="#fdf3dc" translate="no">Mie\'s Atelier</text>');
+    out.push('<rect x="100" y="58" width="170" height="26" rx="3" fill="#2f6f73"/><rect x="104" y="62" width="162" height="18" rx="2" fill="none" stroke="#e9c35a" stroke-width="1"/><text x="185" y="77" font-size="13" text-anchor="middle" font-family="Pacifico, cursive" fill="#fdf3dc" translate="no">Mie\'s Atelier</text>');
     // awning over the shop window
     let awn = '<path d="M92 90 H222 V102 H92Z" fill="#c44d6c"/>';
     for (let x = 92; x < 222; x += 16.25) awn += `<rect x="${x + 8.1}" y="90" width="8.1" height="12" fill="#fff"/><path d="M${x} 102 q4 7 8.1 0 q4 7 8.1 0" fill="#c44d6c"/>`;

@@ -567,7 +567,7 @@ svg, img { -webkit-user-drag: none; user-select: none; -webkit-user-select: none
 /* the shop at dusk, once everyone has been helped */
 /* the light changes in a few soft steps: every step re-paints the watercolour room, so a smooth fade would cost the frame rate */
 .shop-scene .dusk, .shop-scene .dusk-sky, .shop-scene .lamp-glow { opacity: 0; }
-.shop-scene.evening .dusk, .shop-scene.evening .dusk-sky, .shop-scene.evening .lamp-glow, .shop-scene.evening .sunbeam { transition: opacity 2s steps(4, end); }
+.shop-scene.evening .dusk, .shop-scene.evening .dusk-sky, .shop-scene.evening .lamp-glow, .shop-scene.evening .sunbeam { transition: opacity 2.5s ease-in-out; }
 .shop-scene.evening .dusk { opacity: 1; }
 .shop-scene.evening .dusk-sky { opacity: 1; }
 .shop-scene.evening .lamp-glow { opacity: .9; }
