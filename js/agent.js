@@ -372,6 +372,8 @@
   // ---------------- the game ----------------
   let root = null, cv = null, ctx = null, raf = 0, last = 0, music = 0, opts = null;
   let S = null;   // the whole state of the screen and the mission
+  let touchMode = !!(g.matchMedia && g.matchMedia('(pointer: coarse)').matches);   // the last input was a finger
+  const useTouch = on => { if (touchMode !== on) { touchMode = on; fit(); } };
   const keys = {}, touch = { left: false, right: false, jump: false, fire: false, nade: false, swap: false };
 
   const solidAt = (lv, tx, ty) => { if (tx < 0 || tx >= lv.len) return true; if (ty < 0 || ty >= ROWS) return false; const ch = lv.map[ty][tx]; return ch === '#' || ch === 'B'; };
@@ -448,7 +450,7 @@
   const input = () => ({
     left: keys.ArrowLeft || keys.KeyA || touch.left, right: keys.ArrowRight || keys.KeyD || touch.right,
     jump: keys.Space || keys.KeyZ || keys.ArrowUp || keys.KeyW || keys.KeyK || touch.jump,
-    fire: keys.KeyX || keys.KeyJ || keys.Enter || touch.fire, nade: keys.KeyC || keys.KeyG || keys.KeyL || touch.nade,
+    fire: keys.KeyX || keys.KeyJ || keys.Enter || touch.fire || (touchMode && S && S.p && autoTarget(S.p)), nade: keys.KeyC || keys.KeyG || keys.KeyL || touch.nade,
   });
 
   function hurtPlayer(n = 1) {
@@ -479,12 +481,17 @@
     };
     S.foes.forEach(f => { if (!f.dead && !f.still) consider(f.x, f.y, f.w, f.h); });
     if (S.boss && !S.boss.down) consider(S.boss.x, S.boss.y + 10, S.boss.w, S.boss.h - 10);
-    return best || 0;
+    return best;
+  }
+  // on a touch screen Adam fires by himself at whatever he could hit: an enemy in his sights, or a crate just ahead
+  function autoTarget(p) {
+    if (aimAngle(p) != null) return true;
+    return S.foes.some(f => f.still && !f.dead && (f.x + 7 - p.x - 5) * p.face > 4 && (f.x + 7 - p.x - 5) * p.face < 140 && Math.abs(f.y - p.y - 6) < 20);
   }
   function fire(p) {
     const w = weaponOf(p.weapon);
     p.cd = w.rate * (p.power > 0 ? 0.5 : 1); p.shot = 0.06;
-    const a0 = aimAngle(p), bx = p.face > 0 ? p.x + 16 : p.x - 8, by = p.y + 8;
+    const a0 = aimAngle(p) || 0, bx = p.face > 0 ? p.x + 16 : p.x - 8, by = p.y + 8;
     const n = w.pellets || 1;
     for (let k = 0; k < n; k++) {
       const a = a0 + (n > 1 ? (k - (n - 1) / 2) * (w.spread / (n - 1)) * 2 : 0) + (w.jitter ? (Math.random() - 0.5) * w.jitter * 2 : 0);
@@ -901,10 +908,9 @@
     txt(c, T('Fru Mortensen, chief of D.A.N.E.:', 'Fru Mortensen, chef for D.A.N.E.:'), 78, 64, '#9aa0aa', 8);
     let y = wrap(c, LEVELS[S.level].brief(), 78, 76, W - 120, '#fff', 8, 11);
     if (LEVELS[S.level].guard) y = wrap(c, T(`The exit is guarded by ${LEVELS[S.level].guard()}.`, `Udgangen bevogtes af ${LEVELS[S.level].guard()}.`), 78, y + 2, W - 120, '#ff9a6a', 8, 11);
-    const coarse = g.matchMedia && g.matchMedia('(pointer: coarse)').matches;
     txt(c, T('CONTROLS', 'STYRING'), 40, 140, '#7fd0ff', 8);
-    txt(c, coarse ? T('A JUMP  B FIRE  G GRENADE  W WEAPON', 'A HOP  B SKYD  G GRANAT  W VÅBEN') : T('ARROWS MOVE  SPACE JUMP  X FIRE', 'PILE GÅ  MELLEMRUM HOP  X SKYD'), 40, 151, '#c9cdd3', 8);
-    if (!coarse) txt(c, T('C GRENADE  Q/E WEAPON  ESC PAUSE', 'C GRANAT  Q/E VÅBEN  ESC PAUSE'), 40, 162, '#c9cdd3', 8);
+    txt(c, touchMode ? T('LEFT THUMB: SLIDE TO RUN   RIGHT THUMB: JUMP', 'VENSTRE TOMMEL: GLID FOR AT LØBE   HØJRE: HOP') : T('ARROWS MOVE  SPACE JUMP  X FIRE', 'PILE GÅ  MELLEMRUM HOP  X SKYD'), 40, 151, '#c9cdd3', 8);
+    txt(c, touchMode ? T('ADAM FIRES BY HIMSELF   G GRENADE   W WEAPON', 'ADAM SKYDER SELV   G GRANAT   W VÅBEN') : T('C GRENADE  Q/E WEAPON  ESC PAUSE', 'C GRANAT  Q/E VÅBEN  ESC PAUSE'), 40, 162, '#c9cdd3', 8);
     if (Math.floor(S.t * 2) % 2) txt(c, T('TAP TO BEGIN', 'TRYK FOR AT BEGYNDE'), W / 2, 178, '#fff', 8, 'center');
   }
   function drawClear(c) {
@@ -976,10 +982,14 @@
   function stopMusic() { clearInterval(music); music = 0; }
 
   // ---------------- loop, input and the screen ----------------
+  let shownPlay = null;
   function loop(now) {
     raf = requestAnimationFrame(loop);
     const dt = Math.min(1 / 30, (now - last) / 1000 || 0); last = now;
     if (!S) return;
+    // the thumb controls only show while playing (taps on menus still reach the picture)
+    const pl = S.screen === 'play' && !S.paused;
+    if (root && pl !== shownPlay) { shownPlay = pl; root.classList.toggle('playing', pl); }
     if (S.screen === 'play' && !S.paused) { update(dt / 2); update(dt / 2); }
     else S.t += dt;
     draw();
@@ -1016,6 +1026,7 @@
     if (!root) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'Tab'].includes(e.code)) e.preventDefault();
     keys[e.code] = down;
+    if (down) useTouch(false);
     if (!down || e.repeat || !S) return;
     if (e.code === 'Escape') { if (S.screen === 'play') S.paused = !S.paused; else if (S.screen === 'select') DG.Agent.close(); else toSelect(); return; }
     if (S.screen === 'play') {
@@ -1037,18 +1048,64 @@
 
   function fit() {
     if (!cv) return;
-    const s = Math.min(g.innerWidth / W, g.innerHeight / H);
-    cv.style.width = `${Math.floor(W * s)}px`; cv.style.height = `${Math.floor(H * s)}px`;
+    const w = g.innerWidth, h = g.innerHeight, full = Math.min(w / W, h / H);
+    let sc = full;
+    if (touchMode) {
+      // keep a band of at least 130 px under the picture for the thumbs, unless that shrinks it too much
+      const band = h - H * full;
+      if (band < 130) sc = Math.max(full * 0.84, Math.min(w / W, (h - 130) / H));
+    }
+    cv.style.width = `${Math.floor(W * sc)}px`; cv.style.height = `${Math.floor(H * sc)}px`;
+    if (root) { root.classList.toggle('touch', touchMode); root.style.setProperty('--band', `${Math.max(0, h - Math.floor(H * sc))}px`); }
   }
 
-  // touch pads: one zone for left/right and one for the action buttons, so a thumb can slide between them
+  // small buttons (grenade, weapon): held while a finger is on them, and a thumb can slide between them
   function pad(el, map) {
     const ptrs = new Map();
     const sync = () => { Object.values(map).forEach(k => { touch[k] = false; }); ptrs.forEach(k => { if (k) touch[k] = true; }); el.querySelectorAll('[data-k]').forEach(b => b.classList.toggle('on', !!touch[b.dataset.k])); };
     const which = e => { const b = document.elementFromPoint(e.clientX, e.clientY); return b && b.dataset && b.dataset.k && el.contains(b) ? b.dataset.k : null; };
-    el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ } ptrs.set(e.pointerId, which(e)); sync(); });
+    el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); useTouch(true); try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ } ptrs.set(e.pointerId, which(e)); sync(); });
     el.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) { ptrs.set(e.pointerId, which(e)); sync(); } });
     const up = e => { ptrs.delete(e.pointerId); sync(); };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  }
+  // a tap that isn't for the controls (menus, the briefing, pause) goes to the picture
+  function tapCanvas(e) { const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height); }
+  const playing = () => S && S.screen === 'play' && !S.paused && !S.dead;
+  // left half of the screen: put a thumb down anywhere and slide it left or right. The ring follows the
+  // thumb if it slides far, so turning around is always a short slide.
+  function stickZone(el, stick, knob) {
+    let id = null, ox = 0, oy = 0;
+    const DEAD = 12, MAX = 46;
+    const show = (x, y, dx) => { stick.style.transform = `translate(${x}px, ${y}px)`; knob.style.transform = `translateX(${dx}px)`; stick.classList.add('on'); };
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault(); useTouch(true);
+      if (!playing()) { tapCanvas(e); return; }
+      if (id != null) return;
+      id = e.pointerId; ox = e.clientX; oy = e.clientY;
+      try { el.setPointerCapture(id); } catch (err) { /* fine */ }
+      show(ox, oy, 0);
+    });
+    el.addEventListener('pointermove', e => {
+      if (e.pointerId !== id) return;
+      let dx = e.clientX - ox;
+      if (dx > MAX) { ox = e.clientX - MAX; dx = MAX; } else if (dx < -MAX) { ox = e.clientX + MAX; dx = -MAX; }
+      touch.left = dx < -DEAD; touch.right = dx > DEAD;
+      show(ox, oy, dx);
+    });
+    const up = e => { if (e.pointerId !== id) return; id = null; touch.left = touch.right = false; stick.classList.remove('on'); };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  }
+  // right half: press anywhere to jump (hold for a higher jump)
+  function jumpZone(el) {
+    const ptrs = new Set();
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault(); useTouch(true);
+      if (!playing()) { tapCanvas(e); return; }
+      ptrs.add(e.pointerId); touch.jump = true; el.classList.add('on');
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* fine */ }
+    });
+    const up = e => { ptrs.delete(e.pointerId); touch.jump = ptrs.size > 0; el.classList.toggle('on', touch.jump); };
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   }
 
@@ -1101,13 +1158,16 @@
         if (!root) return;
         root.innerHTML = `<canvas width="${W}" height="${H}"></canvas><div class="agent-crt"></div>
           <button class="agent-x" data-ag="close" aria-label="Close">✕</button><button class="agent-p" data-ag="pause" aria-label="Pause">II</button>
-          <div class="agent-pad left"><span data-k="left">◀</span><span data-k="right">▶</span></div>
-          <div class="agent-pad right"><div class="agent-small"><span data-k="swap">W</span><span data-k="nade">G</span></div><span data-k="fire">B</span><span data-k="jump">A</span></div>`;
+          <div class="agent-zone left"><div class="agent-hint">◀ ▶</div></div>
+          <div class="agent-zone right"><div class="agent-hint jump">A</div></div>
+          <div class="agent-stick"><i></i></div>
+          <div class="agent-pad"><span data-k="nade">G</span><span data-k="swap">W</span></div>`;
         cv = root.querySelector('canvas'); ctx = cv.getContext('2d');
-        cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(); tap((e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height); });
-        pad(root.querySelector('.agent-pad.left'), { left: 'left', right: 'right' });
-        pad(root.querySelector('.agent-pad.right'), { fire: 'fire', jump: 'jump', nade: 'nade', swap: 'swap' });
-        S = { screen: 'title', t: 0 }; playMusic(true);
+        cv.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') useTouch(true); tapCanvas(e); });
+        stickZone(root.querySelector('.agent-zone.left'), root.querySelector('.agent-stick'), root.querySelector('.agent-stick i'));
+        jumpZone(root.querySelector('.agent-zone.right'));
+        pad(root.querySelector('.agent-pad'), { nade: 'nade', swap: 'swap' });
+        S = { screen: 'title', t: 0 }; shownPlay = null; playMusic(true);
         fit(); last = performance.now(); raf = requestAnimationFrame(loop);
       }, 900);
     },

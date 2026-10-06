@@ -122,6 +122,27 @@ const server = http.createServer((req, res) => {
   assert(agentRun.moved && agentRun.beaten && agentRun.exit, 'Agent Adam: ' + JSON.stringify(agentRun));
   await p.click('.agent-x');
   assert(!(await p.$('.agent')) && await p.isVisible('#app'), 'back to the cosy game');
+  // iPad: left half of the screen is a floating stick, right half jumps, Adam fires by himself
+  {
+    await p.evaluate(() => { DG.Agent.open({ lang: 'en', progress: { best: {}, done: false, coins: 0, owned: ['pistol'], weapon: 'pistol', up: {} } }); DG.Agent.reveal(); });
+    await p.waitForTimeout(1200);
+    await p.evaluate(() => DG.Agent._start(0));
+    const cdp = await ctx.newCDPSession(p);
+    const t = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y, id]) => ({ x, y, id })) });
+    const vp = p.viewportSize(), ly = vp.height - 60;
+    const x0 = await p.evaluate(() => DG.Agent.state.p.x);
+    await t('touchStart', [[150, ly, 1]]);
+    for (let i = 1; i <= 6; i++) { await t('touchMove', [[150 + i * 10, ly, 1]]); await p.waitForTimeout(16); }
+    await p.waitForTimeout(400);
+    assert(await p.evaluate(() => DG.Agent.state.p.x) > x0 + 20, 'sliding the left thumb runs');
+    assert(await p.evaluate(() => document.querySelector('.agent').classList.contains('touch')), 'touch layout');
+    await t('touchStart', [[210, ly, 1], [vp.width - 80, ly, 2]]); await p.waitForTimeout(80);
+    assert(await p.evaluate(() => DG.Agent.state.p.vy < 0), 'the right thumb jumps while running');
+    await t('touchEnd', []); await p.waitForTimeout(150);
+    assert.strictEqual(await p.evaluate(() => DG.Agent.state.p.vx), 0, 'lifting the thumb stops Adam');
+    await cdp.detach();
+    await p.evaluate(() => DG.Agent.close());
+  }
   console.log('  agent adam ok');
 
   // 4. patched screens equal freshly built ones, in both languages
