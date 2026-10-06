@@ -107,6 +107,7 @@
     G.returning = G.returning || [];
     if (!G.collections.tulips) G.collections.tulips = [];
     if (!G.stickers) G.stickers = [];   // stickers already stuck in the album
+    if (!G.agent) G.agent = { best: [], done: false };   // Adam's secret missions (see js/agent.js)
     // life at home: the tulip garden, Elizabeth's doll dresses and Dexter's tricks (all additive)
     if (!G.home.garden) G.home.garden = { beds: [null, null, null, null, null, null] };
     if (!G.home.kid) G.home.kid = { dresses: [], day: 0 };
@@ -840,6 +841,7 @@
     { id: 'lookbook', icon: '📸', name: 'Ten lookbook pages', has: G => (G.lookbook || []).length >= 10 },
     { id: 'story', icon: '📖', name: 'A story told to the end', has: G => (DG.STORIES || []).some(st => G.stories[st.id] && G.stories[st.id].done.length >= st.ch.length) },
     { id: 'year', icon: '🎂', name: 'A year in the shop', has: G => G.day > 4 * DG.SEASON_LENGTH },
+    { id: 'agent', icon: '🕶️', name: 'Denmark saved', secret: true, has: G => !!(G.agent && G.agent.done) },
   ];
   // returns the stickers earned since last time (each is stuck in only once)
   DG.checkStickers = function (G) {

@@ -83,3 +83,41 @@
 .sticker.have:nth-child(3n) .sticker-face { transform: rotate(-2deg); background: var(--teal-soft); }
 .sticker figcaption { font-size: .85rem; font-weight: 700; line-height: 1.2; color: var(--muted); }
 .sticker.have figcaption { color: var(--ink); }
+
+/* ---------- Agent Adam: the cover story (Windows 95) and the secret game ---------- */
+.agent { position: fixed; inset: 0; z-index: 200; background: #000; display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; font-family: "MS Sans Serif", Tahoma, Verdana, sans-serif; }
+.agent canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.agent-crt { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.16) 2px 3px); }
+.agent-x, .agent-p { position: absolute; top: max(10px, env(safe-area-inset-top)); width: 44px; height: 44px; border: 2px solid #7fd0ff; background: rgba(14,22,48,.75); color: #7fd0ff; font: bold 18px "Courier New", monospace; border-radius: 6px; cursor: pointer; }
+.agent-x { right: 12px; } .agent-p { right: 64px; }
+.agent-pad { position: absolute; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; gap: 14px; touch-action: none; }
+.agent-pad.left { left: 18px; } .agent-pad.right { right: 18px; }
+.agent-pad span { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; font: bold 28px "Courier New", monospace; color: rgba(255,255,255,.85);
+  background: rgba(255,255,255,.12); border: 3px solid rgba(255,255,255,.35); }
+.agent-pad.right span[data-k="jump"] { background: rgba(63,138,90,.35); border-color: rgba(127,224,160,.7); }
+.agent-pad.right span[data-k="fire"] { background: rgba(232,54,77,.3); border-color: rgba(255,120,130,.7); }
+.agent-pad span.on { background: rgba(255,255,255,.4); }
+@media (pointer: fine) { .agent-pad { display: none; } }
+.agent-granted { color: #7fe0a0; font: bold clamp(28px, 6vw, 64px) "Courier New", monospace; text-align: center; letter-spacing: .1em; text-shadow: 0 0 12px #3f8a5a; animation: granted .9s steps(6) 1; }
+.agent-granted small { display: block; font-size: .35em; color: #7fd0ff; letter-spacing: .4em; }
+@keyframes granted { 0% { opacity: 0; } 30% { opacity: 1; } 45% { opacity: .2; } 60% { opacity: 1; } }
+.w95 { position: absolute; inset: 0; background: #008080; display: flex; flex-direction: column; color: #000; font-size: 13px; }
+.w95-win { margin: 4% 5% 0; flex: 1; display: flex; flex-direction: column; background: #c0c0c0; border: 2px solid; border-color: #fff #404040 #404040 #fff; box-shadow: 1px 1px 0 #000; min-height: 0; }
+.w95-title { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; font-weight: bold; padding: 3px 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.w95-title > span:first-child { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.w95-btns { display: flex; gap: 2px; }
+.w95-btns i, .w95-btns button { font-style: normal; width: 22px; height: 20px; display: grid; place-items: center; background: #c0c0c0; color: #000; border: 2px solid; border-color: #fff #404040 #404040 #fff; font: bold 12px Tahoma, sans-serif; padding: 0; cursor: pointer; }
+.w95-btns button { width: 40px; height: 32px; }
+.w95-menu { display: flex; gap: 14px; padding: 4px 8px; }
+.w95-formula { display: flex; gap: 10px; padding: 3px 6px; background: #fff; border: 2px solid; border-color: #404040 #fff #fff #404040; margin: 0 4px; font-family: "Courier New", monospace; }
+.w95-sheet { position: relative; flex: 1; overflow: hidden; margin: 4px; background: #fff; border: 2px solid; border-color: #404040 #fff #fff #404040; }
+.w95-sheet table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12px; }
+.w95-sheet th { background: #c0c0c0; font-weight: normal; border: 1px solid #808080; padding: 1px 4px; }
+.w95-sheet td { border: 1px solid #d0d0d0; padding: 2px 6px; text-align: right; }
+.w95-note { position: absolute; right: 6%; bottom: 10%; width: 150px; padding: 10px; background: #fff68a; box-shadow: 2px 3px 6px rgba(0,0,0,.25); transform: rotate(3deg); font: 14px "Comic Sans MS", "Chalkboard SE", cursive; }
+.w95-bar { height: 40px; background: #c0c0c0; border-top: 2px solid #fff; display: flex; align-items: center; gap: 6px; padding: 0 4px; margin-top: 8px; }
+.w95-start, .w95-task { border: 2px solid; border-color: #fff #404040 #404040 #fff; padding: 4px 10px; font-weight: bold; }
+.w95-task { font-weight: normal; min-width: 160px; border-color: #404040 #fff #fff #404040; }
+.w95-tray { margin-left: auto; border: 2px solid; border-color: #404040 #fff #fff #404040; padding: 2px 8px; display: flex; align-items: center; gap: 8px; }
+.w95-shades { background: none; border: 0; font-size: 18px; padding: 4px; cursor: pointer; opacity: .85; min-width: 36px; min-height: 32px; }
+.icon-btn { border: 0; background: var(--paper); border-radius: 50%; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; box-shadow: var(--shadow); vertical-align: middle; margin-left: 6px; }

@@ -923,7 +923,7 @@
     return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}
     <div class="shop-grid">
       <section class="panel">
-        <h2>Mie's home</h2>
+        <h2>Mie's home <button class="icon-btn" data-act="adamjob" aria-label="Adam's work" title="Adam's work">💼</button></h2>
         <p class="muted">Mie lives with her husband Adam, their daughter Elizabeth (${DG.elizabethAge(G)}) and Dexter the cat. Home right now: <b>${esc(DG.house(G).name)}</b>. Tap Dexter to pet him.</p>
         <div class="happy"><span class="lbl">Family happiness</span><span class="hbar"><i style="width:${h.happy}%"></i></span><b>${Math.round(h.happy)}</b></div>
         <p class="small"><b>Mie: ${mood.label}.</b> ${mood.sat > 0 ? '+2 satisfaction on every dress, and steadier stitching.' : mood.sat < 0 ? '−3 satisfaction on every dress. Spend some time with the family!' : 'Above 75 Mie works better. Below 30 she gets distracted.'}</p>
@@ -1080,8 +1080,9 @@
   }
   function stickersHtml() {
     const got = G.stickers || [];
-    return `<section class="panel"><div class="sec-head"><h2>Stickers</h2><span class="muted">${got.length} of ${DG.STICKERS.length}</span></div>
-      <div class="stickers">${DG.STICKERS.map(k => `<figure class="sticker ${got.includes(k.id) ? 'have' : ''}"><span class="sticker-face">${got.includes(k.id) ? k.icon : '?'}</span><figcaption>${k.name}</figcaption></figure>`).join('')}</div></section>`;
+    const shown = DG.STICKERS.filter(k => !k.secret || got.includes(k.id));   // a secret sticker shows only once it is earned
+    return `<section class="panel"><div class="sec-head"><h2>Stickers</h2><span class="muted">${shown.filter(k => got.includes(k.id)).length} of ${shown.length}</span></div>
+      <div class="stickers">${shown.map(k => `<figure class="sticker ${got.includes(k.id) ? 'have' : ''}"><span class="sticker-face">${got.includes(k.id) ? k.icon : '?'}</span><figcaption>${k.name}</figcaption></figure>`).join('')}</div></section>`;
   }
   function collectionsHtml() {
     const C = G.collections;
@@ -1685,6 +1686,29 @@
         break;
       }
       case 'hometab': UI.homeTab = arg; break;
+      case 'adamjob': {
+        // Adam's very normal office job (the sunglasses in the taskbar know better)
+        DG.Audio.stopMusic(); DG.Audio.ambience(null);
+        document.getElementById('app').style.display = 'none';
+        let bonus = 0;
+        DG.Agent.open({
+          lang: S.lang, progress: G.agent,
+          onResult(r) {
+            const prev = G.agent.best[r.level];
+            if (!prev) { bonus += 2000; G.money += 2000; if (G.today) G.today.income = (G.today.income || 0) + 2000; }
+            if (!prev || r.score > prev.score || r.stars > prev.stars) G.agent.best[r.level] = { score: Math.max(r.score, prev ? prev.score : 0), stars: Math.max(r.stars, prev ? prev.stars : 0) };
+            if (G.agent.best.length >= DG.Agent.LEVELS.length && G.agent.best.every(Boolean)) G.agent.done = true;
+            save();
+          },
+          onClose() {
+            document.getElementById('app').style.display = '';
+            applySettings(); render();
+            if (bonus) setTimeout(() => toast(`💼 Adam got an overtime bonus: ${kr(bonus)}`), 200);
+          },
+        });
+        return;
+      }
+
       case 'bulbcol': UI.bulb = arg; break;
       case 'bed': {
         const i = +arg, b = G.home.garden.beds[i], st = DG.tulipStage(G, b);

@@ -85,6 +85,30 @@ const server = http.createServer((req, res) => {
   assert(!(await p.$('.morning-ov')) && await p.$('.view-shop'), 'the door opens into the shop');
   console.log('  morning door opens');
 
+  // Adam's secret: the 💼 opens the spreadsheet, the sunglasses open Agent Adam, and every mission runs
+  await p.evaluate(() => { window.__mie.act('view', 'home'); window.__mie.act('hometab', 'family'); });
+  await p.click('[data-act=adamjob]');
+  assert(await p.$('.agent .w95'), 'the cover story opens');
+  await p.click('.w95-shades');
+  await p.waitForFunction(() => document.querySelector('.agent canvas'), null, { timeout: 4000 });
+  const agentRun = await p.evaluate(() => {
+    const A = DG.Agent, out = [];
+    for (let i = 0; i < A.LEVELS.length; i++) {
+      A._start(i); A._keys.ArrowRight = true; A._keys.KeyX = true;
+      for (let k = 0; k < 360; k++) A._step(1 / 120);
+      out.push(A.state.p.x > 100 && !Number.isNaN(A.state.p.x));
+    }
+    A._keys.ArrowRight = false; A._keys.KeyX = false;
+    // Dr. Mørk can be beaten and the exit appears
+    const S = A.state; S.p.x = 118 * 16; for (let k = 0; k < 240; k++) A._step(1 / 120);
+    S.boss.hp = 1; S.bullets.push({ mine: true, x: S.boss.x + 20, y: S.boss.y + 20, w: 5, h: 2, vx: 0, vy: 0, t: 1, dmg: 1 }); A._step(1 / 120);
+    return { moved: out.every(Boolean), beaten: !!S.boss.down, exit: S.ents.some(e => e.type === 'exit') };
+  });
+  assert(agentRun.moved && agentRun.beaten && agentRun.exit, 'Agent Adam: ' + JSON.stringify(agentRun));
+  await p.click('.agent-x');
+  assert(!(await p.$('.agent')) && await p.isVisible('#app'), 'back to the cosy game');
+  console.log('  agent adam ok');
+
   // 4. patched screens equal freshly built ones, in both languages
   for (const lang of ['da', 'en']) {
     await fresh({ lang }, newest);

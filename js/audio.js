@@ -1,7 +1,7 @@
 // Synthesised sound effects, a gentle music box and ambient sounds of the season (Web Audio, no audio files).
 (function (g) {
   const DG = (g.DG = g.DG || {});
-  let ctx = null, sfxGain = null, musicGain = null, ambGain = null, reverb = null, musicTimer = 0, step = 0;
+  let ctx = null, sfxGain = null, musicGain = null, chipGain = null, ambGain = null, reverb = null, musicTimer = 0, step = 0;
   const vol = { music: 0.4, sfx: 0.7, ambient: 0.5 };
 
   function ensure() {
@@ -12,6 +12,8 @@
       sfxGain = ctx.createGain();
       musicGain = ctx.createGain();
       ambGain = ctx.createGain();
+      chipGain = ctx.createGain();   // Agent Adam's chiptune: dry, no music-box reverb
+      chipGain.connect(ctx.destination);
       sfxGain.connect(ctx.destination);
       // the music box sits in a small room: a soft, short reverb
       reverb = ctx.createConvolver();
@@ -32,6 +34,7 @@
     sfxGain.gain.value = vol.sfx * 0.6;
     musicGain.gain.value = vol.music * 0.22;
     ambGain.gain.value = vol.ambient * 0.5;
+    chipGain.gain.value = vol.music * 0.5;
   }
 
   function tone(freq, dur, type = 'sine', v = 0.3, when = 0, dest, slide = 0) {
@@ -157,5 +160,21 @@
       if (kind) startAmbience(kind);
     },
     stopMusic() { clearInterval(musicTimer); musicTimer = 0; },
+    // for Agent Adam: one synthesised note (music: true plays on the music volume) and a burst of noise
+    chip(freq, dur, type = 'square', v = 0.2, when = 0, music = false) {
+      if ((music ? vol.music : vol.sfx) <= 0) return;
+      try { if (ensure()) tone(freq, dur, type, v, when, music ? chipGain : sfxGain); } catch (e) { /* audio unavailable */ }
+    },
+    noise(dur = 0.3, v = 0.3, freq = 900) {
+      if (vol.sfx <= 0) return;
+      try {
+        const c = ensure(); if (!c) return;
+        const len = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+        const src = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain();
+        src.buffer = buf; f.type = 'lowpass'; f.frequency.value = freq; gn.gain.value = v;
+        src.connect(f); f.connect(gn); gn.connect(sfxGain); src.start();
+      } catch (e) { /* audio unavailable */ }
+    },
   };
 })(typeof window !== 'undefined' ? window : globalThis);
