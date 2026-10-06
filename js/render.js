@@ -872,7 +872,28 @@
     // pavement, kerb and a bicycle, as it should be in Copenhagen
     out.push('<rect x="-300" y="208" width="1000" height="200" fill="url(#cobble)"/><rect x="-300" y="206" width="1000" height="4" fill="#8a817a"/>');
     out.push('<g transform="translate(20 196)" stroke="#2f3a4a" stroke-width="2" fill="none"><circle cx="0" cy="0" r="11"/><circle cx="36" cy="0" r="11"/><path d="M0 0 L14 -16 L30 -16 L36 0 M14 -16 L20 0 L30 -16 M28 -22 L32 -22 M14 -16 L12 -22 L18 -22"/></g><path d="M18 174 h20" stroke="#c44d6c" stroke-width="4"/>');
-    if (se.id === 'winter') out.push('<rect x="-300" y="204" width="1000" height="5" fill="#fff"/><rect x="80" y="-2" width="210" height="4" fill="#fff"/>');
+    // the season, painted into the street (still, so it costs nothing to show): snow, falling leaves, blossom
+    const r = rng(G.day * 17 + 5), f1 = v => v.toFixed(1);
+    if (se.id === 'winter') {
+      out.push('<rect x="-300" y="200" width="1000" height="12" rx="5" fill="#fbfdff"/><rect x="-300" y="208" width="1000" height="200" fill="#eef2f6" opacity=".55"/>');
+      [[-300, 120, 16], [-180, 150, 30], [-30, 110, 16], [80, 210, 0], [290, 120, 16], [410, 110, 30]].forEach(([x, w, y]) => out.push(`<path d="M${x} ${y + 2} h${w} v-4 q-${w / 2} -6 -${w} 0Z" fill="#fff"/>`));
+      out.push('<path d="M92 90 q65 -8 130 0" stroke="#fff" stroke-width="4" fill="none"/><path d="M94 199 h126" stroke="#fff" stroke-width="3"/>');
+      [100, 160, 220].forEach(x => out.push(`<rect x="${x - 2}" y="43" width="28" height="4" rx="2" fill="#fff"/>`));
+      // a snowman by the bicycle
+      out.push('<g transform="translate(62 204)"><circle cx="0" cy="-8" r="9" fill="#fff" stroke="#dfe6ee"/><circle cx="0" cy="-21" r="6" fill="#fff" stroke="#dfe6ee"/><path d="M0 -21 l5 1 l-5 1Z" fill="#e8873a"/><circle cx="-2" cy="-23" r=".9" fill="#333"/><circle cx="2" cy="-23" r=".9" fill="#333"/><path d="M-6 -16 h12" stroke="#c44d6c" stroke-width="2.4"/></g>');
+      for (let i = 0; i < 46; i++) out.push(`<circle cx="${f1(-60 + r() * 520)}" cy="${f1(r() * 200)}" r="${f1(0.9 + r() * 1.6)}" fill="#fff" opacity="${f1(0.7 + r() * 0.3)}"/>`);
+    } else if (se.id === 'autumn') {
+      const lc = ['#d9822b', '#b5481f', '#e2b13c', '#c0612a'];
+      for (let i = 0; i < 18; i++) { const x = -40 + r() * 480, y = r() * 190; out.push(`<path d="M0 -3 Q3 0 0 3 Q-3 0 0 -3Z" transform="translate(${f1(x)} ${f1(y)}) rotate(${Math.round(r() * 180)}) scale(1.4)" fill="${lc[i % 4]}"/>`); }
+      for (let i = 0; i < 34; i++) { const x = -40 + r() * 480, y = 212 + r() * 50; out.push(`<path d="M0 -3 Q3 0 0 3 Q-3 0 0 -3Z" transform="translate(${f1(x)} ${f1(y)}) rotate(${Math.round(r() * 180)}) scale(1.5)" fill="${lc[i % 4]}"/>`); }
+      out.push('<ellipse cx="330" cy="236" rx="26" ry="5" fill="#9fb7c9" opacity=".6"/>');
+    } else if (se.id === 'spring') {
+      // a cherry branch reaching in, and petals in the air
+      out.push('<path d="M-60 -4 Q20 10 60 6 M10 8 Q22 22 36 24" stroke="#6b4a36" stroke-width="3" fill="none"/>' + [[8, 6], [24, 10], [40, 8], [56, 4], [30, 22], [18, 16]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#f6c9d6"/><circle cx="${x}" cy="${y}" r="1.6" fill="#e58aa5"/>`).join(''));
+      for (let i = 0; i < 22; i++) out.push(`<ellipse cx="${f1(-40 + r() * 480)}" cy="${f1(r() * 250)}" rx="2" ry="1.2" transform="rotate(${Math.round(r() * 180)})" fill="#f6c9d6"/>`.replace(/transform="rotate\((\d+)\)"/, (m, a) => ''));
+    } else {
+      out.push('<path d="M300 40 q4 -4 8 0 q4 -4 8 0 M326 54 q3 -3 6 0 q3 -3 6 0" stroke="#4b3a2f" stroke-width="1.2" fill="none"/>');
+    }
     // the door (it swings open when tapped) and the little bell above it
     top.push(`<g class="m-door${opts.open ? ' open' : ''}" data-act="opendoor"><rect x="230" y="104" width="46" height="104" fill="#2f6f73"/><rect x="236" y="112" width="34" height="44" fill="url(#mnglass)" opacity=".9"/><rect x="238" y="122" width="30" height="12" rx="2" fill="#fff"/><text x="253" y="131" font-size="8" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#c44d6c">${opts.open ? 'ÅBEN' : 'LUKKET'}</text><rect x="236" y="164" width="34" height="36" rx="2" fill="none" stroke="#24585b" stroke-width="2"/><circle cx="268" cy="160" r="2.6" fill="#e9c35a"/></g>`);
     top.push(`<g class="m-bell${opts.open ? ' ring' : ''}"><path d="M253 92 v4" stroke="#7a5236" stroke-width="1.2"/><path d="M248 104 q0 -8 5 -8 q5 0 5 8 Z" fill="#e9c35a" stroke="#b58a1f" stroke-width=".8"/><circle cx="253" cy="105" r="1.4" fill="#b58a1f"/></g>`);
@@ -908,17 +929,21 @@
     out.push('<rect x="300" y="104" width="80" height="46" fill="#8a6a48"/><path d="M300 127 H380 M340 104 V150" stroke="#6e5238" stroke-width="2"/><path d="M350 104 l3 -12 h10 l3 12Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M358 92 Q346 82 348 72 Q356 80 358 92Z"/><path d="M358 92 Q370 80 368 70 Q360 78 358 92Z"/></g>');
     const hop = who => opts.bounce === who ? ' bounce' : '';
     const heart = (x, y) => `<g class="hearts-pop" pointer-events="none"><text x="${x - 8}" y="${y}" font-size="10">💗</text><text x="${x + 6}" y="${y - 6}" font-size="8">💕</text></g>`;
-    // the family behind the table: Adam, Elizabeth on her Tripp Trapp chair, Mie
+    // the family seated round a small round table: Adam and Mie on wishbone chairs, Elizabeth up on her Tripp Trapp
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
-    top.push(`<g class="tap${hop('adam')}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 120, 200, 138, { seated: true })}${opts.bounce === 'adam' ? heart(120, 70) : ''}</g>`);
-    top.push(`<g class="tap${hop('mie')}" data-act="tapfamily" data-arg="mie">${DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), opts.bounce === 'mie' ? 'ecstatic' : 'happy', 280, 200, 138, { seated: true, legs: '#3b3040' })}${opts.bounce === 'mie' ? heart(280, 70) : ''}</g>`);
-    top.push('<g class="soft"><path d="M184 196 V96 M216 196 V96 M184 112 H216 M184 100 H216" stroke="#c9a46e" stroke-width="4" stroke-linecap="round"/></g>');
-    const eh = 84 * grow;
-    top.push(`<g class="tap${hop('elizabeth')}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, opts.bounce === 'elizabeth' ? 'ecstatic' : eMood, 200, 156, eh, { child: true })}${opts.bounce === 'elizabeth' ? heart(200, 156 - eh) : ''}</g>`);
-    // the table, laid for three
-    let table = '<g class="soft"><rect x="60" y="124" width="280" height="10" rx="3" fill="#fffaf5"/><path d="M60 134 H340 L334 150 H66Z" fill="#f3ece0"/><path d="M80 150 V196 M320 150 V196" stroke="#8a6a48" stroke-width="5"/>';
-    [[120, 127], [200, 127], [280, 127]].forEach(([x, y]) => { table += `<ellipse cx="${x}" cy="${y}" rx="14" ry="3.6" fill="#fff" stroke="#d9cfc0" stroke-width=".8"/><path d="M${x - 19} ${y - 1} v3 M${x + 19} ${y - 3} v5" stroke="#b9bcc2" stroke-width="1.3"/>`; });
+    const wishbone = x => `<path d="M${x - 16} 142 V108 M${x + 16} 142 V108" stroke="#c9a46e" stroke-width="3.2" stroke-linecap="round"/><path d="M${x - 18} 108 Q${x} 98 ${x + 18} 108" stroke="#b88f58" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    top.push(`<g class="soft">${wishbone(144)}${wishbone(256)}<path d="M183 142 L186 86 M217 142 L214 86 M184 96 H216 M184 106 H216" stroke="#d2ad74" stroke-width="3.6" stroke-linecap="round"/></g>`);
+    top.push(`<g class="tap${hop('adam')}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 144, 226, 158)}${opts.bounce === 'adam' ? heart(144, 66) : ''}</g>`);
+    top.push(`<g class="tap${hop('mie')}" data-act="tapfamily" data-arg="mie">${DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), opts.bounce === 'mie' ? 'ecstatic' : 'happy', 256, 226, 158, { legs: '#3b3040' })}${opts.bounce === 'mie' ? heart(256, 66) : ''}</g>`);
+    const eh = 92 * grow, eTop = 84;
+    top.push(`<g class="tap${hop('elizabeth')}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, opts.bounce === 'elizabeth' ? 'ecstatic' : eMood, 200, eTop + eh, eh, { child: true })}${opts.bounce === 'elizabeth' ? heart(200, eTop) : ''}</g>`);
+    // the round table with a cloth to the floor, laid for three
+    let table = '<g class="soft"><ellipse cx="200" cy="204" rx="92" ry="7" fill="#000" opacity=".08"/>'
+      + '<path d="M126 140 Q122 172 116 202 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 q7 4 14 0 Q278 172 274 140 Z" fill="#f3ece0"/>'
+      + '<path d="M150 146 Q147 176 144 202 M200 156 V204 M250 146 Q253 176 256 202" stroke="#e4dacb" stroke-width="1.2" fill="none"/>'
+      + '<ellipse cx="200" cy="140" rx="74" ry="15" fill="#fffaf5" stroke="#e4dacb" stroke-width="1"/>';
+    [[160, 136], [200, 133], [240, 136]].forEach(([x, y]) => { table += `<ellipse cx="${x}" cy="${y}" rx="11" ry="3" fill="#fff" stroke="#d9cfc0" stroke-width=".8"/>`; });
     // what's for dinner follows the season (and the holidays)
     const dish = opts.ev === 'christmas' ? '<ellipse cx="200" cy="124" rx="16" ry="5" fill="#fff"/><path d="M186 122 Q200 112 214 122Z" fill="#fbf4e4"/><path d="M194 116 q6 4 12 0" stroke="#b5223a" stroke-width="3" fill="none"/>'
       : opts.ev === 'newyear' ? [0, 1, 2, 3, 4, 5].map(i => `<ellipse cx="200" cy="${124 - i * 4}" rx="${14 - i * 2.2}" ry="2.2" fill="#e8c78f" stroke="#fff" stroke-width=".8"/>`).join('') + '<path d="M200 98 v-6" stroke="#c44d6c" stroke-width="1.4"/>'
@@ -926,17 +951,17 @@
       : se.id === 'summer' ? '<ellipse cx="200" cy="124" rx="15" ry="5" fill="#fff"/>' + [[-7, -2], [0, -4], [7, -2], [-3, 1], [4, 1]].map(([dx, dy]) => `<path d="M${200 + dx} ${121 + dy} q-3 -3 0 -5 q3 2 0 5Z" fill="#d6273b"/>`).join('')
       : se.id === 'autumn' ? '<path d="M186 126 Q186 110 200 110 Q214 110 214 126Z" fill="#d9822b"/><path d="M200 110 v-4" stroke="#4d7a3e" stroke-width="2"/>'
       : '<ellipse cx="200" cy="124" rx="16" ry="5" fill="#fff"/>' + [-8, 0, 8].map(dx => `<circle cx="${200 + dx}" cy="121" r="3.6" fill="#8a5434"/>`).join('') + '<path d="M190 124 q10 3 20 0" stroke="#6a3a22" stroke-width="2" fill="none"/>';
-    table += dish;
+    table += `<g transform="translate(0 20)">${dish}</g>`;
     // candles when it is dark early, tulips in spring
-    if (se.id === 'autumn' || se.id === 'winter') [168, 232].forEach(x => { table += `<rect x="${x - 2}" y="108" width="4" height="16" fill="#fffaf5"/><path d="M${x} 108 q-2 -4 0 -7 q2 3 0 7Z" fill="#ffb23e"/><ellipse cx="${x}" cy="104" rx="7" ry="7" fill="url(#dnlamp)"/>`; });
-    else if (se.id === 'spring') table += '<path d="M168 124 l2 -10 h6 l2 10Z" fill="#9fc7de"/>' + [[170, 104, '#d6577b'], [175, 102, '#f0c443'], [178, 106, '#d6577b']].map(([x, y, c]) => `<path d="M${x} 116 V${y + 4}" stroke="#4d7a3e" stroke-width="1.2"/><ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.6" fill="${c}"/>`).join('');
-    table += '<path d="M140 121 h5 v5 h-5Z M255 121 h5 v5 h-5Z" fill="#c9e3ef" opacity=".8"/></g>';
+    if (se.id === 'autumn' || se.id === 'winter') [172, 228].forEach(x => { table += `<rect x="${x - 2}" y="122" width="4" height="16" fill="#fffaf5"/><path d="M${x} 122 q-2 -4 0 -7 q2 3 0 7Z" fill="#ffb23e"/><ellipse cx="${x}" cy="118" rx="7" ry="7" fill="url(#dnlamp)"/>`; });
+    else if (se.id === 'spring') table += '<g transform="translate(-2 16)">' + '<path d="M168 124 l2 -10 h6 l2 10Z" fill="#9fc7de"/>' + [[170, 104, '#d6577b'], [175, 102, '#f0c443'], [178, 106, '#d6577b']].map(([x, y, c]) => `<path d="M${x} 116 V${y + 4}" stroke="#4d7a3e" stroke-width="1.2"/><ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.6" fill="${c}"/>`).join('') + '</g>';
+    table += '</g>';
     top.push(table);
-    if (has('pooh')) top.push(`<g class="tap${hop('pooh')}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(222, 116, 0.42)}</g>`);
+    if (has('pooh')) top.push(`<g class="tap${hop('pooh')}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(222, 128, 0.34)}</g>`);
     // Dexter has found the best seat: right by the table, hoping for frikadeller
     const dmood = opts.bounce === 'dexter' ? 'purr' : G.home.catFood <= 0 ? 'hungry' : 'sit';
-    top.push(`<g transform="translate(352 186)"><g class="dexter-hit tap${hop('dexter')}" data-act="tapfamily" data-arg="dexter" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g></g>`);
-    return sceneLayers('shop-scene dinner-scene', opts, 'Dinner at home', out, top);
+    top.push(`<g transform="translate(330 192)"><g class="dexter-hit tap${hop('dexter')}" data-act="tapfamily" data-arg="dexter" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g></g>`);
+    return sceneLayers('shop-scene dinner-scene', Object.assign({}, opts, { vb: '34 30 332 180' }), 'Dinner at home', out, top);
   };
 
   // Mie: loose dark-brown hair and round glasses
