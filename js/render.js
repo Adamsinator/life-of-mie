@@ -463,7 +463,7 @@
   // A scene is two layers: the painted room (watercolour filter, never redrawn) and, on top, the people,
   // Dexter and the weather outside, which move.
   function sceneLayers(cls, opts, label, room, people) {
-    const vb = opts.tall ? '0 -60 400 400' : '0 0 400 210', par = opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : '';
+    const vb = opts.vb || (opts.tall ? '0 -60 400 400' : '0 0 400 210'), par = opts.vb ? ' preserveAspectRatio="xMidYMid slice"' : opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : '';
     return `<svg class="${cls}" viewBox="${vb}"${par} role="img" aria-label="${label}">${room.join('')}</svg>`
       + `<svg class="scene-people" viewBox="${vb}"${par} aria-hidden="false">${people.join('')}</svg>`;
   }
@@ -824,6 +824,52 @@
     if (has('pooh')) top.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
     top.unshift(weather(se.id, ix, iy, iw, ih, 'homewx'));
     return sceneLayers('shop-scene home-scene', opts, "Mie's home", out, top);
+  };
+
+  // ---------------- morning: the street outside the shop, before the door opens ----------------
+  // The façade is painted (filtered); the door, its bell and the weather sit on the upper layer.
+  DG.renderStorefront = function (G, opts = {}) {
+    const se = DG.season(G), owned = id => G.decor.owned.includes(id);
+    const out = [], top = [];
+    const sky = se.id === 'winter' ? ['#c9d6e3', '#eef1f4'] : se.id === 'autumn' ? ['#b9cbd8', '#f3e2c9'] : ['#9fcbe8', '#fbe7d4'];
+    out.push(`<defs><linearGradient id="mnsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+      <linearGradient id="mnglass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dff0fa"/><stop offset="1" stop-color="#b7d3e6"/></linearGradient>
+      <radialGradient id="mnwarm" cx=".5" cy=".6" r=".6"><stop offset="0" stop-color="#ffe2a8"/><stop offset="1" stop-color="#e9b77a"/></radialGradient>
+      <pattern id="cobble" width="16" height="9" patternUnits="userSpaceOnUse"><rect width="16" height="9" fill="#a39a92"/><ellipse cx="4" cy="2.5" rx="3.4" ry="2" fill="#b8afa6"/><ellipse cx="12" cy="7" rx="3.4" ry="2" fill="#b3aaa1"/></pattern></defs>`);
+    out.push('<rect x="-300" y="-200" width="1000" height="460" fill="url(#mnsky)"/>');
+    if (se.id !== 'winter') out.push('<circle cx="350" cy="30" r="14" fill="#ffe08a" opacity=".9"/><circle cx="350" cy="30" r="22" fill="#ffe08a" opacity=".25"/>');
+    // neighbours: Copenhagen façades in ochre, red and teal
+    [[-300, 120, '#d9a441'], [-180, 150, '#b4553f'], [-30, 110, '#e7c78a'], [290, 120, '#3f7f7a'], [410, 110, '#c97b5a']].forEach(([x, w, c], i) => {
+      out.push(`<rect x="${x}" y="${16 + (i % 2) * 14}" width="${w}" height="${230 - (i % 2) * 14}" fill="${c}"/><path d="M${x} ${16 + (i % 2) * 14} h${w}" stroke="${darken(c, 0.25)}" stroke-width="3"/>`);
+      for (let yy = 36 + (i % 2) * 14; yy < 170; yy += 34) for (let xx = x + 14; xx < x + w - 18; xx += 30) out.push(`<rect x="${xx}" y="${yy}" width="14" height="20" fill="#f4efe6" stroke="${darken(c, 0.3)}" stroke-width="1.2"/><path d="M${xx + 7} ${yy} v20 M${xx} ${yy + 9} h14" stroke="${darken(c, 0.3)}" stroke-width=".7"/>`);
+    });
+    // the shop's own house
+    out.push('<rect x="80" y="0" width="210" height="250" fill="#f6e3dc"/><path d="M80 0 h210" stroke="#d6b7aa" stroke-width="3"/>');
+    [100, 160, 220].forEach(x => out.push(`<rect x="${x}" y="14" width="24" height="30" fill="#f4efe6" stroke="#b79686" stroke-width="1.4"/><path d="M${x + 12} 14 v30 M${x} 28 h24" stroke="#b79686"/>` + (se.id === 'spring' || se.id === 'summer' ? `<rect x="${x - 2}" y="44" width="28" height="5" fill="#7a5236"/><circle cx="${x + 6}" cy="42" r="3" fill="#d6577b"/><circle cx="${x + 14}" cy="41" r="3" fill="#f0c443"/><circle cx="${x + 21}" cy="42" r="3" fill="#d6577b"/>` : '')));
+    // sign board
+    out.push('<rect x="100" y="58" width="170" height="26" rx="3" fill="#2f6f73"/><rect x="104" y="62" width="162" height="18" rx="2" fill="none" stroke="#e9c35a" stroke-width="1"/><text x="185" y="77" font-size="15" text-anchor="middle" font-family="Caveat, cursive" font-weight="700" fill="#fdf3dc" translate="no">Mie\'s Atelier</text>');
+    // awning over the shop window
+    let awn = '<path d="M92 90 H222 V102 H92Z" fill="#c44d6c"/>';
+    for (let x = 92; x < 222; x += 16.25) awn += `<rect x="${x + 8.1}" y="90" width="8.1" height="12" fill="#fff"/><path d="M${x} 102 q4 7 8.1 0 q4 7 8.1 0" fill="#c44d6c"/>`;
+    out.push(awn);
+    // shop window with the dresses on show and a warm room behind
+    out.push('<rect x="96" y="104" width="122" height="96" rx="2" fill="#fffaf5"/><rect x="101" y="109" width="112" height="86" fill="url(#mnwarm)"/>');
+    const winCols = ['#d6577b', '#1e7a58', '#34437f', '#d6a22a'], display = DG.upgradeLevel(G, 'display');
+    for (let i = 0; i <= display; i++) out.push(miniDress(120 + i * (74 / Math.max(1, display)), 140, winCols[i], 1.15));
+    out.push('<rect x="101" y="109" width="112" height="86" fill="url(#mnglass)" opacity=".35"/><path d="M108 116 L130 112 M108 126 L146 116" stroke="#fff" stroke-width="2" opacity=".55"/>');
+    if (owned('windowbox')) out.push('<rect x="94" y="198" width="126" height="9" rx="2" fill="#7a5236"/>' + [102, 114, 126, 138, 150, 162, 174, 186, 198, 210].map((x, i) => `<path d="M${x} 198 V191" stroke="#4d7a3e" stroke-width="1.4"/><ellipse cx="${x}" cy="189" rx="3.2" ry="4.2" fill="${['#d6577b', '#f0c443', '#bf2630', '#f1b9c2'][i % 4]}"/>`).join(''));
+    // the doorway: warm light inside, the door itself on the upper layer
+    out.push('<rect x="226" y="100" width="54" height="108" rx="2" fill="#5a3a2a"/><rect x="230" y="104" width="46" height="104" fill="url(#mnwarm)"/>');
+    if (owned('plant')) out.push('<path d="M282 214 l3 -14 h14 l3 14Z" fill="#c26a45"/><g fill="#3f7a4a"><path d="M292 200 Q278 188 282 176 Q290 184 292 200Z"/><path d="M292 200 Q306 186 304 172 Q294 182 292 200Z"/></g>');
+    // pavement, kerb and a bicycle, as it should be in Copenhagen
+    out.push('<rect x="-300" y="208" width="1000" height="200" fill="url(#cobble)"/><rect x="-300" y="206" width="1000" height="4" fill="#8a817a"/>');
+    out.push('<g transform="translate(20 196)" stroke="#2f3a4a" stroke-width="2" fill="none"><circle cx="0" cy="0" r="11"/><circle cx="36" cy="0" r="11"/><path d="M0 0 L14 -16 L30 -16 L36 0 M14 -16 L20 0 L30 -16 M28 -22 L32 -22 M14 -16 L12 -22 L18 -22"/></g><path d="M18 174 h20" stroke="#c44d6c" stroke-width="4"/>');
+    if (se.id === 'winter') out.push('<rect x="-300" y="204" width="1000" height="5" fill="#fff"/><rect x="80" y="-2" width="210" height="4" fill="#fff"/>');
+    // the door (it swings open when tapped) and the little bell above it
+    top.push(`<g class="m-door${opts.open ? ' open' : ''}" data-act="opendoor"><rect x="230" y="104" width="46" height="104" fill="#2f6f73"/><rect x="236" y="112" width="34" height="44" fill="url(#mnglass)" opacity=".9"/><rect x="238" y="122" width="30" height="12" rx="2" fill="#fff"/><text x="253" y="131" font-size="8" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#c44d6c">${opts.open ? 'ÅBEN' : 'LUKKET'}</text><rect x="236" y="164" width="34" height="36" rx="2" fill="none" stroke="#24585b" stroke-width="2"/><circle cx="268" cy="160" r="2.6" fill="#e9c35a"/></g>`);
+    top.push(`<g class="m-bell${opts.open ? ' ring' : ''}"><path d="M253 92 v4" stroke="#7a5236" stroke-width="1.2"/><path d="M248 104 q0 -8 5 -8 q5 0 5 8 Z" fill="#e9c35a" stroke="#b58a1f" stroke-width=".8"/><circle cx="253" cy="105" r="1.4" fill="#b58a1f"/></g>`);
+    // no falling weather here: over a full-screen painting it would cost the frame rate (the shop has it at the window)
+    return sceneLayers('shop-scene street-scene', Object.assign({}, opts, { vb: '0 0 400 270' }), "Mie's Atelier", out, top);
   };
 
   // ---------------- evening: the family at the dinner table ----------------

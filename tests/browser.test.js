@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
   p.on('pageerror', e => errors.push(e.message));
   // no fonts or other outside requests in tests
   await p.route(/^https?:\/\/(?!localhost)/, r => r.abort());
-  const fresh = async (settings, save) => {
+  const fresh = async (settings, save, keepDoor) => {
     await p.goto(URL);
     await p.evaluate(([s, g]) => {
       localStorage.clear();
@@ -43,6 +43,8 @@ const server = http.createServer((req, res) => {
     }, [settings, save]);
     await p.reload();
     await p.waitForFunction(() => window.__mie);
+    // step in past the morning street (tested on its own below)
+    if (!keepDoor) await p.evaluate(() => { if (document.querySelector('.morning-ov')) window.__mie.act('closeov'); });
   };
   const fixtures = fs.readdirSync(path.join(__dirname, 'fixtures')).sort();
   const oldest = fs.readFileSync(path.join(__dirname, 'fixtures', fixtures[0]), 'utf8');
@@ -73,6 +75,15 @@ const server = http.createServer((req, res) => {
   await p.click('[data-act=restorebackup]'); await p.click('[data-act=restorebackup]');
   assert.strictEqual(await p.evaluate(() => window.__mie.state.day), JSON.parse(oldest).day);
   console.log('  damaged save rescued and restored');
+
+  // a returning player meets the street outside; one tap opens the door into the shop
+  await fresh({ lang: 'en' }, newest, true);
+  assert(await p.$('.morning-ov .street-scene'), 'morning scene on opening');
+  assert(!(await p.$('.view')), 'nothing is drawn behind the street');
+  await p.click('.morning-card [data-act=opendoor]');
+  await p.waitForTimeout(1100);
+  assert(!(await p.$('.morning-ov')) && await p.$('.view-shop'), 'the door opens into the shop');
+  console.log('  morning door opens');
 
   // 4. patched screens equal freshly built ones, in both languages
   for (const lang of ['da', 'en']) {

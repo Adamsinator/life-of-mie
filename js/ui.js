@@ -570,6 +570,21 @@
     </div></div>`;
   }
 
+  // opening the app: the street outside the shop, then the door opens with a ring of the bell
+  function ovMorning() {
+    const waiting = G.queue.length, mail = DG.mailToday(G).length;
+    const evening = G.today && !G.queue.length && !G.active && G.stats.served > 0;
+    const hints = [];
+    if (waiting) hints.push(waiting > 1 ? `${waiting} customers are already at the door.` : 'A customer is already at the door.');
+    if (mail) hints.push('There is a letter in the post.');
+    return `<div class="overlay morning-ov"><div class="morning-scene">${DG.renderStorefront(G, { open: UI.doorOpen })}</div>
+      <div class="morning-card panel">
+        <h2>${evening ? 'Welcome back' : `Good morning, ${esc((DG.Profiles.active() || {}).name || 'Mie')}`}</h2>
+        <p class="muted morning-sub"><span>${DG.season(G).icon}</span> <span>${DG.season(G).name}</span> <span>${dayOfSeason()}</span>${hints.map(h => `<span class="hint">${h}</span>`).join('')}</p>
+        <button class="btn primary big" data-act="opendoor">Open the shop</button>
+      </div></div>`;
+  }
+
   function ovDayEnd(o) {
     const r = o.res, t = r.today || { income: 0, spent: 0, served: 0, startMoney: G.money };
     const net = Math.round(G.money - (t.startMoney == null ? G.money : t.startMoney));
@@ -698,6 +713,7 @@
     if (!o) return '';
     switch (o.type) {
       case 'intro': return ovIntro();
+      case 'morning': return ovMorning();
       case 'req': return ovReq(o.arg);
       case 'sew': return ovSew();
       case 'result': return ovResult(o);
@@ -1184,8 +1200,10 @@
     const app = document.getElementById('app');
     if (UI.mgCleanup) { UI.mgCleanup(); UI.mgCleanup = null; }
     if (!G) { paint(app, welcomeScreen()); return; }
-    const tip = currentTip();
     const ovType = UI.overlay && UI.overlay.type;
+    // at the door in the morning nothing is drawn behind the street: anything moving under the painted street would make it repaint
+    if (ovType === 'morning') { paint(app, `<div class="ov-host" data-key="morning">${overlay()}</div>`); UI.lastOverlay = ovType; document.body.classList.add('modal-open'); return; }
+    const tip = currentTip();
     paint(app, topbar() + `<main class="view view-${UI.view}" data-key="${UI.view}">${VIEWS[UI.view]()}</main>`
       + `<div class="ov-host" data-key="${ovType || ''}">${overlay()}</div>` + (tip ? coachHtml(tip) : ''));
     UI.lastOverlay = ovType;
@@ -1402,6 +1420,12 @@
       case 'albumtab': UI.albumTab = arg; break;
       case 'haggle': if (G.today && !G.today.haggleDone) UI.overlay = { type: 'haggle' }; break;
       case 'twirl': UI.twirl = true; clearTimeout(UI.twirlT); UI.twirlT = setTimeout(() => { UI.twirl = false; render(); }, 1300); sfx('good'); break;
+      case 'opendoor': {
+        if (UI.doorOpen) break;
+        UI.doorOpen = true; sfx('bell');
+        setTimeout(() => { UI.doorOpen = false; if (UI.overlay && UI.overlay.type === 'morning') { UI.overlay = null; UI.walkIn = true; render(); } }, 850);
+        break;
+      }
       case 'tapfamily': {
         // a little moment with the family: hugs and giggles, a bit of happiness the first time each day
         UI.bounce = arg; clearTimeout(UI.bounceT); UI.bounceT = setTimeout(() => { UI.bounce = null; render(); }, 1300);
@@ -1819,6 +1843,8 @@
     UI.view = 'workshop';
     beginSewGame();
   }
+  // a returning player first sees the street outside the shop; one tap opens the door
+  if (G && !UI.overlay && !UI.rescued) UI.overlay = { type: 'morning' };
   render();
   window.__mie = { get state() { return G; }, act, get html() { return UI.lastHtml; } };
 })();

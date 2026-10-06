@@ -63,6 +63,8 @@
     steam: () => tone(3000, 0.12, 'sawtooth', 0.02, 0, null, 0.5),
     fanfare: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.25, 'triangle', 0.16, i * 0.11)),
     meow: () => { tone(620, 0.18, 'sine', 0.16, 0, null, 1.5); tone(900, 0.25, 'sine', 0.14, 0.17, null, 0.6); },
+    // the shop bell: two bright dings with a long ring
+    bell: () => { [0, 0.2].forEach(w => { tone(1760, 1.1, 'sine', 0.14, w); tone(2637, 0.7, 'sine', 0.05, w); tone(4186, 0.25, 'sine', 0.02, w); }); },
     purr: () => { for (let i = 0; i < 10; i++) tone(55 + (i % 2) * 6, 0.12, 'sawtooth', 0.06, i * 0.11); },
     // a page turning: a short whisper of filtered noise
     page: () => {
