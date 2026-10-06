@@ -487,6 +487,14 @@
   DG.renderShop = function (G, opts = {}) {
     const owned = id => G.decor.owned.includes(id);
     const top = [];   // people and weather: their own layer, so the painted room never has to be redrawn
+    // furniture the player can move: at its chosen spot in the painted room, or (while arranging) on the upper layer to drag
+    const place = (id, svg) => {
+      const [dx, dy] = DG.decorPos(G, id, opts.tall);
+      if (!opts.arrange) return dx || dy ? `<g transform="translate(${dx} ${dy})">${svg}</g>` : svg;
+      const [bx, by, bw, bh] = DG.DECOR_MOVE[id].box;
+      top.push(`<g class="drag" data-drag="${id}" data-tall="${opts.tall ? 1 : ''}" transform="translate(${dx} ${dy})">${svg}<rect class="drag-box" x="${bx - 3}" y="${by - 3}" width="${bw + 6}" height="${bh + 6}" rx="4"/></g>`);
+      return '';
+    };
     const display = DG.upgradeLevel(G, 'display');
     const se = DG.season(G);
     const out = [];
@@ -528,9 +536,9 @@
     // door with sign
     out.push('<rect x="134" y="52" width="44" height="100" rx="2" fill="#2f6f73"/><rect x="140" y="60" width="32" height="40" fill="url(#glass)" opacity=".85"/><rect class="dusk-sky" x="140" y="60" width="32" height="40" fill="url(#duskSky)" opacity=".85"/><circle cx="170" cy="108" r="2.4" fill="#e9c35a"/><rect x="143" y="70" width="26" height="11" rx="2" fill="#fff"/><text x="156" y="78.5" font-size="7" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" fill="#c44d6c">ÅBEN</text>');
     if (owned('neon')) out.push('<rect x="122" y="8" width="68" height="34" rx="6" fill="#2f1d2b"/><text x="156" y="32" font-size="17" text-anchor="middle" font-family="Pacifico, cursive" fill="#ff8fb4" style="filter:drop-shadow(0 0 3px #ff5c9a)">Mie\'s</text>');
-    if (owned('plant')) out.push('<path d="M186 152 l4 -18 h16 l4 18Z" fill="#c26a45"/><g fill="#3f7a4a"><path d="M198 134 Q180 120 184 104 Q196 112 198 134Z"/><path d="M198 134 Q214 118 212 100 Q200 110 198 134Z"/><path d="M198 134 Q198 112 204 96 Q190 104 198 134Z"/><path d="M198 134 Q176 132 172 118 Q188 120 198 134Z"/></g>');
-    if (owned('gallery')) out.push([[300, 28, 22, 28], [328, 22, 26, 34], [360, 30, 22, 24]].map(([x, y, w, h], i) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fffaf5" stroke="#c99a2e" stroke-width="2.5"/>${miniDress(x + w / 2, y + 4, ['#d6577b', '#34437f', '#1e7a58'][i], h / 46)}`).join(''));
-    if (owned('mirror')) out.push('<ellipse cx="272" cy="72" rx="15" ry="26" fill="#c99a2e"/><ellipse cx="272" cy="72" rx="11.5" ry="22" fill="url(#glass)"/><path d="M265 60 L270 52 M266 72 L276 58" stroke="#fff" stroke-width="1.6" opacity=".7"/>');
+    if (owned('plant')) out.push(place('plant', '<path d="M186 152 l4 -18 h16 l4 18Z" fill="#c26a45"/><g fill="#3f7a4a"><path d="M198 134 Q180 120 184 104 Q196 112 198 134Z"/><path d="M198 134 Q214 118 212 100 Q200 110 198 134Z"/><path d="M198 134 Q198 112 204 96 Q190 104 198 134Z"/><path d="M198 134 Q176 132 172 118 Q188 120 198 134Z"/></g>'));
+    if (owned('gallery')) out.push(place('gallery', [[300, 28, 22, 28], [328, 22, 26, 34], [360, 30, 22, 24]].map(([x, y, w, h], i) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fffaf5" stroke="#c99a2e" stroke-width="2.5"/>${miniDress(x + w / 2, y + 4, ['#d6577b', '#34437f', '#1e7a58'][i], h / 46)}`).join('')));
+    if (owned('mirror')) out.push(place('mirror', '<ellipse cx="272" cy="72" rx="15" ry="26" fill="#c99a2e"/><ellipse cx="272" cy="72" rx="11.5" ry="22" fill="url(#glass)"/><path d="M265 60 L270 52 M266 72 L276 58" stroke="#fff" stroke-width="1.6" opacity=".7"/>'));
     if (DG.upgradeLevel(G, 'floor')) {
       let st = '';
       for (let i = 0; i < 8; i++) st += `<rect x="${296 + i * 5}" y="${146 - i * 12}" width="${44 - i * 5}" height="6" fill="#9a6b47" stroke="#7a5236" stroke-width=".6"/>`;
@@ -542,12 +550,12 @@
         out.push(`<svg x="${184 + i * 14}" y="40" width="18" height="18" viewBox="0 20 120 90">${DG.potShapeSVG(it.pot, 'sh' + i)}</svg>`);
       });
     }
-    if (owned('rug')) out.push('<ellipse cx="236" cy="178" rx="56" ry="13" fill="#9c2f3c"/><ellipse cx="236" cy="178" rx="47" ry="9.5" fill="none" stroke="#e8c15a" stroke-width="1.6" stroke-dasharray="4 3"/>');
+    if (owned('rug')) out.push(place('rug', '<ellipse cx="236" cy="178" rx="56" ry="13" fill="#9c2f3c"/><ellipse cx="236" cy="178" rx="47" ry="9.5" fill="none" stroke="#e8c15a" stroke-width="1.6" stroke-dasharray="4 3"/>'));
     // dress form with the current order
     // otherwise the latest dress from the lookbook is on show, or a plain toile
     const df = G.design && G.active ? DG.renderDress(G.design, 'shopform') : G.lookbook && G.lookbook.length ? DG.renderDress(G.lookbook[0].design, 'shopform') : DG.renderDress({ main: null, mainColor: 'white', accent: null, accentColor: 'white', silhouette: 'aline', length: 'knee', neckline: 'round', sleeves: 'none', closure: 'none', extras: [] }, 'shopform');
     out.push(`<svg x="206" y="66" width="60" height="96" viewBox="0 20 200 300">${df.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>`);
-    if (owned('armchair')) out.push('<path d="M244 162 v-8 h40 v8" stroke="#5a3a2a" stroke-width="2.5" fill="none"/><path d="M242 156 q0 -26 22 -26 q22 0 22 26Z" fill="#6b2a5e"/><rect x="238" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="280" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="246" y="146" width="36" height="10" rx="3" fill="#7d3870"/>');
+    if (owned('armchair')) out.push(place('armchair', '<path d="M244 162 v-8 h40 v8" stroke="#5a3a2a" stroke-width="2.5" fill="none"/><path d="M242 156 q0 -26 22 -26 q22 0 22 26Z" fill="#6b2a5e"/><rect x="238" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="280" y="140" width="10" height="20" rx="4" fill="#5a2050"/><rect x="246" y="146" width="36" height="10" rx="3" fill="#7d3870"/>'));
     // ready-to-wear rack
     if (G.rack.length) {
       out.push('<path d="M296 104 H340 M300 104 V156 M336 104 V156" stroke="#7a5236" stroke-width="2.2"/>');
@@ -562,14 +570,14 @@
     if (owned('espresso')) out.push('<rect x="342" y="100" width="14" height="14" rx="2" fill="#b9bcc2"/><rect x="345" y="96" width="8" height="5" rx="1" fill="#2f1d2b"/><rect x="346" y="108" width="5" height="5" fill="#fff"/><path d="M349 106 q2 -3 0 -6" stroke="#ccc" stroke-width=".8" fill="none"/>');
     // staff
     const staffSlots = { apprentice: [205, 194], assistant: [311, 198] };
-    DG.STAFF.forEach(st => { if (G.staff[st.id]) top.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
+    if (!opts.arrange) DG.STAFF.forEach(st => { if (G.staff[st.id]) top.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
-    G.queue.slice(0, 5).forEach((c, i) => top.push(`<g class="tap${opts.walkIn ? ' walk-in' : ''}"${opts.walkIn ? ` style="--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;animation-delay:${(i * 0.35).toFixed(2)}s"` : ''} data-act="openreq" data-arg="${i}">` + (opts.tall
+    (opts.arrange ? [] : G.queue.slice(0, 5)).forEach((c, i) => top.push(`<g class="tap${opts.walkIn ? ' walk-in' : ''}"${opts.walkIn ? ` style="--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;animation-delay:${(i * 0.35).toFixed(2)}s"` : ''} data-act="openreq" data-arg="${i}">` + (opts.tall
       ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
       : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
-    if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
+    if (owned('chandelier')) out.push(place('chandelier', '<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join('')));
     // daylight falling in through the window, and a soft warm vignette
     out.push('<g class="sunbeam" pointer-events="none"><path d="M24 44 L118 44 L190 210 L60 210 Z" fill="url(#beam)"/></g>');
     out.push('<rect class="vignette" x="-300" y="-200" width="1000" height="700" fill="url(#vig)" pointer-events="none"/>');

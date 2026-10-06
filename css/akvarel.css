@@ -250,3 +250,13 @@ body.modal-open .nav { opacity: .35; pointer-events: none; }
 /* the bell swings on the same beats as the door (0, .25s, .5s), so the street is repainted only three times */
 .scene-people .m-bell.ring { animation: bellring .5s steps(1, end) 1; }
 @keyframes bellring { 0% { transform: rotate(18deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(0); } }
+
+/* arranging the shop by hand */
+.arrange-btn { position: absolute; top: 10px; left: 10px; z-index: 2; font-family: var(--f-display); font-size: 1.15rem; padding: 4px 12px; border: 1.5px solid var(--ink, #4b3a2f); border-radius: 14px 10px 13px 9px; background: rgba(255, 250, 240, .9); color: var(--ink, #4b3a2f); cursor: pointer; }
+.arrange-bar { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 2; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255, 250, 240, .94); border: 1.5px solid var(--ink, #4b3a2f); border-radius: 14px 10px 13px 9px; font-family: var(--f-display); font-size: 1.2rem; }
+.arrange-bar span { flex: 1 1 auto; }
+.scene-wrap.arranging { touch-action: none; }
+.scene-people .drag { pointer-events: auto; cursor: grab; touch-action: none; }
+.scene-people .drag .drag-box { fill: #fff; fill-opacity: .001; stroke: #c44d6c; stroke-width: 1.2; stroke-dasharray: 4 3; }
+.scene-people .drag.lifted { cursor: grabbing; }
+.scene-people .drag.lifted .drag-box { stroke: #e9a93a; stroke-width: 1.8; }

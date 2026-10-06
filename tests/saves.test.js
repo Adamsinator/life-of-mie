@@ -96,6 +96,15 @@ assert(P.hasSave());
 P.rescue();
 assert([...store.keys()].some(k => k.startsWith(`mies-atelier-rescue-${id}-`)), 'rescue copy');
 assert.strictEqual(P.backupGame(0).day, 26, 'the last good save can still be restored');
+// furniture the player arranged stays where she put it, within the room
+G.decor.owned.push('plant', 'mirror');
+assert(DG.moveDecor(G, 'plant', -60, 500) && DG.moveDecor(G, 'mirror', 20, -5));
+assert(!DG.moveDecor(G, 'neon', 5, 5), 'only movable pieces move');
+assert.deepStrictEqual(G.decor.pos.plant, [-60, 130], 'kept on the floor of the tall view');
+assert.deepStrictEqual(DG.decorPos(G, 'plant', false), [-60, 40], 'and nearer the wall in the short view');
+const moved = DG.ensureDefaults(JSON.parse(JSON.stringify(G)));
+assert.deepStrictEqual(moved.decor.pos, G.decor.pos, 'positions survive a save and a migration');
+assert(!/NaN|undefined/.test(DG.renderShop(moved) + DG.renderShop(moved, { tall: true, arrange: true })));
 // save codes from this version open in a future one
 const code = P.exportCode(G);
 assert.strictEqual(P.parseCode(code).day, 26);

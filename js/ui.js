@@ -172,7 +172,11 @@
         ${G.active && !G.active.rack ? '<p class="muted small">Finish the current order first.</p>' : ''}
       </section>`;
     const walkIn = UI.walkIn; UI.walkIn = false;   // the morning's customers come in through the door
-    return `<div class="scene-wrap">${DG.renderShop(G, { tall: tallScene(), walkIn })}</div>
+    const movable = Object.keys(DG.DECOR_MOVE).some(id => G.decor.owned.includes(id));
+    const arrangeUi = !movable ? '' : UI.arrange
+      ? '<div class="arrange-bar paper"><span>Drag the furniture where you like it</span><button class="btn small ghost" data-act="arrangereset">↺ Usual spots</button><button class="btn small primary" data-act="arrange">✓ Done</button></div>'
+      : '<button class="arrange-btn" data-act="arrange" aria-label="Arrange the shop">🖌️ Arrange</button>';
+    return `<div class="scene-wrap${UI.arrange ? ' arranging' : ''}">${DG.renderShop(G, { tall: tallScene(), walkIn, arrange: UI.arrange })}${arrangeUi}</div>
     <div class="shop-grid">
       <section class="panel mie-panel">
         <div class="mie-row">${DG.renderAvatar(DG.mieLook(G), 'happy', 96)}<div class="bubble">${esc(mieLine())}</div></div>
@@ -1412,7 +1416,9 @@
     if (name === 'view' && arg !== UI.view) sfx('page');
     else if (!['stitch', 'press', 'pet'].includes(name)) sfx('click');
     switch (name) {
-      case 'view': UI.view = arg; window.scrollTo(0, 0); break;
+      case 'view': UI.view = arg; UI.arrange = false; window.scrollTo(0, 0); break;
+      case 'arrange': UI.arrange = !UI.arrange; break;
+      case 'arrangereset': G.decor.pos = {}; sfx('page'); break;
       case 'tab': UI.tab = arg; break;
       case 'howto': UI.overlay = { type: 'intro' }; break;
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
@@ -1775,6 +1781,36 @@
     if (!b || b.disabled || b.dataset.act === 'stitch' || b.dataset.act === 'press') return;
     act(b.dataset.act, b.dataset.arg);
   });
+  // arranging the shop: drag a piece of furniture on the upper layer, then it is painted into the room at its new spot
+  let drag = null;
+  const svgPoint = (svg, e) => { const m = svg.getScreenCTM(); if (!m) return null; const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()); return [pt.x, pt.y]; };
+  document.addEventListener('pointerdown', e => {
+    const g = UI.arrange && e.target.closest && e.target.closest('[data-drag]');
+    if (!g) return;
+    const svg = g.ownerSVGElement, p0 = svg && svgPoint(svg, e);
+    if (!p0) return;
+    e.preventDefault();
+    const id = g.dataset.drag, tall = !!g.dataset.tall, [dx, dy] = DG.decorPos(G, id, tall);
+    drag = { g, id, svg, p0, dx, dy, nx: dx, ny: dy, tall };
+    g.classList.add('lifted');
+    try { g.setPointerCapture(e.pointerId); } catch (err) { /* fine without */ }
+  });
+  document.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const p = svgPoint(drag.svg, e);
+    if (!p) return;
+    [drag.nx, drag.ny] = DG.clampDecor(drag.id, drag.dx + p[0] - drag.p0[0], drag.dy + p[1] - drag.p0[1], drag.tall);
+    drag.g.setAttribute('transform', `translate(${drag.nx} ${drag.ny})`);
+  });
+  const drop = () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    d.g.classList.remove('lifted');
+    if (d.nx !== d.dx || d.ny !== d.dy) { DG.moveDecor(G, d.id, d.nx, d.ny); sfx('squish'); save(); }
+  };
+  document.addEventListener('pointerup', drop);
+  document.addEventListener('pointercancel', drop);
+
   // pointerdown keeps the stitch button snappy on touch screens
   document.addEventListener('pointerdown', e => {
     const b = e.target.closest('[data-act="stitch"]');

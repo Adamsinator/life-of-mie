@@ -82,7 +82,7 @@
     'Cat bed': 'Kattekurv', 'He still sleeps on the fabric pile.': 'Han sover stadig på stofbunken.',
     'Cat tower': 'Kattetårn', 'King Dexter surveys his kingdom.': 'Kong Dexter skuer ud over sit rige.',
     'Cat food ({0} days)': 'Kattemad ({0} dage)',
-    'Play with Elizabeth': 'Leg med Elizabeth', 'Pet Dexter': 'Ae Dexter', 'Dinner at home': 'Aftensmad derhjemme', 'Welcome back': 'Velkommen tilbage',
+    'Play with Elizabeth': 'Leg med Elizabeth', 'Pet Dexter': 'Ae Dexter', 'Dinner at home': 'Aftensmad derhjemme', 'Welcome back': 'Velkommen tilbage', 'Arrange': 'Indret', 'Arrange the shop': 'Indret butikken', 'Drag the furniture where you like it': 'Træk møblerne hen, hvor du vil have dem', 'Usual spots': 'Som før', 'Done': 'Færdig',
     'A customer is already at the door.': 'Der står allerede en kunde ved døren.', '{0} customers are already at the door.': 'Der står allerede {0} kunder ved døren.', 'There is a letter in the post.': 'Der ligger et brev i posten.', 'Badminton with Adam': 'Badminton med Adam',
     'Beach day at Amager Strand': 'Stranddag på Amager Strand', 'Movie night with popcorn': 'Filmaften med popcorn', 'Ice cream in Nyhavn': 'Is i Nyhavn',
     'Copenhagen Zoo': 'Zoologisk Have', 'Date night with Adam': 'Kæresteaften med Adam', 'Family day at Tivoli': 'Familiedag i Tivoli',

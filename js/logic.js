@@ -58,6 +58,7 @@
     G.inv = G.inv || {};
     G.stats = G.stats || { served: 0, totalS: 0, best: 0, earned: 0 };
     G.decor = G.decor || { owned: [], wallpaper: 'stripes', walls: ['stripes'] };
+    if (!G.decor.pos) G.decor.pos = {};   // where the player has moved her furniture (offsets from the usual spot)
     G.staff = G.staff || { apprentice: false, assistant: false };
     G.marketing = G.marketing || [];   // campaigns booked today, effective tomorrow
     G.boost = G.boost || null;         // today's effects from yesterday's campaigns
@@ -224,6 +225,30 @@
     DG.updateGoals(G);
     return true;
   };
+  // Arranging the shop by hand: how far each piece may move from its usual spot, and its outline (x, y, w, h)
+  // so it stays on the wall or on the floor. The taller landscape view has a deeper floor (tallY); a spot chosen
+  // there is kept, and simply drawn nearer the wall in the shorter view.
+  DG.DECOR_MOVE = {
+    rug:        { x: [-170, 105], y: [-12, 22], tallY: [-12, 120], box: [180, 165, 112, 26] },
+    plant:      { x: [-150, 175], y: [0, 40],   tallY: [0, 130],   box: [170, 94, 42, 60] },
+    armchair:   { x: [-210, 100], y: [0, 40],   tallY: [0, 130],   box: [236, 128, 56, 36] },
+    mirror:     { x: [-240, 105], y: [-30, 40], box: [257, 46, 30, 52] },
+    gallery:    { x: [-280, 12],  y: [-14, 70], box: [298, 20, 86, 46] },
+    chandelier: { x: [-170, 110], y: [0, 0],    box: [186, 14, 100, 40] },
+  };
+  DG.clampDecor = function (id, dx, dy, tall) {
+    const m = DG.DECOR_MOVE[id];
+    if (!m) return [0, 0];
+    const c = (v, [a, b]) => Math.round(Math.min(b, Math.max(a, Number(v) || 0)));
+    return [c(dx, m.x), c(dy, (tall && m.tallY) || m.y)];
+  };
+  DG.moveDecor = function (G, id, dx, dy) {
+    if (!DG.DECOR_MOVE[id] || !G.decor.owned.includes(id)) return false;
+    const [x, y] = DG.clampDecor(id, dx, dy, true);
+    if (x || y) G.decor.pos[id] = [x, y]; else delete G.decor.pos[id];
+    return true;
+  };
+  DG.decorPos = (G, id, tall) => (G.decor.pos && G.decor.pos[id] ? DG.clampDecor(id, G.decor.pos[id][0], G.decor.pos[id][1], tall) : [0, 0]);
   DG.buyHomeItem = function (G, id) {
     const it = byId(DG.HOME_ITEMS, id);
     if (G.home.items.includes(id) || G.money < it.cost) return false;
