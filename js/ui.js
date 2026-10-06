@@ -718,6 +718,8 @@
     switch (o.type) {
       case 'intro': return ovIntro();
       case 'morning': return ovMorning();
+      case 'kidsew': return ovKidSew(o);
+      case 'train': return ovTrain(o);
       case 'req': return ovReq(o.arg);
       case 'sew': return ovSew();
       case 'result': return ovResult(o);
@@ -926,7 +928,8 @@
       return `<article class="card ${own ? 'owned' : ''}"><div class="card-top"><span class="item-ic">${it.icon}</span><div class="card-title"><b>${it.name}</b><span class="muted small">❤️ +${it.joy} now, and a slower daily drop</span></div></div>
         <p class="small">${it.desc}</p>${own ? '<div class="lock done">At home ✓</div>' : `<button class="btn primary" data-act="buyhome" data-arg="${it.id}" ${G.money < it.cost ? 'disabled' : ''}>Buy: ${kr(it.cost)}</button>`}</article>`;
     }).join('');
-    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
+    const htabs = `<div class="tabs home-tabs">${[['family', '🏡 Family'], ['garden', '🌷 Garden'], ['wardrobe', '👗 Mie\'s wardrobe'], ['ledger', '📒 Accounts']].map(([id, l]) => `<button class="tab ${UI.homeTab === id ? 'on' : ''}" data-act="hometab" data-arg="${id}">${l}</button>`).join('')}</div>`;
+    if (UI.homeTab === 'garden') return `<div class="scene-wrap">${DG.renderGarden(G, { tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${gardenHtml()}`;
     if (UI.homeTab === 'wardrobe') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${wardrobeHtml()}`;
     if (UI.homeTab === 'ledger') return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}${ledgerHtml()}`;
     return `<div class="scene-wrap">${DG.renderHome(G, { dexter: UI.dexter, tall: tallScene(), bounce: UI.bounce })}</div>${htabs}
@@ -940,6 +943,8 @@
         <h3>Dexter's food</h3>
         <div class="food-row"><span>${h.catFood > 0 ? `🐟 ${h.catFood} day${h.catFood > 1 ? 's' : ''} of food left` : '<b class="bad">Dexter is hungry! Mjav!</b>'}</span>
           <button class="btn" data-act="catfood" ${G.money < DG.CAT_FOOD.cost ? 'disabled' : ''}>${DG.CAT_FOOD.icon} Buy ${DG.CAT_FOOD.name}: ${kr(DG.CAT_FOOD.cost)}</button></div>
+        <div class="food-row"><span class="tricks-known">${h.tricks.known.length ? h.tricks.known.map(id => `<span class="trick-ic" title="${byId(DG.TRICKS, id).name}">${byId(DG.TRICKS, id).icon}</span>`).join('') : '🐾'}</span>
+          <button class="btn" data-act="train" ${DG.canTrain(G) ? '' : 'disabled'}>🐾 ${h.tricks.day === G.day ? 'Training done for today' : 'Teach Dexter a trick'}</button></div>
         ${h.event ? `<p class="event soft">Last night: ${esc(h.event)}</p>` : ''}
       </section>
       <section class="panel">
@@ -957,6 +962,61 @@
         <h2>Things for Dexter</h2><div class="grid upg">${items('dexter')}</div>
       </section>
     </div>`;
+  }
+
+  function gardenHtml() {
+    const se = DG.season(G).id, sel = UI.bulb || 'red';
+    const hint = se === 'autumn' ? 'Autumn is tulip time: plant bulbs now and they bloom in spring.'
+      : se === 'winter' ? 'The garden sleeps under the snow. The bulbs are dreaming of spring.'
+      : se === 'spring' ? 'Tap a tulip to pick a bouquet for the dinner table.' : 'Bulbs planted now rest until next spring.';
+    return `<section class="panel garden-panel"><p class="garden-hint">${hint}</p>
+      ${DG.canPlant(G) ? `<div class="bulbs">${DG.TULIPS.map(t => `<button class="bulb ${sel === t.id ? 'on' : ''}" data-act="bulbcol" data-arg="${t.id}" aria-label="${t.name}"><svg viewBox="-10 -14 20 22" width="34" height="38"><path d="M0 8 V-2" stroke="#4d7a3e" stroke-width="1.6"/><path d="M-7 -12 q0 12 7 12 q7 0 7 -12 l-3.5 4 l-3.5 -5 l-3.5 5Z" fill="${t.hex}" stroke="#7a6a5a" stroke-width=".6"/></svg></button>`).join('')}</div>
+      <p class="muted small">Pick a colour, then tap an empty bed. Bulbs cost ${kr(DG.BULB_COST)}</p>` : ''}
+    </section>`;
+  }
+
+  // Elizabeth's sewing corner: a scrap, a decoration, and the doll dress goes on the line
+  function ovKidSew(o) {
+    return `<div class="overlay"><div class="sheet kidsew">
+      <h2>Elizabeth's sewing corner</h2>
+      <div class="kid-stage">${DG.renderAvatar(DG.FAMILY.elizabeth.look, 'ecstatic', 84)}<svg viewBox="-12 -4 24 22" width="150" height="138">${DG.kidDressSVG(o.c, o.d, 0, 0, 1)}</svg></div>
+      <div class="kid-row">${DG.kidScraps(G).map(c => `<button class="kid-pick ${o.c === c ? 'on' : ''}" data-act="kidc" data-arg="${c}">${DG.colorDot(c, 30)}</button>`).join('')}</div>
+      <div class="kid-row">${[['heart', '❤️'], ['star', '⭐'], ['flower', '🌸'], ['buttons', '🔘']].map(([d, ic]) => `<button class="kid-pick deco ${o.d === d ? 'on' : ''}" data-act="kidd" data-arg="${d}">${ic}</button>`).join('')}</div>
+      <button class="btn primary big wide" data-act="kidsewdone">🧵 Sew it!</button>
+    </div></div>`;
+  }
+
+  // Dexter's training: give a treat while he is looking at you
+  function ovTrain(o) {
+    const T = G.home.tricks;
+    if (o.step === 'pick') return `<div class="overlay solo"><div class="sheet train">
+      <h2>Which trick?</h2>
+      <div class="kid-row">${DG.TRICKS.filter(t => DG.trickOpen(G, t)).map(t => `<button class="chip" data-act="trainpick" data-arg="${t.id}"><span class="ex-ic">${t.icon}</span><span class="chip-txt"><b>${t.name}</b><small>${'●'.repeat(T.prog[t.id] || 0)}${'○'.repeat(DG.TRICK_DAYS - (T.prog[t.id] || 0))}</small></span></button>`).join('')}</div>
+      <button class="btn ghost" data-act="closeov">Not now</button></div></div>`;
+    const t = byId(DG.TRICKS, o.trick);
+    const dex = mood => `<svg viewBox="-30 -40 60 56" width="200" height="186">${DG.renderDexter(mood)}</svg>`;
+    if (o.step === 'done') return `<div class="overlay solo"><div class="sheet train">
+      <h2>${t.icon} ${t.name}</h2>
+      <div class="train-dex">${dex(o.res.learnt ? t.id : o.res.ok ? 'purr' : 'sit')}</div>
+      <p class="train-paws">${'●'.repeat(o.res.prog)}${'○'.repeat(Math.max(0, DG.TRICK_DAYS - o.res.prog))}</p>
+      <p class="garden-hint">${o.res.learnt ? 'Dexter learnt a new trick! Tap him at home to see it.' : o.res.ok ? 'A good lesson. Again tomorrow.' : 'Dexter was more interested in the treats. Again tomorrow.'}</p>
+      <button class="btn primary big wide" data-act="closeov">Done</button></div></div>`;
+    return `<div class="overlay solo"><div class="sheet train">
+      <h2>${t.icon} ${t.name}</h2>
+      <p class="garden-hint">Give a treat when he looks at you.</p>
+      <div class="train-dex" id="trainDex">${dex(o.look ? 'sit' : 'purr')}</div>
+      <p class="train-paws">${'🐟'.repeat(o.good)}${'·'.repeat(Math.max(0, o.treats - o.good))}</p>
+      <button class="btn primary big wide" data-act="treat">🐟 Treat</button></div></div>`;
+  }
+  // he looks at you, then away, at his own cat pace
+  function trainTick() {
+    clearTimeout(UI.trainT);
+    const o = UI.overlay;
+    if (!o || o.type !== 'train' || o.step !== 'play') return;
+    o.look = !o.look;
+    const el = document.getElementById('trainDex');
+    if (el) el.innerHTML = `<svg viewBox="-30 -40 60 56" width="200" height="186">${DG.renderDexter(o.look ? 'sit' : 'purr')}</svg>`;
+    UI.trainT = setTimeout(trainTick, o.look ? 650 + Math.random() * 500 : 700 + Math.random() * 900);
   }
 
   function housingHtml() {
@@ -1038,6 +1098,7 @@
       if (set === 'colours') return `<span class="coll-item ${have ? 'have' : ''}" title="${byId(DG.COLORS, id).name}">${DG.colorDot(id, 26)}</span>`;
       if (set === 'silhouettes') return `<span class="coll-item word ${have ? 'have' : ''}">${byId(DG.SILHOUETTES, id).name}</span>`;
       if (set === 'shapes') return `<span class="coll-item word ${have ? 'have' : ''}">${byId(DG.POT_SHAPES, id).name}</span>`;
+      if (set === 'tulips') { const t = byId(DG.TULIPS, id); return `<span class="coll-item ${have ? 'have' : ''}" title="${t.name}"><svg viewBox="-8 -13 16 15" width="26" height="24"><path d="M-7 -12 q0 12 7 12 q7 0 7 -12 l-3.5 4 l-3.5 -5 l-3.5 5Z" fill="${t.hex}" stroke="#7a6a5a" stroke-width=".6"/></svg></span>`; }
       const se = byId(DG.SEASONS, id);
       return `<span class="coll-item word ${have ? 'have' : ''}">${se.icon} ${se.name}</span>`;
     };
@@ -1206,7 +1267,7 @@
     if (!G) { paint(app, welcomeScreen()); return; }
     const ovType = UI.overlay && UI.overlay.type;
     // at the door in the morning nothing is drawn behind the street: anything moving under the painted street would make it repaint
-    if (ovType === 'morning') { paint(app, `<div class="ov-host" data-key="morning">${overlay()}</div>`); UI.lastOverlay = ovType; document.body.classList.add('modal-open'); return; }
+    if (ovType === 'morning' || ovType === 'train') { paint(app, `<div class="ov-host" data-key="morning">${overlay()}</div>`); UI.lastOverlay = ovType; document.body.classList.add('modal-open'); return; }
     const tip = currentTip();
     paint(app, topbar() + `<main class="view view-${UI.view}" data-key="${UI.view}">${VIEWS[UI.view]()}</main>`
       + `<div class="ov-host" data-key="${ovType || ''}">${overlay()}</div>` + (tip ? coachHtml(tip) : ''));
@@ -1422,7 +1483,7 @@
       case 'tab': UI.tab = arg; break;
       case 'howto': UI.overlay = { type: 'intro' }; break;
       case 'menu': UI.overlay = { type: 'menu' }; UI.exportCode = ''; break;
-      case 'closeov': UI.overlay = null; break;
+      case 'closeov': UI.overlay = null; clearTimeout(UI.trainT); break;
       case 'albumtab': UI.albumTab = arg; break;
       case 'haggle': if (G.today && !G.today.haggleDone) UI.overlay = { type: 'haggle' }; break;
       case 'twirl': UI.twirl = true; clearTimeout(UI.twirlT); UI.twirlT = setTimeout(() => { UI.twirl = false; render(); }, 1300); sfx('good'); break;
@@ -1612,6 +1673,11 @@
           UI.dexter = 'purr'; sfx('purr');
           toast('Dexter purrs like a little motor. ❤️ +4');
           setTimeout(() => { UI.dexter = null; if (UI.view === 'home' && !UI.overlay) render(); }, 2800);
+        } else if (G.home.catFood > 0 && G.home.tricks.known.length) {
+          // he shows off one of his tricks
+          const k = G.home.tricks.known;
+          UI.dexter = k[Math.floor(Math.random() * k.length)]; sfx('good');
+          clearTimeout(UI.dexT); UI.dexT = setTimeout(() => { UI.dexter = null; if (UI.view === 'home' && !UI.overlay) render(); }, 2200);
         } else {
           sfx('meow');
           toast(G.home.catFood <= 0 ? 'Dexter would rather have dinner. Mjav!' : 'Dexter has had enough cuddles for today. He is a cat, after all.');
@@ -1625,6 +1691,52 @@
         break;
       }
       case 'hometab': UI.homeTab = arg; break;
+      case 'bulbcol': UI.bulb = arg; break;
+      case 'bed': {
+        const i = +arg, b = G.home.garden.beds[i], st = DG.tulipStage(G, b);
+        if (!b) {
+          if (!DG.canPlant(G)) { toast('The ground is frozen. Plant again when spring comes.'); break; }
+          if (G.money < DG.BULB_COST) { toast('Not enough money for a bulb.'); break; }
+          if (DG.plantBulb(G, i, UI.bulb || 'red')) { G.today.private = (G.today.private || 0) + DG.BULB_COST; sfx('squish'); }
+        } else if (st === 'bloom') {
+          if (DG.pickTulip(G, i)) { sfx('good'); toast('🌷 A bouquet for the dinner table.'); }
+        } else sfx('click');
+        break;
+      }
+      case 'kidsew': {
+        if (!DG.kidCanSew(G)) { toast('Elizabeth has sewn enough for today. 💤'); break; }
+        UI.overlay = { type: 'kidsew', c: DG.kidScraps(G)[0], d: 'heart' };
+        break;
+      }
+      case 'kidc': if (UI.overlay && UI.overlay.type === 'kidsew') UI.overlay.c = arg; break;
+      case 'kidd': if (UI.overlay && UI.overlay.type === 'kidsew') UI.overlay.d = arg; break;
+      case 'kidsewdone': {
+        const o = UI.overlay;
+        if (o && DG.kidSew(G, o.c, o.d)) { sfx('perfect'); toast('Elizabeth hung her new doll dress on the line.'); }
+        UI.overlay = null;
+        break;
+      }
+      case 'train': if (DG.canTrain(G)) UI.overlay = { type: 'train', step: 'pick' }; break;
+      case 'trainpick': {
+        UI.overlay = { type: 'train', step: 'play', trick: arg, treats: 0, good: 0, look: false };
+        UI.trainT = setTimeout(trainTick, 900);
+        break;
+      }
+      case 'treat': {
+        const o = UI.overlay;
+        if (!o || o.type !== 'train' || o.step !== 'play') break;
+        o.treats += 1;
+        // a good treat: he munches it and looks away for a moment
+        if (o.look) { o.good += 1; o.look = false; sfx('good'); clearTimeout(UI.trainT); UI.trainT = setTimeout(trainTick, 600 + Math.random() * 700); } else sfx('meow');
+        if (o.treats >= 5) {
+          clearTimeout(UI.trainT);
+          const res = DG.trainDexter(G, o.trick, o.good);
+          UI.overlay = res ? { type: 'train', step: 'done', trick: o.trick, res } : null;
+          if (res && res.learnt) sfx('fanfare');
+        }
+        break;
+      }
+
       case 'buywear': {
         const w = byId(DG.WARDROBE, arg);
         if (DG.buyClothes(G, arg)) { G.today.private = (G.today.private || 0) + w.cost; sfx('coin'); toast(`👗 Mie is wearing her new ${w.name.toLowerCase()}!`); }

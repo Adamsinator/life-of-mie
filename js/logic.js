@@ -105,6 +105,11 @@
     G.keepsakes = G.keepsakes || 0;
     G.collections = G.collections || { fabrics: [], colours: [], silhouettes: [], shapes: [], seasons: [], done: [] };
     G.returning = G.returning || [];
+    if (!G.collections.tulips) G.collections.tulips = [];
+    // life at home: the tulip garden, Elizabeth's doll dresses and Dexter's tricks (all additive)
+    if (!G.home.garden) G.home.garden = { beds: [null, null, null, null, null, null] };
+    if (!G.home.kid) G.home.kid = { dresses: [], day: 0 };
+    if (!G.home.tricks) G.home.tricks = { known: [], prog: {}, day: 0 };
     if (G.gameOver) { G.gameOver = false; if (G.money < DG.HELP_FLOOR) G.money = DG.HELP_FLOOR; }
     G.schema = Math.max(G.schema || 0, DG.SAVE_SCHEMA);
     return G;
@@ -441,6 +446,7 @@
     const prevSeason = G.day > 0 ? DG.seasonIndex(G) : -1;
     G.day += 1;
     G.newSeason = DG.seasonIndex(G) !== prevSeason;
+    if (G.home && G.home.garden) DG.gardenMorning(G);
     if (G.day > 1) DG.moveMarket(G);
     const r = Math.random();
     const unlocked = DG.FABRICS.filter(f => DG.isUnlocked(G, f));
@@ -739,6 +745,80 @@
     return '';
   };
 
+  // ---------- the garden: tulip bulbs sleep through a winter and bloom in spring (the Danish way: plant in autumn) ----------
+  DG.TULIPS = [
+    { id: 'red', name: 'Red', hex: '#d6273b' }, { id: 'pink', name: 'Pink', hex: '#f08bb0' }, { id: 'yellow', name: 'Yellow', hex: '#f2c230' },
+    { id: 'white', name: 'White', hex: '#fbf7ef' }, { id: 'purple', name: 'Purple', hex: '#7b4a9a' }, { id: 'orange', name: 'Orange', hex: '#ee8a3a' },
+  ];
+  DG.BULB_COST = 60;
+  const seasonStart = G => G.day - ((Math.max(0, G.day - 1)) % DG.SEASON_LENGTH);
+  // bulb (resting), sprout (planted this spring: leaves now, flowers next year), sleep (under the snow), bloom
+  DG.tulipStage = function (G, b) {
+    if (!b) return null;
+    const se = DG.season(G).id;
+    if (se === 'winter') return 'sleep';
+    if (se === 'spring') return b.planted < seasonStart(G) - DG.SEASON_LENGTH ? 'bloom' : 'sprout';
+    return 'bulb';
+  };
+  DG.canPlant = G => DG.season(G).id !== 'winter';
+  DG.plantBulb = function (G, i, color) {
+    const beds = G.home.garden.beds;
+    if (!(i >= 0 && i < beds.length) || beds[i] || !DG.canPlant(G) || !byId(DG.TULIPS, color) || G.money < DG.BULB_COST) return false;
+    G.money -= DG.BULB_COST;
+    beds[i] = { c: color, planted: G.day };
+    return true;
+  };
+  // a bouquet for the dinner table; the bed is free for a new bulb
+  DG.pickTulip = function (G, i) {
+    const b = G.home.garden.beds[i];
+    if (DG.tulipStage(G, b) !== 'bloom') return false;
+    G.home.garden.beds[i] = null;
+    if (G.today) { G.today.bouquet = (G.today.bouquet || []).concat(b.c).slice(-5); }
+    if (G.home.did.pick !== G.day) { G.home.did.pick = G.day; G.home.happy = clamp(G.home.happy + 3, 0, 100); }
+    return true;
+  };
+  // each morning: tulips in bloom count towards the collection
+  DG.gardenMorning = function (G) {
+    G.home.garden.beds.forEach(b => { if (DG.tulipStage(G, b) === 'bloom') DG.collect(G, 'tulips', b.c); });
+  };
+
+  // ---------- Elizabeth's sewing corner: one little doll dress a day ----------
+  DG.KID_DECOS = ['heart', 'star', 'flower', 'buttons'];
+  const seeded = seed => () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  DG.kidScraps = G => { const r = seeded(G.day * 7 + 3), all = DG.COLORS.map(c => c.id).slice(), out = []; while (out.length < 5 && all.length) out.push(all.splice(Math.floor(r() * all.length), 1)[0]); return out; };
+  DG.kidCanSew = G => G.home.items.includes('sewcorner') && G.home.kid.day !== G.day;
+  DG.kidSew = function (G, color, deco) {
+    if (!DG.kidCanSew(G) || !DG.kidScraps(G).includes(color) || !DG.KID_DECOS.includes(deco)) return false;
+    G.home.kid.dresses.push({ c: color, d: deco, day: G.day });
+    G.home.kid.dresses = G.home.kid.dresses.slice(-12);
+    G.home.kid.day = G.day;
+    G.home.happy = clamp(G.home.happy + 4, 0, 100);
+    return true;
+  };
+
+  // ---------- Dexter's tricks: a short training each day; three good days and he knows it ----------
+  DG.TRICKS = [
+    { id: 'highfive', name: 'High five', icon: '🐾' },
+    { id: 'roll', name: 'Roll over', icon: '🌀' },
+    { id: 'fetch', name: 'Fetch the feather', icon: '🪶', needs: 'feather' },
+    { id: 'tower', name: 'Up the tower', icon: '🗼', needs: 'cattower' },
+  ];
+  DG.TRICK_DAYS = 3;
+  DG.trickOpen = (G, t) => !G.home.tricks.known.includes(t.id) && (!t.needs || G.home.items.includes(t.needs));
+  DG.canTrain = G => G.home.tricks.day !== G.day && G.home.catFood > 0 && DG.TRICKS.some(t => DG.trickOpen(G, t));
+  // good: treats given while he was paying attention (out of 5)
+  DG.trainDexter = function (G, id, good) {
+    const t = byId(DG.TRICKS, id), T = G.home.tricks;
+    if (!t || !DG.canTrain(G) || !DG.trickOpen(G, t)) return null;
+    T.day = G.day;
+    const ok = good >= 3;
+    if (ok) T.prog[id] = (T.prog[id] || 0) + 1;
+    const learnt = (T.prog[id] || 0) >= DG.TRICK_DAYS;
+    if (learnt) T.known.push(id);
+    G.home.happy = clamp(G.home.happy + 2, 0, 100);
+    return { ok, learnt, prog: T.prog[id] || 0 };
+  };
+
   // ---------- collections: little sets to complete, each with a keepsake for the shop ----------
   DG.COLLECTIONS = [
     { id: 'fabrics', icon: '🧵', title: 'Fabric library', desc: 'Sew a dress in every fabric.', all: () => DG.FABRICS.map(f => f.id), reward: 6000 },
@@ -746,6 +826,7 @@
     { id: 'silhouettes', icon: '👗', title: 'The silhouette book', desc: 'Four stars or more in every silhouette.', all: () => DG.SILHOUETTES.map(x => x.id), reward: 8000 },
     { id: 'shapes', icon: '🏺', title: 'The potter\'s shelf', desc: 'Fire every pot shape in the kiln.', all: () => DG.POT_SHAPES.map(x => x.id), reward: 5000 },
     { id: 'seasons', icon: '🍂', title: 'Four seasons of five stars', desc: 'A five-star dress in every season.', all: () => DG.SEASONS.map(x => x.id), reward: 8000 },
+    { id: 'tulips', icon: '🌷', title: 'A tulip of every colour', desc: 'See every colour of tulip bloom in your garden.', all: () => DG.TULIPS.map(x => x.id), reward: 4000 },
   ];
   DG.collect = function (G, set, id) {
     const c = G.collections;

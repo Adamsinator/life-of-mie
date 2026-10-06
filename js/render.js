@@ -702,6 +702,18 @@
   // mood: 'sit' | 'sleep' | 'purr' | 'hungry'
   DG.renderDexter = function (mood = 'sit') {
     const fur = '#8d8f96', dark = '#5d6068', belly = '#e9e6e1';
+    // a trick he has learnt: rolling over is its own drawing, the others are the sitting Dexter with a little extra
+    if (mood === 'roll') {
+      return `<g class="dexter roll"><ellipse cx="0" cy="0" rx="15" ry="8" fill="${fur}"/><ellipse cx="1" cy="-2" rx="9" ry="4.5" fill="${belly}"/>
+        <path d="M-8 -6 l-3 -8 M-2 -7 l-1 -8 M5 -7 l1 -8 M10 -5 l3 -7" stroke="${fur}" stroke-width="3.4" stroke-linecap="round"/>
+        <circle cx="-17" cy="2" r="7.5" fill="${fur}"/><path d="M-23 6 l-3 5 l6 -1Z M-21 -3 l-6 -3 l2 6Z" fill="${fur}"/>
+        <path d="M-20 1 q1.5 1.5 3 0 M-16 -1 q1.5 1.5 3 0" stroke="#333" stroke-width=".8" fill="none"/><path d="M15 2 q8 2 6 -6" stroke="${fur}" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <text x="-4" y="-18" font-size="8">✨</text></g>`;
+    }
+    const trick = mood === 'highfive' ? `<ellipse cx="11" cy="-9" rx="3.2" ry="5" fill="${fur}" transform="rotate(-35 11 -9)"/><ellipse cx="13" cy="-12" rx="1.8" ry="1.4" fill="#e9b5bd"/><text x="14" y="-22" font-size="8">✨</text>`
+      : mood === 'fetch' ? '<path d="M1 -14 Q14 -12 22 -20" stroke="#7a5236" stroke-width="1"/><path d="M14 -14 q6 -9 10 -8 q-2 6 -10 8Z" fill="#9db69a"/>'
+      : mood === 'tower' ? '<path d="M-6 -27 l2 -5 l2 3 l2 -4 l2 4 l2 -3 l2 5Z" fill="#e9c35a" stroke="#b58a1f" stroke-width=".5"/><text x="12" y="-24" font-size="8">✨</text>' : '';
+    if (trick) mood = 'sit';
     const stripes = `<path d="M-6 -2 q4 2 0 6 M0 -4 q4 3 0 7 M6 -2 q4 2 0 6" stroke="${dark}" stroke-width="1.6" fill="none"/>`;
     if (mood === 'sleep') {
       return `<g class="dexter sleep"><ellipse cx="0" cy="0" rx="18" ry="9" fill="${fur}"/>${stripes}<circle cx="-14" cy="-3" r="7" fill="${fur}"/><path d="M-19 -8 l2 -6 l3 5Z M-12 -9 l3 -5 l1 6Z" fill="${fur}"/><path d="M-17 -3 q2 1 4 0 M-12 -3 q2 1 3 0" stroke="#333" stroke-width=".8" fill="none"/><path d="M16 2 q8 4 0 8" stroke="${fur}" stroke-width="4" fill="none" stroke-linecap="round"/><text x="2" y="-12" font-size="7" fill="#7b6573" class="zzz">z z</text></g>`;
@@ -715,7 +727,17 @@
       <circle cx="0" cy="-17" r="8.5" fill="${fur}"/><path d="M-8 -21 l1 -9 l6 5Z M8 -21 l-1 -9 l-6 5Z" fill="${fur}"/><path d="M-6.5 -24 l.8 -4 l3 2.6Z M6.5 -24 l-.8 -4 l-3 2.6Z" fill="#e9b5bd"/>
       <path d="M-2 -21 l2 -3 l2 3" stroke="${dark}" stroke-width="1" fill="none"/>${eyes}<path d="M-1 -15.5 h2 l-1 1.2Z" fill="#e88"/>
       <path d="M-3 -14 q3 2 6 0" stroke="#333" stroke-width=".6" fill="none"/><path d="M-9 -16 h-6 M-9 -14.5 l-6 1 M9 -16 h6 M9 -14.5 l6 1" stroke="#ddd" stroke-width=".5"/>
-      <ellipse cx="-5" cy="9" rx="3" ry="2" fill="${belly}"/><ellipse cx="5" cy="9" rx="3" ry="2" fill="${belly}"/>${hearts}${bubble}</g>`;
+      <ellipse cx="-5" cy="9" rx="3" ry="2" fill="${belly}"/><ellipse cx="5" cy="9" rx="3" ry="2" fill="${belly}"/>${hearts}${bubble}${trick}</g>`;
+  };
+
+  // Elizabeth's little doll dresses: a scrap of colour and one decoration
+  DG.kidDressSVG = function (color, deco, x, y, s = 1) {
+    const hex = DG.colorHex(color), d = darken(hex, 0.3);
+    const dec = deco === 'heart' ? `<path d="M0 7 l-2.6 -2.6 a1.5 1.5 0 0 1 2.6 -2 a1.5 1.5 0 0 1 2.6 2Z" fill="#d6273b"/>`
+      : deco === 'star' ? '<path d="M0 2 l1 2.4 2.6 .2 -2 1.7 .7 2.6 -2.3 -1.4 -2.3 1.4 .7 -2.6 -2 -1.7 2.6 -.2Z" fill="#f2c230"/>'
+      : deco === 'flower' ? '<g fill="#fff"><circle cx="0" cy="3.4" r="1.4"/><circle cx="0" cy="7" r="1.4"/><circle cx="-1.8" cy="5.2" r="1.4"/><circle cx="1.8" cy="5.2" r="1.4"/></g><circle cx="0" cy="5.2" r="1" fill="#f2c230"/>'
+      : '<circle cx="0" cy="3.5" r="1" fill="#fff" stroke="#999" stroke-width=".3"/><circle cx="0" cy="7" r="1" fill="#fff" stroke="#999" stroke-width=".3"/>';
+    return `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-4 0 h8 l1.5 3 l-1.5 1 l3 10 h-14 l3 -10 l-1.5 -1Z" fill="${hex}" stroke="${d}" stroke-width=".6"/>${dec}</g>`;
   };
 
   // ---------------- Mie's home ----------------
@@ -799,9 +821,12 @@
     out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
-    top.push(`<g class="tap${opts.bounce === 'adam' ? ' bounce' : ''}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 267, 184, 92, { seated: true })}${opts.bounce === 'adam' ? hearts(267, 96) : ''}</g>`);
-    top.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 184, 92, { seated: true, legs: '#3b3040' }));
+    top.push(`<g class="tap${opts.bounce === 'adam' ? ' bounce' : ''}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 267, 172, 92, { seated: true })}${opts.bounce === 'adam' ? hearts(267, 96) : ''}</g>`);
+    top.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 172, 92, { seated: true, legs: '#3b3040' }));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
+    // a low coffee table in front of the sofa: coffee for two and a candle (and the grown-ups clearly sitting behind it)
+    top.push('<g class="soft"><path d="M206 160 V178 M278 160 V178 M224 162 V176 M260 162 V176" stroke="#8a6a48" stroke-width="2.4"/><ellipse cx="242" cy="160" rx="46" ry="7" fill="#c49a6c"/><ellipse cx="242" cy="158" rx="46" ry="7" fill="#d9b38a"/>'
+      + '<path d="M222 152 h7 v5 h-7Z M254 152 h7 v5 h-7Z" fill="#fffaf5" stroke="#c9bfb0" stroke-width=".5"/><path d="M229 153.5 q2 1 0 2.5 M261 153.5 q2 1 0 2.5" stroke="#c9bfb0" stroke-width=".6" fill="none"/><rect x="240" y="148" width="4" height="9" fill="#fffaf5"/><path d="M242 148 q-1.6 -3 0 -5 q1.6 2 0 5Z" fill="#ffb23e"/></g>');
     // toys
     if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
     if (has('train')) out.push('<g transform="translate(236 184)"><rect x="0" y="-8" width="14" height="8" fill="#c44d6c"/><rect x="2" y="-14" width="6" height="6" fill="#c44d6c"/><rect x="16" y="-7" width="11" height="7" fill="#1d6b6b"/><rect x="29" y="-7" width="11" height="7" fill="#e9c35a"/>' + [3, 11, 19, 25, 32, 38].map(x => `<circle cx="${x}" cy="1" r="2" fill="#333"/>`).join('') + '</g>');
@@ -813,11 +838,22 @@
     if (has('scratch')) out.push('<g transform="translate(320 150)"><rect x="4" y="0" width="8" height="34" fill="#c9b08a"/><path d="M4 6 h8 M4 12 h8 M4 18 h8 M4 24 h8" stroke="#a88a5f"/><rect x="0" y="32" width="16" height="4" fill="#9a6b47"/></g>');
     if (has('catbed')) out.push('<ellipse cx="360" cy="190" rx="22" ry="8" fill="#c44d6c"/><ellipse cx="360" cy="187" rx="16" ry="5" fill="#f1b9c2"/>');
     if (has('feather')) out.push('<path d="M100 196 L120 170" stroke="#7a5236" stroke-width="1.5"/><path d="M120 170 q6 -10 2 -16 q-6 6 -2 16" fill="#9db69a"/>');
+    // Elizabeth's sewing corner: a little table with a toy machine, and her doll dresses on a washing line
+    if (has('sewcorner')) {
+      out.push('<g transform="translate(296 182)"><rect x="0" y="0" width="32" height="4" rx="1" fill="#e9c35a"/><path d="M3 4 v14 M29 4 v14" stroke="#c9a46e" stroke-width="2.4"/>'
+        + '<path d="M6 0 v-8 h18 v4 h-4 v4" fill="#f08bb0" stroke="#c44d6c" stroke-width=".8"/><path d="M20 0 v-3" stroke="#555" stroke-width=".8"/><circle cx="9" cy="-5" r="1.4" fill="#fff"/></g>');
+      const kd = G.home.kid.dresses.slice(-6);
+      if (kd.length) {
+        out.push('<path d="M188 40 Q254 50 320 40" stroke="#9a8a7a" stroke-width=".8" fill="none"/>');
+        kd.forEach((k, i) => { const x = 198 + i * 22, y = 42 + Math.sin((x - 188) / 132 * Math.PI) * 5; out.push(`<rect x="${x - 1}" y="${y - 3}" width="2" height="4" fill="#c9a46e"/>${DG.kidDressSVG(k.c, k.d, x, y, 1)}`); });
+      }
+      top.push(`<g class="tap" data-act="kidsew" role="button" aria-label="Elizabeth's sewing corner"><rect x="290" y="168" width="44" height="34" fill="#fff" fill-opacity=".001"/>${DG.kidCanSew(G) ? '<text x="322" y="170" font-size="10">🧵</text>' : ''}</g>`);
+    }
     // food bowl
     out.push(`<ellipse cx="44" cy="196" rx="10" ry="4" fill="#34437f"/>${G.home.catFood > 0 ? '<ellipse cx="44" cy="194" rx="7" ry="2" fill="#a8743f"/>' : ''}`);
     // Dexter: where he is depends on what he owns and how he feels
     const dmood = opts.dexter || (G.home.catFood <= 0 ? 'hungry' : has('catbed') ? 'sleep' : 'sit');
-    const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && dmood === 'sit' ? [82, 98] : [70, 184];
+    const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && (dmood === 'sit' || dmood === 'tower') ? [82, 98] : dmood === 'fetch' && has('feather') ? [128, 186] : [70, 184];
     top.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
     // the taller view has room for a soft rug and a big plant in front
     if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="300" rx="120" ry="22" fill="#e7c9b0"/><ellipse cx="160" cy="300" rx="108" ry="18" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
@@ -832,6 +868,61 @@
     if (has('pooh')) top.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
     top.unshift(weather(se.id, ix, iy, iw, ih, 'homewx'));
     return sceneLayers('shop-scene home-scene', opts, "Mie's home", out, top);
+  };
+
+  // ---------------- the garden (or balcony boxes while the family lives in the flat) ----------------
+  // Painted room: sky, fence or balcony, lawn; upper layer: the six beds you tap, Elizabeth with her watering can.
+  DG.BED_POS = [[64, 176], [118, 164], [172, 178], [226, 164], [280, 178], [334, 164]];
+  const BED_TALL = [[120, 218], [240, 218], [340, 212], [60, 286], [180, 286], [300, 286]];
+  DG.renderGarden = function (G, opts = {}) {
+    const se = DG.season(G).id, flat = !G.home.house, out = [], top = [];
+    const snow = se === 'winter', lawn = snow ? '#f4f6f8' : se === 'autumn' ? '#a9a253' : se === 'summer' ? '#86b86a' : '#8fc274';
+    const sky = snow ? ['#c9d6e3', '#eef1f4'] : ['#9fcbe8', '#fbe7d4'];
+    out.push(`<defs><linearGradient id="gdsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient></defs>`);
+    out.push('<rect x="-300" y="-200" width="1000" height="360" fill="url(#gdsky)"/>');
+    if (!snow) out.push('<circle cx="350" cy="34" r="12" fill="#ffe08a" opacity=".9"/>');
+    if (flat) {
+      // a Nørrebro balcony: rooftops across the yard, the brick wall, a railing
+      out.push('<path d="M-300 120 H700 V60 H330 V40 H260 V70 H150 V50 H60 V80 H-300Z" fill="#b9a99a"/>' + [70, 90, 160, 180, 270, 290, 340].map(x => `<rect x="${x}" y="${x % 20 ? 90 : 62}" width="8" height="10" fill="#f4efe6"/>`).join(''));
+      out.push('<rect x="-300" y="120" width="1000" height="400" fill="#b4553f"/>' + Array.from({ length: 10 }, (_, k) => `<path d="M-300 ${128 + k * 10} H700" stroke="#9c4734" stroke-width=".8"/>`).join(''));
+      out.push('<rect x="-300" y="146" width="1000" height="8" fill="#8a817a"/><rect x="-300" y="190" width="1000" height="300" fill="#a39a92"/>');
+    } else {
+      out.push(`<path d="M-300 118 Q-100 92 100 112 T500 104 L700 118 V140 H-300Z" fill="${snow ? '#dfe7e2' : '#5f9a5a'}"/>`);
+      out.push(`<rect x="-300" y="132" width="1000" height="400" fill="${lawn}"/>`);
+      let fence = '';
+      for (let x = -300; x < 700; x += 14) fence += `<path d="M${x} 136 v-24 l4 -5 l4 5 v24Z" fill="#fffaf5" stroke="#d9cfc0" stroke-width=".6"/>`;
+      out.push(fence + '<path d="M-300 118 H700 M-300 130 H700" stroke="#efe6d8" stroke-width="2.5"/>');
+      if (snow) out.push('<path d="M-300 107 H700" stroke="#fff" stroke-width="3"/>');
+      if (se === 'autumn') { const r = rng(G.day * 5 + 1); for (let k = 0; k < 22; k++) out.push(`<ellipse cx="${(r() * 420 - 10).toFixed(1)}" cy="${(140 + r() * 70).toFixed(1)}" rx="2.6" ry="1.4" fill="${['#d9822b', '#b5481f', '#e2b13c'][k % 3]}"/>`); }
+    }
+    // the beds: soil in the lawn, or a terracotta box on the balcony
+    const POS = opts.tall && !flat ? BED_TALL : DG.BED_POS, K = opts.tall && !flat ? 1.55 : 1;
+    const at = (i, svg) => `<g transform="translate(${POS[i][0]} ${POS[i][1]}) scale(${K})">${svg}</g>`;
+    if (flat) out.push('<path d="M-300 152 H700 M-300 188 H700" stroke="#2f2a2a" stroke-width="2.4"/>' + Array.from({ length: 50 }, (_, k) => `<path d="M${-300 + k * 20} 152 V188" stroke="#2f2a2a" stroke-width="1.4"/>`).join(''));
+    POS.forEach((_, i) => out.push(at(i, flat ? `<path d="M-20 -6 h40 l-4 14 h-32Z" fill="#c26a45" stroke="#9a4e30" stroke-width="1"/>${snow ? '<path d="M-21 -6 q21 -6 42 0Z" fill="#fff"/>' : ''}` : `<ellipse cx="0" cy="0" rx="22" ry="7" fill="${snow ? '#fff' : '#7a5236'}"/>${snow ? '' : '<ellipse cx="0" cy="-1" rx="18" ry="4.5" fill="#8f6440"/>'}`)));
+    if (flat) out.push(`<g transform="translate(40 ${opts.tall ? 236 : 196})"><rect x="-7" y="-16" width="14" height="16" rx="2" fill="#2f2a2a"/><rect x="-5" y="-14" width="10" height="12" fill="#ffd27a"/><path d="M-5 -16 q5 -7 10 0" stroke="#2f2a2a" stroke-width="1.6" fill="none"/></g>`);
+    if (snow) { const r = rng(G.day * 11 + 2); for (let k = 0; k < 34; k++) out.push(`<circle cx="${(r() * 440 - 20).toFixed(1)}" cy="${(r() * 200 - 50).toFixed(1)}" r="${(1 + r() * 1.4).toFixed(1)}" fill="#fff" opacity=".85"/>`); }
+    // an apple tree at the back of the garden
+    if (!flat) out.push(`<path d="M30 132 V70" stroke="#7a5236" stroke-width="7"/><circle cx="30" cy="62" r="30" fill="${snow ? '#eef2f4' : se === 'autumn' ? '#c98a3a' : '#5f9a5a'}"/>${se === 'summer' || se === 'autumn' ? [[18, 56], [38, 50], [26, 74], [44, 68]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#d6273b"/>`).join('') : se === 'spring' ? [[18, 56], [38, 48], [26, 72], [44, 66], [32, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3" fill="#fbe3ea"/>`).join('') : ''}`);
+    // what grows in each bed (tap to plant or to pick)
+    G.home.garden.beds.forEach((b, i) => {
+      const x = 0, y = 0, st = DG.tulipStage(G, b), t = b && (DG.TULIPS.find(k => k.id === b.c) || DG.TULIPS[0]);
+      const flag = t ? `<path d="M${x + 12} ${y} v-12" stroke="#9a7a55" stroke-width="1"/><path d="M${x + 12} ${y - 12} h6 v4 h-6Z" fill="${t.hex}" stroke="${darken(t.hex, 0.3)}" stroke-width=".4"/>` : '';
+      let g = '';
+      if (!b) g = DG.canPlant(G) ? `<circle cx="${x}" cy="${y - 2}" r="9" fill="#fff" fill-opacity=".35" stroke="#fffaf5" stroke-width="1.4" stroke-dasharray="3 2"/><path d="M${x - 4} ${y - 2} h8 M${x} ${y - 6} v8" stroke="#fffaf5" stroke-width="1.6"/>` : '';
+      else if (st === 'bulb') g = `<ellipse cx="${x}" cy="${y - 1}" rx="6" ry="3" fill="#6a4a30"/>${flag}`;
+      else if (st === 'sleep') g = `<ellipse cx="${x}" cy="${y - 2}" rx="9" ry="4" fill="#fff"/>${flag}`;
+      else if (st === 'sprout') g = `<path d="M${x} ${y} q-6 -6 -3 -14 q3 6 3 14Z M${x} ${y} q6 -6 3 -14 q-3 6 -3 14Z" fill="#5f9a5a"/>${flag}`;
+      else g = `<path d="M${x} ${y} V${y - 26}" stroke="#4d7a3e" stroke-width="2"/><path d="M${x} ${y - 4} q-9 -6 -6 -18 q4 8 6 18Z M${x} ${y - 6} q8 -5 6 -16 q-4 7 -6 16Z" fill="#5f9a5a"/>`
+        + `<path d="M${x - 7} ${y - 38} q0 13 7 13 q7 0 7 -13 l-3.5 4 l-3.5 -5 l-3.5 5Z" fill="${t.hex}" stroke="${darken(t.hex, 0.25)}" stroke-width=".7"/>`;
+      top.push(`<g class="tap bed" data-act="bed" data-arg="${i}" role="button" transform="translate(${POS[i][0]} ${POS[i][1]}) scale(${K})"><rect x="-22" y="-42" width="44" height="52" fill="#fff" fill-opacity=".001"/>${g}</g>`);
+    });
+    // Elizabeth helps with her watering can (a bucket and spade in winter)
+    const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3)), eh = 70 * grow;
+    const ex = opts.tall ? 372 : 380, ey = opts.tall ? 316 : 206, eH = opts.tall ? eh * 1.45 : eh;
+    top.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, 'happy', ex, ey, eH, { child: true })}`
+      + (snow ? '' : `<g transform="translate(${ex + 12} ${ey - eH * 0.42}) scale(${opts.tall ? 1.4 : 1})"><path d="M0 0 h10 l-1 9 h-8Z" fill="#6aa58f"/><path d="M10 2 l7 -5" stroke="#6aa58f" stroke-width="2"/><path d="M2 0 q3 -6 6 0" stroke="#4d7a6a" fill="none"/></g>`) + '</g>');
+    return sceneLayers('shop-scene garden-scene', opts, flat ? 'The balcony' : 'The garden', out, top);
   };
 
   // ---------------- morning: the street outside the shop, before the door opens ----------------
@@ -954,6 +1045,7 @@
     table += `<g transform="translate(0 20)">${dish}</g>`;
     // candles when it is dark early, tulips in spring
     if (se.id === 'autumn' || se.id === 'winter') [172, 228].forEach(x => { table += `<rect x="${x - 2}" y="122" width="4" height="16" fill="#fffaf5"/><path d="M${x} 122 q-2 -4 0 -7 q2 3 0 7Z" fill="#ffb23e"/><ellipse cx="${x}" cy="118" rx="7" ry="7" fill="url(#dnlamp)"/>`; });
+    else if (G.today && G.today.bouquet && G.today.bouquet.length) table += '<g transform="translate(-2 16)"><path d="M168 124 l2 -10 h6 l2 10Z" fill="#9fc7de"/>' + G.today.bouquet.map((c, k) => { const t = DG.TULIPS.find(x => x.id === c) || DG.TULIPS[0], x = 166 + k * 3.2, y = 101 + (k % 2) * 3; return `<path d="M${x} 116 V${y + 4}" stroke="#4d7a3e" stroke-width="1.1"/><path d="M${x - 2.6} ${y} q0 5 2.6 5 q2.6 0 2.6 -5 l-1.3 1.6 l-1.3 -2 l-1.3 2Z" fill="${t.hex}" stroke="${darken(t.hex, 0.25)}" stroke-width=".4"/>`; }).join('') + '</g>';  // tulips she picked today
     else if (se.id === 'spring') table += '<g transform="translate(-2 16)">' + '<path d="M168 124 l2 -10 h6 l2 10Z" fill="#9fc7de"/>' + [[170, 104, '#d6577b'], [175, 102, '#f0c443'], [178, 106, '#d6577b']].map(([x, y, c]) => `<path d="M${x} 116 V${y + 4}" stroke="#4d7a3e" stroke-width="1.2"/><ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.6" fill="${c}"/>`).join('') + '</g>';
     table += '</g>';
     top.push(table);

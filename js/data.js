@@ -201,6 +201,7 @@
     { id: 'crayons',   who: 'elizabeth', name: 'Crayons and paper', icon: '🖍️', cost: 60,  joy: 6,  desc: 'Elizabeth draws dresses "just like Mama".' },
     { id: 'teddy',     who: 'elizabeth', name: 'Teddy bear',        icon: '🧸', cost: 250,  joy: 8,  desc: 'Named Bamse, obviously.' },
     { id: 'pooh',      who: 'elizabeth', name: 'Winnie the Pooh teddy', icon: '🍯', cost: 450, joy: 10, desc: 'A bear of very little brain, with his own little honey pot. Elizabeth never lets go of him.' },
+    { id: 'sewcorner', who: 'elizabeth', name: 'Her own sewing corner', icon: '🧵', cost: 900, joy: 10, desc: 'A little table and a toy sewing machine, just like Mama\'s. One doll dress a day.' },
     { id: 'train',     who: 'elizabeth', name: 'Wooden train',      icon: '🚂', cost: 600, joy: 10, desc: 'Choo-choo all around the living room.' },
     { id: 'puppets',   who: 'elizabeth', name: 'Puppet theatre',    icon: '🎭', cost: 800, joy: 12, desc: 'Starring Dexter, against his will.' },
     { id: 'tricycle',  who: 'elizabeth', name: 'Tricycle',          icon: '🚲', cost: 900, joy: 12, desc: 'Fast. Too fast, says Adam.' },

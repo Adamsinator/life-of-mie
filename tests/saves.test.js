@@ -57,7 +57,7 @@ for (const f of files) {
   // and the game plays on from there
   for (let d = 0; d < 3; d++) {
     DG.startDay(G);
-    const svg = DG.renderShop(G) + DG.renderHome(G) + DG.renderDinner(G, { ev: 'christmas', bounce: 'dexter' }) + G.queue.map(c => DG.renderAvatar(c.look)).join('');
+    const svg = DG.renderShop(G) + DG.renderHome(G) + DG.renderDinner(G, { ev: 'christmas', bounce: 'dexter' }) + DG.renderGarden(G, { tall: true }) + DG.renderStorefront(G) + G.queue.map(c => DG.renderAvatar(c.look)).join('');
     assert(!/NaN|undefined/.test(svg), `${f}: drawing broke`);
     G.queue = [];
     DG.endDay(G);

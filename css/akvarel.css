@@ -260,3 +260,18 @@ body.modal-open .nav { opacity: .35; pointer-events: none; }
 .scene-people .drag .drag-box { fill: #fff; fill-opacity: .001; stroke: #c44d6c; stroke-width: 1.2; stroke-dasharray: 4 3; }
 .scene-people .drag.lifted { cursor: grabbing; }
 .scene-people .drag.lifted .drag-box { stroke: #e9a93a; stroke-width: 1.8; }
+
+/* the garden, Elizabeth's sewing corner and Dexter's training */
+.garden-panel { display: grid; gap: 8px; justify-items: center; text-align: center; }
+.garden-hint { margin: 0; font-family: var(--f-display); font-size: 1.35rem; line-height: 1.15; text-align: center; }
+.bulbs, .kid-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.bulb, .kid-pick { background: rgba(255, 250, 240, .9); border: 1.5px solid transparent; border-radius: 14px 10px 13px 9px; padding: 4px 6px; cursor: pointer; min-width: 48px; min-height: 48px; display: grid; place-items: center; }
+.bulb.on, .kid-pick.on { border-color: var(--ink, #4b3a2f); background: #fff6e0; }
+.kid-pick.deco { font-size: 1.6rem; }
+.sheet.kidsew, .sheet.train { max-width: 520px; display: grid; gap: 12px; justify-items: center; text-align: center; }
+.kid-stage { display: flex; align-items: center; gap: 10px; }
+.train-dex { min-height: 186px; display: grid; place-items: center; }
+.train-paws { margin: 0; font-size: 1.4rem; letter-spacing: .15em; min-height: 1.6em; }
+.tricks-known { font-size: 1.3rem; letter-spacing: .1em; }
+.scene-people .bed { cursor: pointer; }
+.overlay.solo { background: var(--paper, #f7efe3); }
