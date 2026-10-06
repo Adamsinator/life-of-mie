@@ -8,6 +8,7 @@
     "test:browser": "node tests/browser.test.js",
     "sim": "node tests/sim.js 40 60",
     "build": "node tools/build-single.js",
-    "start": "npx --yes serve -l 5173 ."
+    "start": "npx --yes serve -l 5173 .",
+    "test:monkey": "node tests/monkey.js"
   }
 }

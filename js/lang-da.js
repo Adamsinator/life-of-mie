@@ -332,6 +332,7 @@
     'Ready, steady, snip!': 'Klar, parat, klip!', 'Clean cut!': 'Rent snit!', 'Not bad at all.': 'Slet ikke dårligt.', 'A bit jagged...': 'Lidt takket...',
     'Iron the dress': 'Stryg kjolen', 'Hold and swipe the iron over every wrinkle before time runs out.': 'Hold og stryg strygejernet hen over hver fold, før tiden løber ud.',
     'Hold the iron on each wrinkle until it smooths out. Keep it moving, or it scorches!': 'Hold strygejernet på hver fold, til den glatter sig ud. Hold det i bevægelse, ellers svider du stoffet!',
+    'The materials for this pot are gone. Nothing was used.': 'Materialerne til denne krukke er væk. Intet blev brugt.',
     'Getting hot... keep it moving!': 'Det bliver varmt... bliv ved med at bevæge det!',
     'Ouch, a scorch mark! Keep the iron moving.': 'Av, et brændemærke! Hold strygejernet i bevægelse.', 'A little singed in places...': 'Lidt svedet hist og her...',
     '{0} wrinkles to go': '{0} folder tilbage', 'All smooth!': 'Helt glat!', 'Crisp as a fresh baguette!': 'Sprød som en frisk baguette!', 'Nicely pressed.': 'Pænt presset.', 'Still a little crumpled...': 'Stadig lidt krøllet...',

@@ -89,6 +89,11 @@ const server = http.createServer((req, res) => {
   await p.waitForTimeout(1100);
   assert(!(await p.$('.morning-ov')) && await p.$('.view-shop'), 'the door opens into the shop');
   console.log('  morning door opens');
+  // while a window is open, what is behind it can't be reached (not even with Tab + Enter on a keyboard)
+  await p.evaluate(() => window.__mie.act('menu'));
+  assert(await p.evaluate(() => document.querySelector('.overlay') && document.querySelector('main.view').inert && !document.querySelector('.ov-host').inert), 'background inert under a window');
+  await p.evaluate(() => window.__mie.act('closeov'));
+  assert(await p.evaluate(() => !document.querySelector('main.view').inert), 'background usable again');
 
   // Adam's secret: three quick taps on Adam open the spreadsheet, the sunglasses open Agent Adam, and every mission runs
   await p.evaluate(() => { window.__mie.act('view', 'home'); window.__mie.act('hometab', 'family'); });
@@ -129,7 +134,7 @@ const server = http.createServer((req, res) => {
       const diff = await p.evaluate(() => {
         const t = document.createElement('template'); t.innerHTML = window.__mie.html; DG.translateTree(t.content);
         const ref = document.createElement('div'); ref.id = 'app'; ref.appendChild(t.content);
-        const clean = el => { el.querySelectorAll('.coach-target, .still').forEach(x => x.classList.remove('coach-target', 'still')); el.querySelectorAll('[class=""]').forEach(x => x.removeAttribute('class')); return el; };
+        const clean = el => { el.querySelectorAll('.coach-target, .still').forEach(x => x.classList.remove('coach-target', 'still')); el.querySelectorAll('[class=""]').forEach(x => x.removeAttribute('class')); el.querySelectorAll('[inert]').forEach(x => x.removeAttribute('inert')); return el; };
         const live = clean(document.getElementById('app').cloneNode(true));
         clean(ref);
         return live.isEqualNode(ref) ? null : 'differs';

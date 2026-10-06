@@ -4,7 +4,8 @@
 (function (g) {
   const DG = (g.DG = g.DG || {});
   const da = {};
-  const T = (en, dk) => { da[en] = dk; return en; };
+  // registers the Danish at once too, so text written later in the game (letters) is never missed
+  const T = (en, dk) => { da[en] = dk; if (DG.I18N) DG.I18N.exact.set(en, dk); return en; };
 
   // gift: { money } | { happy } (family happiness) | { fabric, m } | { charm } (a keepsake for the shop)
   DG.STORIES = [
@@ -300,18 +301,21 @@
   DG.elizabethAge = G => 3 + Math.floor(Math.max(0, G.day - 1) / DG.YEAR);
   // Adam is promoted in his second and fourth year
   DG.adamSalary = G => DG.ADAM_SALARY + (G.adamLevel || 0) * 250;
+  const BDAY_TITLE = T('A birthday', 'En fødselsdag'), NEWS_TITLE = T('Good news', 'Gode nyheder');
+  const HEAD = T('They made me head of department! I bought flowers for you and a dinosaur for Elizabeth. (+250 kr a day)', 'De har gjort mig til afdelingsleder! Jeg har købt blomster til dig og en dinosaur til Elizabeth. (+250 kr om dagen)');
+  const LEAD = T('Guess who is the new team lead? Dinner is on me tonight. (+250 kr a day for the family)', 'Gæt hvem der er ny teamleder? Jeg giver middag i aften. (+250 kr om dagen til familien)');
   const BDAY = T('Elizabeth turns {0} today! There is cake for breakfast and a crown made of paper.', 'Elizabeth fylder {0} i dag! Der er kage til morgenmad og en krone af papir.');
   DG.familyMorning = function (G) {
     const year = Math.floor(Math.max(0, G.day - 1) / DG.YEAR);
     // Elizabeth's birthday: the third day of spring
     if (year > 0 && DG.season(G).id === 'spring' && DG.dayOfSeason(G) === 3)
-      G.mail.push({ id: 'm' + G.nextId++, from: 'Elizabeth', day: G.day, title: T('A birthday', 'En fødselsdag'), text: BDAY.replace('{0}', DG.elizabethAge(G)), gift: { happy: 6 } });
+      G.mail.push({ id: 'm' + G.nextId++, from: 'Elizabeth', day: G.day, title: BDAY_TITLE, text: BDAY.replace('{0}', DG.elizabethAge(G)), gift: { happy: 6 } });
     const want = year >= 3 ? 2 : year >= 1 ? 1 : 0;
     if ((G.adamLevel || 0) < want) {
       G.adamLevel = want;
-      G.mail.push({ id: 'm' + G.nextId++, from: 'Adam', day: G.day, title: T('Good news', 'Gode nyheder'),
-        text: want === 1 ? T('Guess who is the new team lead? Dinner is on me tonight. (+250 kr a day for the family)', 'Gæt hvem der er ny teamleder? Jeg giver middag i aften. (+250 kr om dagen til familien)')
-          : T('They made me head of department! I bought flowers for you and a dinosaur for Elizabeth. (+250 kr a day)', 'De har gjort mig til afdelingsleder! Jeg har købt blomster til dig og en dinosaur til Elizabeth. (+250 kr om dagen)'),
+      G.mail.push({ id: 'm' + G.nextId++, from: 'Adam', day: G.day, title: NEWS_TITLE,
+        text: want === 1 ? LEAD
+          : HEAD,
         gift: { happy: 6 } });
     }
   };

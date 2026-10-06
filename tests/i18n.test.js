@@ -10,6 +10,11 @@ const tr = DG.tr;
 const gitte = "Hi! I'm Gitte, a carpenter. My last dress fell apart in a week. Never again! It absolutely has to be tough enough for a working day. I'd love it to be comfortable. Long sleeves, please. I get cold. My budget is 470 kr.";
 assert.strictEqual(tr(gitte), 'Hej! Jeg hedder Gitte og er tømrer. Min sidste kjole faldt fra hinanden på en uge. Aldrig igen! Den skal absolut være robust nok til en arbejdsdag. Jeg ville elske, hvis den var behagelig. Lange ærmer, tak. Jeg fryser let. Mit budget er 470 kr.');
 assert.strictEqual(tr("Hi! I'm Rikke, a bride. Long sleeves, please. I get cold. My budget is 41.500 kr."), 'Hej! Jeg hedder Rikke og er brud. Lange ærmer, tak. Jeg fryser let. Mit budget er 41.500 kr.');
+// a symbol in front must not make a half-translated text (the whole text is in the dictionary)
+assert.strictEqual(tr('🏆 Goal complete! Collect your reward on the Goals screen.'), '🏆 Mål nået! Hent din belønning under Mål.');
+assert.strictEqual(tr('☀️ Summer! Everyone wants something light and breezy.'), '☀️ Sommer! Alle vil have noget let og luftigt.');
+// letters written later in the game are known too
+assert.strictEqual(tr('Guess who is the new team lead? Dinner is on me tonight. (+250 kr a day for the family)'), 'Gæt hvem der er ny teamleder? Jeg giver middag i aften. (+250 kr om dagen til familien)');
 assert.strictEqual(tr('Bought 3 m Linen.'), 'Købte 3 m Hør.');
 assert.strictEqual(tr("It's the most important dress of my life. No pressure! 😅 My budget is 900 kr."), 'Det er mit livs vigtigste kjole. Intet pres! 😅 Mit budget er 900 kr.');
 

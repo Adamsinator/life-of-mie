@@ -230,6 +230,7 @@ Each evening SKAT is paid on the shop's profit (family spending, house purchases
 
 - `npm test` runs balance, scoring, render and save tests, including every frozen save in `tests/fixtures`.
 - `npm run test:browser` checks the game in a real Chromium (needs Playwright): Danish on every screen, first-version saves in the page, damaged-save rescue, that patched screens equal freshly built ones, and the touch mini-games.
+- `npm run test:monkey` plays the real page like a player, tapping random visible buttons (weighted towards serving, sewing and ending days), and reports page errors, NaN/undefined on screen, broken numbers or negative stock in the save, screens with nothing to tap, English left in Danish mode (`LANG2=da`) and saves that don't survive a reload. `START=save` begins from the newest fixture save; `STEPS`, `SEED`, `W`/`H` vary the run. Exits non-zero when it finds something.
 - `npm run sim` plays many full games with bots through the game logic and checks invariants after every step: no NaN, no negative stock, meters within range, kilns and racks not over-full, no exceptions. Add `human` (`node tests/sim.js 40 60 human`) for bots that try only a few designs.
 
 ## Scoring model

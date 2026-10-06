@@ -44,6 +44,8 @@
   // the game's name: "Life of Mie" / "Mies liv"
   const brandHtml = () => (S.lang === 'da' ? '<span class="brand-script">Mies</span> <span class="brand-word">liv</span>' : '<span class="brand-script">Life of</span> <span class="brand-word">Mie</span>');
 
+  // a person's name (kept as it is in Danish), as opposed to a sender like "The baker next door"
+  const isName = from => /^[A-ZÆØÅ][a-zæøå]+(-[A-ZÆØÅ][a-zæøå]+)?$/.test(from || '');
   function toast(msg) {
     document.querySelectorAll('.toast').forEach(x => x.remove());
     const t = document.createElement('div');
@@ -154,7 +156,7 @@
     const eventBanner = G.event ? `<div class="event festive"><b>${G.event.icon} ${G.event.name}</b> ${esc(G.event.text)}</div>` : '';
     const seasonBanner = G.newSeason ? `<div class="event season">${DG.season(G).icon} ${esc(DG.season(G).hello)} In season: ${DG.season(G).in.map(id => byId(DG.FABRICS, id).name.toLowerCase()).join(', ')}.</div>` : '';
     const post = DG.mailToday(G);
-    const mailBanner = post.length ? `<button class="event mail" data-act="readmail">📬 ${post.length === 1 ? `A letter from <span translate="no">${esc(post[0].from)}</span>` : `${post.length} letters in the post`}</button>` : '';
+    const mailBanner = post.length ? `<button class="event mail" data-act="readmail">📬 ${post.length === 1 ? `A letter from <span${isName(post[0].from) ? ' translate="no"' : ''}>${esc(post[0].from)}</span>` : `${post.length} letters in the post`}</button>` : '';
     const goalBanner = DG.claimableGoals(G).length ? `<button class="event goal" data-act="claimall">🏆 ${DG.claimableGoals(G).length} goal${DG.claimableGoals(G).length > 1 ? 's' : ''} complete. Tap to collect your reward!</button>` : '';
     const camp = G.boost && G.boost.campaigns && G.boost.campaigns.length
       ? `<div class="event teal">Today's marketing: ${G.boost.campaigns.map(id => byId(DG.MARKETING, id).name).join(', ')}.</div>` : '';
@@ -294,7 +296,7 @@
     const fabChip = (key, f) => chip('set', `${key}:${f.id}`, d[key] === f.id,
       `${DG.swatchSVG(f.id, d[key] === f.id ? d[key === 'main' ? 'mainColor' : 'accentColor'] : null, `${key}${f.id}`, 34)}<span class="chip-txt"><b>${f.name}</b><small>${round1(G.inv.fabrics[f.id] || 0)} m · ${kr(DG.fabricPrice(G, f.id))}/m</small>${key === 'main' && DG.seasonFabric(G, f.id) ? `<small class="stag ${DG.seasonFabric(G, f.id)}">${DG.seasonFabric(G, f.id) === 'in' ? DG.season(G).icon + ' in season' : 'off-season'}</small>` : ''}</span>`);
     return `<h3>Main fabric</h3><div class="chips">${fabs.map(f => fabChip('main', f)).join('')}</div>
-      <h3>Main colour <small>♥ = ${esc(c.name)} loves it, ✕ = dislikes</small></h3>${colorRow('mainColor', fm, d.mainColor, c)}
+      <h3>Main colour ${c.rack ? '' : `<small>♥ = ${esc(c.name)} loves it, ✕ = dislikes</small>`}</h3>${colorRow('mainColor', fm, d.mainColor, c)}
       <h3>Accent fabric <small>used for sleeves, collar, pockets and ruffles</small></h3>
       <div class="chips">${chip('set', 'accent:', !d.accent, '<span class="chip-txt"><b>No accent</b><small>use main fabric</small></span>')}${fabs.map(f => fabChip('accent', f)).join('')}</div>
       ${d.accent ? `<h3>Accent colour</h3>${colorRow('accentColor', fa, d.accentColor, c)}` : ''}`;
@@ -649,7 +651,7 @@
     if (gf.happy) gifts.push('🏡 It made the whole family smile.');
     return `<div class="overlay"><div class="sheet letter-sheet">
       <div class="paper">
-        <div class="letter-head">${letterFace(m)}<div><span class="muted small">${m.story || /^[A-Z][a-zæøå]+$/.test(m.from) ? 'A letter from' : 'In the post'}</span><h2 ${m.story || m.look || /^[A-Z][a-zæøå]+$/.test(m.from) ? 'translate="no"' : ''}>${esc(m.from)}</h2>${m.title ? `<span class="muted small">${esc(m.title)}</span>` : ''}</div></div>
+        <div class="letter-head">${letterFace(m)}<div><span class="muted small">${m.story || /^[A-Z][a-zæøå]+$/.test(m.from) ? 'A letter from' : 'In the post'}</span><h2 ${isName(m.from) ? 'translate="no"' : ''}>${esc(m.from)}</h2>${m.title ? `<span class="muted small">${esc(m.title)}</span>` : ''}</div></div>
         <p class="letter-text">${esc(m.text)}</p>
         ${gifts.map(x => `<p class="letter-gift">${x}</p>`).join('')}
       </div>
@@ -850,7 +852,7 @@
   function startThrowing() {
     const an = DG.analyzePot(G.pot, G);
     if (an.issues.length) return;
-    UI.potRun = { wedge: 0.6, score: 0 };
+    UI.potRun = { wedge: 0.6, score: 0, pot: Object.assign({}, G.pot) };   // the pot as it was when the throw began
     if (S.minigames === 'full') { UI.overlay = { type: 'wedge' }; render(); return; }
     startWheel();
   }
@@ -870,7 +872,9 @@
     completePot(score, null);
   }
   function completePot(score, strokes) {
-    const pot = Object.assign({}, G.pot, strokes ? { paint: strokes } : {});
+    const pot = Object.assign({}, UI.potRun.pot || G.pot, strokes ? { paint: strokes } : {});
+    // the materials are taken now, so make sure they are still there
+    if (DG.analyzePot(pot, G).missing.length) { UI.overlay = null; toast('The materials for this pot are gone. Nothing was used.'); render(); return; }
     const item = DG.throwPot(G, pot, score, UI.potRun.wedge);
     DG.updateGoals(G);
     sfx('good');
@@ -1282,6 +1286,8 @@
       if (el) el.classList.add('coach-target');
     }
     document.body.classList.toggle('modal-open', !!UI.overlay);
+    // while a window is open, what is behind it can't be clicked, focused or reached with Tab + Enter
+    for (const el of app.children) el.inert = !!UI.overlay && !el.classList.contains('ov-host') && !el.classList.contains('coach');
     DG.Audio.ambience(ambienceKind());
     if (UI.overlay && UI.overlay.type === 'sew' && UI.sew.phase === 'stitch') startSewLoop();
     if (UI.overlay && UI.overlay.type === 'throw') startThrowLoop();
@@ -1792,6 +1798,7 @@
       case 'catfood': if (DG.buyCatFood(G)) { G.today.private = (G.today.private || 0) + DG.CAT_FOOD.cost; sfx('meow'); toast('Dexter approves. 🐟'); } break;
       case 'goexpansion': UI.view = 'upgrades'; UI.upTab = 'expansion'; window.scrollTo(0, 0); break;
       case 'setpot': {
+        if (UI.overlay && ['wedge', 'throw', 'paint'].includes(UI.overlay.type)) break;   // not in the middle of a throw
         const i = arg.indexOf(':');
         G.pot[arg.slice(0, i)] = arg.slice(i + 1);
         break;

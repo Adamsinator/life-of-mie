@@ -50,6 +50,14 @@
     const core = m[2];
     if (!core || !/[A-Za-z]/.test(core)) return core ? m[1] + core.replace(NUM, daNum) + m[3] : s;
     let out = exact(core);
+    // "🎯 Title ✓": translate the text between leading and trailing symbols
+    if (out == null) {
+      const sym = /^([^\p{L}\p{N}"“(+−-]+)?([\s\S]*?)([\s✓✗✕♥✨🌙]*[\p{Extended_Pictographic}✓✗✕♥✨🌙][\s\p{Extended_Pictographic}\uFE0F\u200D✓✗✕♥✨🌙]*)?$/u.exec(core);
+      if (sym && (sym[1] || sym[3]) && sym[2] && /[A-Za-z]/.test(sym[2])) {
+        const inner = tr(sym[2]);
+        if (inner !== sym[2]) out = (sym[1] || '') + inner + (sym[3] || '');
+      }
+    }
     // several sentences in one text: translate them one by one (a pattern must never run across sentences)
     if (out == null && /[.!?] +["“]?[A-ZÆØÅ]/.test(core)) {
       // a sentence ends at . ! ? followed by a space (not inside 41.500), with any emoji after it
@@ -73,14 +81,6 @@
       }
     }
     if (out == null) out = pattern(core, false);
-    // "🎯 Title ✓": translate the text between leading and trailing symbols
-    if (out == null) {
-      const sym = /^([^\p{L}\p{N}"“(+−-]+)?([\s\S]*?)([\s✓✗✕♥✨🌙]*[\p{Extended_Pictographic}✓✗✕♥✨🌙][\s\p{Extended_Pictographic}\uFE0F\u200D✓✗✕♥✨🌙]*)?$/u.exec(core);
-      if (sym && (sym[1] || sym[3]) && sym[2] && /[A-Za-z]/.test(sym[2])) {
-        const inner = tr(sym[2]);
-        if (inner !== sym[2]) out = (sym[1] || '') + inner + (sym[3] || '');
-      }
-    }
     // lowercase use of a capitalised entry ("her new trench coat")
     if (out == null && /^[a-z]/.test(core)) {
       const cap = I.exact.get(core[0].toUpperCase() + core.slice(1));
