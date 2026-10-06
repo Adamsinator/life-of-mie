@@ -872,7 +872,6 @@
     if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
     if (has('train')) out.push('<g transform="translate(236 184)"><rect x="0" y="-8" width="14" height="8" fill="#c44d6c"/><rect x="2" y="-14" width="6" height="6" fill="#c44d6c"/><rect x="16" y="-7" width="11" height="7" fill="#1d6b6b"/><rect x="29" y="-7" width="11" height="7" fill="#e9c35a"/>' + [3, 11, 19, 25, 32, 38].map(x => `<circle cx="${x}" cy="1" r="2" fill="#333"/>`).join('') + '</g>');
     if (has('dollhouse')) out.push('<g transform="translate(286 150)"><rect x="0" y="0" width="34" height="28" fill="#f1b9c2"/><path d="M-3 0 L17 -16 L37 0Z" fill="#c44d6c"/><rect x="5" y="6" width="8" height="8" fill="#dff0fa"/><rect x="21" y="6" width="8" height="8" fill="#dff0fa"/><rect x="13" y="16" width="8" height="12" fill="#7a5236"/></g>');
-    if (has('tricycle')) out.push('<g transform="translate(150 186)"><circle cx="0" cy="0" r="7" fill="none" stroke="#333" stroke-width="2"/><circle cx="22" cy="2" r="5" fill="none" stroke="#333" stroke-width="2"/><path d="M0 0 L12 -8 L22 2 M12 -8 L10 -14" stroke="#c44d6c" stroke-width="2.5" fill="none"/></g>');
     if (has('puppets')) out.push('<g transform="translate(118 112)"><rect x="0" y="0" width="34" height="34" fill="#6b2a5e"/><rect x="5" y="5" width="24" height="16" fill="#2f1d2b"/><path d="M5 5 q6 8 0 16 M29 5 q-6 8 0 16" fill="#bf2630"/><circle cx="17" cy="14" r="3" fill="#e9c35a"/></g>');
     // Dexter's things
     if (has('cattower')) out.push('<g transform="translate(70 104)"><rect x="8" y="0" width="5" height="46" fill="#c9b08a"/><rect x="0" y="-4" width="24" height="6" rx="2" fill="#9a6b47"/><rect x="-2" y="20" width="28" height="6" rx="2" fill="#9a6b47"/><rect x="-4" y="44" width="34" height="6" rx="2" fill="#9a6b47"/></g>');
@@ -903,7 +902,27 @@
     // she grows a little every year (3 years old at the start)
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
     const eh = (opts.tall ? 80 : 62) * grow, footY = opts.tall ? 238 : 190;
-    const ex = opts.tall ? 143 : has('tricycle') ? 127 : 165;
+    const ex = opts.tall ? 143 : has('tricycle') ? 122 : 165;
+    // Elizabeth's tricycle: big front wheel with pedals, two small back wheels, saddle, handlebars with tassels and a bell
+    if (has('tricycle')) top.push(`<g transform="${opts.tall ? 'translate(196 226) scale(1.4)' : 'translate(160 186) scale(1.1)'}">`
+      + '<ellipse cx="12" cy="7.5" rx="20" ry="2" fill="#000" opacity=".12"/>'
+      + '<circle cx="29" cy="2" r="5" fill="#fff" stroke="#3a3238" stroke-width="2" opacity=".75"/>'   // far back wheel
+      + '<path d="M24 2 H29" stroke="#8a8f96" stroke-width="1.6"/>'                                        // back axle
+      + '<path d="M18 -1 H31" stroke="#c44d6c" stroke-width="2.4" stroke-linecap="round"/>'               // step at the back
+      + '<path d="M-1.5 -9 Q8 -6 14 -4 T24 2" stroke="#c44d6c" stroke-width="3.2" fill="none" stroke-linecap="round"/>'   // frame
+      + '<path d="M16 -4 L17 -11" stroke="#8a8f96" stroke-width="1.8"/>'                                  // seat post
+      + '<path d="M12 -11.8 Q13 -14.6 17.5 -14.2 Q22.5 -13.8 23 -11.6 Q22 -10.2 17 -10.6 Q12.5 -10.6 12 -11.8 Z" fill="#4a3a33"/><path d="M13.5 -13.2 Q17.5 -14 21.5 -12.8" stroke="#fff" stroke-width=".6" fill="none" opacity=".35"/>'   // saddle
+      + '<circle cx="24" cy="2" r="5" fill="#fff" stroke="#3a3238" stroke-width="2"/><circle cx="24" cy="2" r="1.4" fill="#c44d6c"/>'
+      + '<circle cx="0" cy="-1" r="8" fill="#fff" stroke="#3a3238" stroke-width="2.2"/>'
+      + '<path d="M0 -7 V5 M-6 -1 H6 M-4.2 -5.2 L4.2 3.2 M4.2 -5.2 L-4.2 3.2" stroke="#c9ccd1" stroke-width=".7"/>'   // spokes
+      + '<path d="M0 -1 L-3.5 -18" stroke="#c44d6c" stroke-width="2.6" stroke-linecap="round"/>'         // fork
+      + '<path d="M-3 3 L3 -5" stroke="#8a8f96" stroke-width="1.4"/><rect x="-5.5" y="2.4" width="5" height="1.8" rx=".6" fill="#3a3238"/><rect x="0.5" y="-6.2" width="5" height="1.8" rx=".6" fill="#3a3238"/>'   // pedals
+      + '<circle cx="0" cy="-1" r="1.8" fill="#c44d6c"/>'
+      + '<path d="M-9 -18.5 Q-3.5 -20.5 2 -18.5" stroke="#8a8f96" stroke-width="1.8" fill="none" stroke-linecap="round"/>'   // handlebar
+      + '<path d="M-9 -18.5 l-2.4 .3 M2 -18.5 l2.4 .3" stroke="#f0a8bd" stroke-width="2.6" stroke-linecap="round"/>'       // grips
+      + '<path d="M-11.6 -18 q-1.5 3 -.5 5.5 M-11.6 -18 q.3 3.2 1.4 5.2 M4.6 -18 q1.5 3 .5 5.5 M4.6 -18 q-.3 3.2 -1.4 5.2" stroke="#ffd166" stroke-width=".8" fill="none"/>'   // tassels
+      + '<circle cx="-1.5" cy="-20.6" r="1.5" fill="#e3b53b"/>'                                          // bell
+      + '</g>');
     top.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, ex, footY, eh, { child: true })}${opts.bounce === 'elizabeth' ? hearts(ex, footY - eh) : ''}</g>`);
     // Pooh sits next to her, or is hugged when she is tapped
     if (has('pooh')) top.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
