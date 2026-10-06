@@ -168,13 +168,13 @@
     // each wrinkle needs a moment of steam (deeper creases longer); an iron left resting in one spot scorches,
     // and delicate fabrics scorch sooner
     const delicate = ['silk', 'chiffon', 'satin', 'organza', 'lace'].includes(design.main);
-    const SCORCH = delicate ? 0.6 : 0.95, R = 16;
+    const SCORCH = delicate ? 1.2 : 1.8, R = 20;
     const W = [];
-    for (let i = 0; i < 13; i++) {
+    for (let i = 0; i < 11; i++) {
       let w, tries = 0;
       do w = { x: 30 + Math.random() * 240, y: 30 + Math.random() * 150 }; while (tries++ < 20 && W.some(o => Math.hypot(o.x - w.x, o.y - w.y) < 30));
       const deep = Math.random() < 0.35;
-      W.push(Object.assign(w, { r: Math.random() * 180, need: deep ? 0.55 : 0.28, heat: 0, ok: false, deep }));
+      W.push(Object.assign(w, { r: Math.random() * 180, need: deep ? 0.35 : 0.18, heat: 0, ok: false, deep }));
     }
     const crease = DG.darken ? DG.darken(color, 0.35) : '#555';
     host.innerHTML = `${head('Iron the dress ♨️', 'Hold the iron on each wrinkle until it smooths out. Keep it moving, or it scorches!')}
@@ -193,10 +193,19 @@
     const trail = [], path = [];   // path: where the iron went since the last frame
     const left = () => W.filter(w => !w.ok).length;
     const fb = t => { host.querySelector('#mgfb').textContent = t; };
+    // a warning before it scorches: the iron glows and says so
+    const ironBody = iron.querySelector('path');
+    let isHot = false;
+    const hot = on => {
+      if (on === isHot) return;
+      isHot = on;
+      ironBody.setAttribute('fill', on ? '#ff6a3d' : '#c44d6c');
+      if (on) fb('Getting hot... keep it moving!');
+    };
     const finish = () => {
       if (finished) return;
       finished = true; stop();
-      const score = clamp(1 - left() / W.length - burns * 0.15, 0, 1);
+      const score = clamp(1 - left() / W.length - burns * 0.1, 0, 1);
       fb(score >= 0.98 ? 'Crisp as a fresh baguette! ✨' : score > 0.6 ? 'Nicely pressed.' : burns ? 'A little singed in places...' : 'Still a little crumpled...');
       setTimeout(() => done(score), 600);
     };
@@ -229,13 +238,14 @@
           if (!left()) finish();
         }
       });
-      if (!rest || Math.hypot(prev.x - rest.x, prev.y - rest.y) > 7) rest = { x: prev.x, y: prev.y, t };
+      if (!rest || Math.hypot(prev.x - rest.x, prev.y - rest.y) > 5) { rest = { x: prev.x, y: prev.y, t }; hot(false); }
       else if (t - rest.t > SCORCH) {
         burns++; sfx('bad');
         scorchG.insertAdjacentHTML('beforeend', `<path d="M-12 8 L12 8 L9 -4 Q0 -9 -9 -3 Z" transform="translate(${rest.x.toFixed(0)} ${rest.y.toFixed(0)})" fill="#5a3a1c" opacity=".45"/>`);
         fb('Ouch, a scorch mark! Keep the iron moving.');
-        rest = { x: prev.x, y: prev.y, t };
+        rest = { x: prev.x, y: prev.y, t }; hot(false);
       }
+      else if (t - rest.t > SCORCH * 0.55) hot(true);
     };
     const move = e => {
       let p = null;
@@ -251,12 +261,12 @@
       sheen.setAttribute('points', down ? trail.join(' ') : '');
     };
     const pd = e => { e.preventDefault(); capture(svg, e); down = true; prev = null; rest = null; trail.length = 0; path.length = 0; move(e); };
-    const pu = () => { down = false; rest = null; steam.setAttribute('opacity', '0'); sheen.setAttribute('points', ''); };
+    const pu = () => { down = false; rest = null; hot(false); steam.setAttribute('opacity', '0'); sheen.setAttribute('points', ''); };
     svg.addEventListener('pointerdown', pd);
     svg.addEventListener('pointermove', move);
     g.addEventListener('pointerup', pu);
     g.addEventListener('pointercancel', pu);
-    const stop = timerLoop(opts.time || 14, (t, f) => { tick(t); const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
+    const stop = timerLoop(opts.time || 18, (t, f) => { tick(t); const b = host.querySelector('#mgt'); if (b) b.style.width = `${f * 100}%`; }, finish);
     return () => { stop(); g.removeEventListener('pointerup', pu); g.removeEventListener('pointercancel', pu); };
   };
 

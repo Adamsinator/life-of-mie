@@ -172,7 +172,7 @@ const server = http.createServer((req, res) => {
   await unmount();
   await mount('iron', { time: 30, design: { main: 'silk' } });
   bb = await p.locator('#mgtest svg').boundingBox();
-  await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.waitForTimeout(900); await p.mouse.up();
+  await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.waitForTimeout(1500); await p.mouse.up();
   assert(/scorch/.test(await p.evaluate(() => document.querySelector('#mgfb').textContent)), 'a resting iron scorches silk');
   await unmount();
   // cutting finishes as soon as the line is traced all the way round, and the cut shows where the scissors went
