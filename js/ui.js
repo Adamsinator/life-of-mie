@@ -588,6 +588,7 @@
     if (r.missed) lines.push(['☕', `${r.missed} customer${r.missed > 1 ? 's' : ''} will pop back tomorrow${r.assistant ? ', after a cup of Lise\'s tea' : ''}.`]);
     if (r.taxSaved) lines.push(['🧮', `Your accountant kept ${kr(r.taxSaved)} away from SKAT.`]);
     if (r.evHome) lines.push([r.evHome.icon, r.evHome.home.text]);
+    if (r.stickers && r.stickers.length) lines.push(['✨', r.stickers.length === 1 ? `New sticker in the album: ${byId(DG.STICKERS, r.stickers[0]).name}` : `${r.stickers.length} new stickers in the album.`]);
     if (r.help) lines.push(['💌', `Mie's mum and dad popped by with an envelope: "For the shop, skat. We're so proud of you."`]);
     if (!lines.length) lines.push(['🌙', 'A quiet day. The shop smells of fresh linen and tea.']);
     return `<div class="overlay"><div class="sheet dayend">
@@ -1047,7 +1048,7 @@
   function viewAlbum() {
     const t = UI.albumTab || 'stories';
     const tabs = [['stories', '📖 Stories'], ['lookbook', '👗 Lookbook'], ['collections', '🧵 Collections'], ['letters', '💌 Letters'], ['goals', '🏆 Goals']];
-    const body = t === 'lookbook' ? lookbookHtml() : t === 'collections' ? collectionsHtml() : t === 'letters' ? lettersHtml() : t === 'goals' ? viewGoals() : storiesHtml();
+    const body = t === 'lookbook' ? lookbookHtml() : t === 'collections' ? stickersHtml() + collectionsHtml() : t === 'letters' ? lettersHtml() : t === 'goals' ? viewGoals() : storiesHtml();
     return `<div class="tabs album-tabs">${tabs.map(([id, l]) => `<button class="tab ${t === id ? 'on' : ''}" data-act="albumtab" data-arg="${id}">${l}${(id === 'goals' && DG.claimableGoals(G).length) || (id === 'letters' && DG.mailToday(G).length) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}</div>${body}`;
   }
   function storiesHtml() {
@@ -1076,6 +1077,11 @@
         <figcaption><b translate="no">${esc(e.name)}</b><span class="muted small">${esc(e.title)}${e.story ? ' 📖' : ''}</span><span class="stars small-stars">${'★'.repeat(starsOf(e.S))}${'☆'.repeat(5 - starsOf(e.S))}</span></figcaption></figure>`).join('')}</div>`
         : '<p class="muted">Your first four-star dress will be the first page.</p>'}
     </section>`;
+  }
+  function stickersHtml() {
+    const got = G.stickers || [];
+    return `<section class="panel"><div class="sec-head"><h2>Stickers</h2><span class="muted">${got.length} of ${DG.STICKERS.length}</span></div>
+      <div class="stickers">${DG.STICKERS.map(k => `<figure class="sticker ${got.includes(k.id) ? 'have' : ''}"><span class="sticker-face">${got.includes(k.id) ? k.icon : '?'}</span><figcaption>${k.name}</figcaption></figure>`).join('')}</div></section>`;
   }
   function collectionsHtml() {
     const C = G.collections;
@@ -1341,7 +1347,8 @@
     else if (dist < s.zw) { sc = 0.45; msg = 'A bit wobbly'; }
     else { sc = 0.1; msg = 'Oops! 😬'; }
     s.scores.push(sc);
-    sfx(sc >= 1 ? 'perfect' : sc >= 0.8 ? 'stitch' : sc >= 0.45 ? 'stitch' : 'bad');
+    if (sc >= 0.45) sfx('machine');
+    sfx(sc >= 1 ? 'perfect' : sc >= 0.45 ? 'stitch' : 'bad');
     const dots = document.querySelectorAll('#sdots i');
     if (dots[s.i]) dots[s.i].className = sc >= 1 ? 'p' : sc >= 0.8 ? 'g' : sc >= 0.45 ? 'w' : 'x';
     const fb = document.getElementById('sfb');

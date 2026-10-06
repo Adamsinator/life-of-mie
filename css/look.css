@@ -7,11 +7,14 @@
 .scene-people .tap, .scene-people .dexter-hit { pointer-events: auto; cursor: pointer; }
 .scene-people .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
 /* the morning's customers come in through the door, then stand still */
-.scene-people .walk-in { animation: walkin 1.3s ease-out backwards; transform-box: fill-box; transform-origin: 50% 100%; }
+/* waiting customers sway a little, like people do while they wait */
+.scene-people .idle { animation: idle 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes idle { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.2deg) translateY(-.6px); } }
+.scene-people .walk-in { animation-name: walkin, idle; animation-duration: 1.3s, 4s; animation-timing-function: ease-out, ease-in-out; animation-iteration-count: 1, infinite; animation-fill-mode: backwards, none; transform-box: fill-box; transform-origin: 50% 100%; }
 @keyframes walkin { from { transform: translateX(var(--dx)) scale(.8); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateX(calc(var(--dx) * .25)) translateY(-2px) scale(.95); } }
 .weather .fall { animation: fall 6s linear infinite; }
 @keyframes fall { from { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(var(--sway), calc(var(--h) * .5)) rotate(100deg); } to { transform: translate(0, var(--h)) rotate(220deg); } }
-@media (prefers-reduced-motion: reduce) { .scene-people .walk-in, .weather .fall { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .scene-people .idle, .scene-people .walk-in, .weather .fall { animation: none; } }
 
 /* evening: dinner at home beside the diary (two columns on a landscape iPad) */
 .sheet.dayend { max-width: 940px; width: 100%; }
@@ -69,3 +72,14 @@
 /* four home tabs fit on one row next to the scene */
 .home-tabs { flex-wrap: nowrap; }
 .home-tabs .tab { flex: 1 1 auto; min-width: 0; padding: 4px 8px; white-space: normal; line-height: 1.15; }
+
+/* the sticker sheet in the album */
+.stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 14px; }
+.sticker { margin: 0; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.sticker-face { width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; font-size: 2.2rem; background: var(--paper); border: 2px dashed var(--line); color: var(--muted); }
+.sticker.have .sticker-face { background: var(--card); border: 4px solid #fff; box-shadow: 0 2px 6px rgba(80, 30, 50, .18); }
+.sticker.have:nth-child(3n+1) .sticker-face { transform: rotate(-6deg); background: var(--rose-soft); }
+.sticker.have:nth-child(3n+2) .sticker-face { transform: rotate(4deg); background: var(--gold-soft); }
+.sticker.have:nth-child(3n) .sticker-face { transform: rotate(-2deg); background: var(--teal-soft); }
+.sticker figcaption { font-size: .85rem; font-weight: 700; line-height: 1.2; color: var(--muted); }
+.sticker.have figcaption { color: var(--ink); }

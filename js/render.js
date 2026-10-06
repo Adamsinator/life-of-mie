@@ -574,7 +574,7 @@
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
-    (opts.arrange ? [] : G.queue.slice(0, 5)).forEach((c, i) => top.push(`<g class="tap${opts.walkIn ? ' walk-in' : ''}"${opts.walkIn ? ` style="--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;animation-delay:${(i * 0.35).toFixed(2)}s"` : ''} data-act="openreq" data-arg="${i}">` + (opts.tall
+    (opts.arrange ? [] : G.queue.slice(0, 5)).forEach((c, i) => top.push(`<g class="tap idle${opts.walkIn ? ' walk-in' : ''}" style="${opts.walkIn ? `--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;animation-delay:${(i * 0.35).toFixed(2)}s, ${(1.3 + i * 0.35).toFixed(2)}s` : `animation-delay:-${(i * 0.9).toFixed(1)}s`}" data-act="openreq" data-arg="${i}">` + (opts.tall
       ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
       : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
     if (owned('chandelier')) out.push(place('chandelier', '<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join('')));

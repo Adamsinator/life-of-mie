@@ -106,6 +106,7 @@
     G.collections = G.collections || { fabrics: [], colours: [], silhouettes: [], shapes: [], seasons: [], done: [] };
     G.returning = G.returning || [];
     if (!G.collections.tulips) G.collections.tulips = [];
+    if (!G.stickers) G.stickers = [];   // stickers already stuck in the album
     // life at home: the tulip garden, Elizabeth's doll dresses and Dexter's tricks (all additive)
     if (!G.home.garden) G.home.garden = { beds: [null, null, null, null, null, null] };
     if (!G.home.kid) G.home.kid = { dresses: [], day: 0 };
@@ -539,7 +540,8 @@
       rent, wages, salary, housing: housing.pay, interest: housing.interest, tax, help, money: Math.round(G.money) });
     if (G.ledger.length > 60) G.ledger.shift();
     DG.updateGoals(G);
-    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary, evHome, missed, help, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home };
+    const stickers = DG.checkStickers(G);
+    return { rent, wages, tax, taxSaved: taxWithout - tax, profit, housing, salary, evHome, missed, help, today: G.today, sold, rackIncome, assistant: G.staff.assistant, pottery, home, stickers };
   };
 
   // ---------- design ----------
@@ -817,6 +819,33 @@
     if (learnt) T.known.push(id);
     G.home.happy = clamp(G.home.happy + 2, 0, 100);
     return { ok, learnt, prog: T.prog[id] || 0 };
+  };
+
+  // ---------- stickers: little milestones for the album, read from what has already happened ----------
+  DG.STICKERS = [
+    { id: 'first', icon: '👗', name: 'The first dress', has: G => G.stats.served >= 1 },
+    { id: 'fifty', icon: '🧵', name: 'Fifty dresses', has: G => G.stats.served >= 50 },
+    { id: 'twohundred', icon: '🏆', name: 'Two hundred dresses', has: G => G.stats.served >= 200 },
+    { id: 'fivestar', icon: '💫', name: 'A five-star dress', has: G => G.stats.best >= 92 },
+    { id: 'bride', icon: '👰', name: 'The first bride', has: G => (G.stats.byArche && G.stats.byArche.bride) >= 1 },
+    { id: 'pot', icon: '🏺', name: 'A pot sold', has: G => G.stats.potsSold >= 1 },
+    { id: 'teapot', icon: '🫖', name: 'A teapot', has: G => G.stats.teapots >= 1 },
+    { id: 'stars', icon: '⭐', name: 'A five-star shop', has: G => G.rep >= 95 },
+    { id: 'home', icon: '🏡', name: 'A home of their own', has: G => G.home.house >= 1 },
+    { id: 'villa', icon: '🌊', name: 'The Strandvej villa', has: G => G.home.house >= DG.HOUSES.length - 1 },
+    { id: 'tulip', icon: '🌷', name: 'The first tulip', has: G => G.collections.tulips.length >= 1 },
+    { id: 'trick', icon: '🐾', name: "Dexter's first trick", has: G => G.home.tricks.known.length >= 1 },
+    { id: 'doll', icon: '🧸', name: 'A doll dress', has: G => G.home.kid.dresses.length >= 1 },
+    { id: 'collection', icon: '🖼️', name: 'A full collection', has: G => G.collections.done.length >= 1 },
+    { id: 'lookbook', icon: '📸', name: 'Ten lookbook pages', has: G => (G.lookbook || []).length >= 10 },
+    { id: 'story', icon: '📖', name: 'A story told to the end', has: G => (DG.STORIES || []).some(st => G.stories[st.id] && G.stories[st.id].done.length >= st.ch.length) },
+    { id: 'year', icon: '🎂', name: 'A year in the shop', has: G => G.day > 4 * DG.SEASON_LENGTH },
+  ];
+  // returns the stickers earned since last time (each is stuck in only once)
+  DG.checkStickers = function (G) {
+    const fresh = DG.STICKERS.filter(k => !G.stickers.includes(k.id) && (() => { try { return k.has(G); } catch (e) { return false; } })());
+    fresh.forEach(k => G.stickers.push(k.id));
+    return fresh.map(k => k.id);
   };
 
   // ---------- collections: little sets to complete, each with a keepsake for the shop ----------
