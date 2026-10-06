@@ -205,7 +205,19 @@ body.modal-open .nav { opacity: .35; pointer-events: none; }
 /* the workshop buttons can carry a long label */
 .ws-actions .btn.primary { font-size: 1.35rem; line-height: 1.1; padding-block: 10px; }
 /* the watercolour filter repaints everything under it, so the scene itself stays still */
-.shop-scene .idle, .home-scene .dexter .tail, .home-scene .zzz { animation: none; }
+/* people, Dexter and the weather live on a layer of their own above the painted room, so they can move freely */
+.scene-wrap { position: relative; }
+.scene-people { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.scene-people .tap, .scene-people .dexter-hit { pointer-events: auto; cursor: pointer; }
+.scene-people .figure, .scene-people .pooh, .scene-people .dexter { filter: url(#akvarel-soft); }
+/* they sway like paper puppets, in small steps: a few repaints a second instead of sixty */
+.scene-people .idle { animation: idle 6s steps(6, end) infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.scene-people .walk-in { animation-name: walkin, idle; animation-duration: 1.3s, 6s; animation-timing-function: ease-out, steps(6, end); animation-iteration-count: 1, infinite; animation-fill-mode: backwards, none; }
+@keyframes walkin { from { transform: translateX(var(--dx)) scale(.8); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateX(calc(var(--dx) * .25)) translateY(-2px) scale(.95); } }
+.scene-people .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
+.weather .fall { animation: fall 6s linear infinite; }
+@keyframes fall { from { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(var(--sway), calc(var(--h) * .5)) rotate(100deg); } to { transform: translate(0, var(--h)) rotate(220deg); } }
+@media (prefers-reduced-motion: reduce) { .scene-people .idle, .scene-people .walk-in, .weather .fall { animation: none; } }
 .paid { font-size: 1.6rem; }
 .purse-line { font-size: 1.55rem; }
 .mood-word { font-size: 2.2rem; }

@@ -460,11 +460,33 @@
     return shadow + `<svg class="figure" x="${(cx - w / 2).toFixed(1)}" y="${(footY - height).toFixed(1)}" width="${w.toFixed(1)}" height="${height.toFixed(1)}" viewBox="0 0 100 ${H}" overflow="visible">${b.join('')}${head}</svg>`;
   };
 
+  // A scene is two layers: the painted room (watercolour filter, never redrawn) and, on top, the people,
+  // Dexter and the weather outside, which move.
+  function sceneLayers(cls, opts, label, room, people) {
+    const vb = opts.tall ? '0 -60 400 400' : '0 0 400 210', par = opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : '';
+    return `<svg class="${cls}" viewBox="${vb}"${par} role="img" aria-label="${label}">${room.join('')}</svg>`
+      + `<svg class="scene-people" viewBox="${vb}"${par} aria-hidden="false">${people.join('')}</svg>`;
+  }
+  // a few petals, leaves or snowflakes drifting past a window (x, y, w, h); none in summer
+  function weather(season, x, y, w, h, id) {
+    const kind = { spring: ['#f6c9d6', 'petal'], autumn: ['#d98b3a', 'leaf'], winter: ['#ffffff', 'snow'] }[season];
+    if (!kind) return '';
+    const [col, k] = kind;
+    let flakes = '';
+    for (let i = 0; i < 7; i++) {
+      const fx = x + (i + 0.5) * w / 7, dur = (5 + (i * 1.7) % 4).toFixed(1), delay = (-(i * 1.3) % 6).toFixed(1);
+      const shape = k === 'snow' ? `<circle r="${1 + (i % 3) * 0.5}" fill="${col}"/>` : k === 'leaf' ? `<path d="M0 -2.5 Q2.4 0 0 2.5 Q-2.4 0 0 -2.5Z" fill="${i % 2 ? col : '#b8552f'}"/>` : `<ellipse rx="2" ry="1.2" fill="${col}"/>`;
+      flakes += `<g transform="translate(${fx.toFixed(1)} ${y - 4})"><g class="fall" style="animation-duration:${dur}s;animation-delay:${delay}s;--h:${h + 8}px;--sway:${(i % 2 ? 6 : -6)}px">${shape}</g></g>`;
+    }
+    return `<defs><clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath></defs><g class="weather" clip-path="url(#${id})" pointer-events="none">${flakes}</g>`;
+  }
+
   const inScene = look => Object.assign({}, look, { bg: 'transparent' });
 
   // tall: a taller view for a landscape iPad (more wall above, more floor in front, people in the foreground)
   DG.renderShop = function (G, opts = {}) {
     const owned = id => G.decor.owned.includes(id);
+    const top = [];   // people and weather: their own layer, so the painted room never has to be redrawn
     const display = DG.upgradeLevel(G, 'display');
     const se = DG.season(G);
     const out = [];
@@ -540,11 +562,11 @@
     if (owned('espresso')) out.push('<rect x="342" y="100" width="14" height="14" rx="2" fill="#b9bcc2"/><rect x="345" y="96" width="8" height="5" rx="1" fill="#2f1d2b"/><rect x="346" y="108" width="5" height="5" fill="#fff"/><path d="M349 106 q2 -3 0 -6" stroke="#ccc" stroke-width=".8" fill="none"/>');
     // staff
     const staffSlots = { apprentice: [205, 194], assistant: [311, 198] };
-    DG.STAFF.forEach(st => { if (G.staff[st.id]) out.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
+    DG.STAFF.forEach(st => { if (G.staff[st.id]) top.push(DG.renderFigure(st.look, 'happy', staffSlots[st.id][0], staffSlots[st.id][1], 80, { trousers: st.id === 'apprentice' })); });
     if (opts.tall) out.push('<ellipse cx="170" cy="318" rx="190" ry="18" fill="#000" opacity=".06"/>');
     // waiting customers
     // waiting customers: along the window, or in the foreground of the taller view
-    G.queue.slice(0, 5).forEach((c, i) => out.push(`<g class="tap idle" style="animation-delay:-${(i * 0.9).toFixed(1)}s" data-act="openreq" data-arg="${i}">` + (opts.tall
+    G.queue.slice(0, 5).forEach((c, i) => top.push(`<g class="tap idle${opts.walkIn ? ' walk-in' : ''}" style="--dx:${opts.tall ? 156 - (38 + i * 62) : 156 - (31 + i * 30)}px;--i:${i};animation-delay:${opts.walkIn ? `${(i * 0.35).toFixed(2)}s, ${(1.2 + i * 0.35).toFixed(2)}s` : `-${(i * 0.9).toFixed(1)}s`}" data-act="openreq" data-arg="${i}">` + (opts.tall
       ? DG.renderFigure(c.look, 'neutral', 38 + i * 62, 312 + (i % 2) * 12, 122, { legs: c.look.tights, shoes: c.look.shoes })
       : DG.renderFigure(c.look, 'neutral', 31 + i * 30, 197 + (i % 2) * 8, 80, { legs: c.look.tights, shoes: c.look.shoes })) + '</g>'));
     if (owned('chandelier')) out.push('<ellipse cx="236" cy="40" rx="50" ry="26" fill="url(#glow)"/><path d="M236 -60 V18" stroke="#c99a2e" stroke-width="1.5"/><path d="M216 26 Q236 40 256 26 M222 22 H250" stroke="#c99a2e" stroke-width="2" fill="none"/>' + [216, 226, 236, 246, 256].map(x => `<path d="M${x} 26 l-2 6 l2 4 l2 -4Z" fill="#dff0fa" stroke="#9fc7de" stroke-width=".5"/>`).join(''));
@@ -554,7 +576,8 @@
     // evening: warm light over the room and lamps glowing (CSS fades it in and out)
     out.push('<rect class="dusk" x="-300" y="-200" width="1000" height="700" fill="url(#duskRoom)" pointer-events="none"/><g class="lamp-glow" pointer-events="none"><ellipse cx="236" cy="60" rx="90" ry="60" fill="url(#lamp)"/><ellipse cx="360" cy="150" rx="70" ry="40" fill="url(#lamp)"/></g>');
     const evening = G.day > 0 && G.today && !G.queue.length && !G.active;
-    return `<svg class="shop-scene${evening ? ' evening' : ''}" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's shop">${out.join('')}</svg>`;
+    top.unshift(weather(se.id, 20, 40, 100, 86, 'shopwx'));
+    return sceneLayers('shop-scene' + (evening ? ' evening' : ''), opts, "Mie's shop", out, top);
   };
 
   // ---------------- pottery ----------------
@@ -691,6 +714,7 @@
   const hearts = (x, y) => `<g class="hearts-pop" pointer-events="none"><text x="${x - 8}" y="${y}" font-size="10">💗</text><text x="${x + 6}" y="${y - 6}" font-size="8">💕</text></g>`;
   DG.renderHome = function (G, opts = {}) {
     const has = id => G.home.items.includes(id);
+    const top = [];
     const se = DG.season(G);
     const out = [];
     const H = DG.house(G);
@@ -767,8 +791,8 @@
     out.push('<rect x="170" y="104" width="130" height="34" rx="10" fill="#1d6b6b"/><rect x="160" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="290" y="112" width="20" height="36" rx="8" fill="#17595a"/><rect x="176" y="126" width="118" height="20" rx="6" fill="#23807f"/><path d="M178 148 v6 M292 148 v6" stroke="#5a3a2a" stroke-width="3"/>');
     out.push('<ellipse cx="230" cy="186" rx="80" ry="14" fill="#d6a22a" opacity=".55"/>');
     // family
-    out.push(`<g class="tap${opts.bounce === 'adam' ? ' bounce' : ''}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 267, 184, 92, { seated: true })}${opts.bounce === 'adam' ? hearts(267, 96) : ''}</g>`);
-    out.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 184, 92, { seated: true, legs: '#3b3040' }));
+    top.push(`<g class="tap${opts.bounce === 'adam' ? ' bounce' : ''}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 267, 184, 92, { seated: true })}${opts.bounce === 'adam' ? hearts(267, 96) : ''}</g>`);
+    top.push(DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), G.home.happy >= 30 ? 'happy' : 'sad', 217, 184, 92, { seated: true, legs: '#3b3040' }));
     const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
     // toys
     if (has('teddy')) out.push('<g transform="translate(188 172)"><circle cx="0" cy="0" r="7" fill="#a8743f"/><circle cx="0" cy="-10" r="5.5" fill="#a8743f"/><circle cx="-4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="4" cy="-14" r="2.2" fill="#a8743f"/><circle cx="-1.8" cy="-11" r=".8" fill="#222"/><circle cx="1.8" cy="-11" r=".8" fill="#222"/></g>');
@@ -786,7 +810,7 @@
     // Dexter: where he is depends on what he owns and how he feels
     const dmood = opts.dexter || (G.home.catFood <= 0 ? 'hungry' : has('catbed') ? 'sleep' : 'sit');
     const dpos = dmood === 'sleep' && has('catbed') ? [360, 184] : has('cattower') && dmood === 'sit' ? [82, 98] : [70, 184];
-    out.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
+    top.push(`<g transform="translate(${dpos[0]} ${dpos[1]})" class="dexter-hit" data-act="pet" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g>`);
     // the taller view has room for a soft rug and a big plant in front
     if (opts.tall) out.splice(out.length, 0, '<ellipse cx="160" cy="300" rx="120" ry="22" fill="#e7c9b0"/><ellipse cx="160" cy="300" rx="108" ry="18" fill="none" stroke="#c98f6b" stroke-width="3" stroke-dasharray="6 5"/>'
       + '<g transform="translate(352 238)"><path d="M-14 66 l4 -24 h20 l4 24Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M0 42 Q-26 20 -20 -8 Q-4 10 0 42Z"/><path d="M0 42 Q24 16 22 -12 Q6 8 0 42Z"/><path d="M0 42 Q-2 6 8 -22 Q-10 0 0 42Z"/><path d="M0 42 Q-30 34 -34 14 Q-14 20 0 42Z"/></g></g>');
@@ -795,10 +819,11 @@
     const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
     const eh = (opts.tall ? 92 : 62) * grow, footY = opts.tall ? 306 : 190;
     const ex = opts.tall ? 143 : has('tricycle') ? 127 : 165;
-    out.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, ex, footY, eh, { child: true })}${opts.bounce === 'elizabeth' ? hearts(ex, footY - eh) : ''}</g>`);
+    top.push(`<g class="tap${opts.bounce === 'elizabeth' ? ' bounce' : ''}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, eMood, ex, footY, eh, { child: true })}${opts.bounce === 'elizabeth' ? hearts(ex, footY - eh) : ''}</g>`);
     // Pooh sits next to her, or is hugged when she is tapped
-    if (has('pooh')) out.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
-    return `<svg class="shop-scene home-scene" viewBox="${opts.tall ? '0 -60 400 400' : '0 0 400 210'}"${opts.tall ? ' preserveAspectRatio="xMidYMax slice"' : ''} role="img" aria-label="Mie's home">${out.join('')}</svg>`;
+    if (has('pooh')) top.push(`<g class="tap${opts.bounce === 'pooh' ? ' bounce' : ''}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(ex + eh * 0.38, footY - eh * 0.22, eh / 100)}</g>`);
+    top.unshift(weather(se.id, ix, iy, iw, ih, 'homewx'));
+    return sceneLayers('shop-scene home-scene', opts, "Mie's home", out, top);
   };
 
   // Mie: loose dark-brown hair and round glasses

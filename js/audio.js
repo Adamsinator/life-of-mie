@@ -64,6 +64,15 @@
     fanfare: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.25, 'triangle', 0.16, i * 0.11)),
     meow: () => { tone(620, 0.18, 'sine', 0.16, 0, null, 1.5); tone(900, 0.25, 'sine', 0.14, 0.17, null, 0.6); },
     purr: () => { for (let i = 0; i < 10; i++) tone(55 + (i % 2) * 6, 0.12, 'sawtooth', 0.06, i * 0.11); },
+    // a page turning: a short whisper of filtered noise
+    page: () => {
+      const c = ensure(); if (!c) return;
+      const len = Math.floor(c.sampleRate * 0.22), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(Math.sin(Math.PI * i / len), 2);
+      const src = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 2600; f.Q.value = 0.7; gn.gain.value = 0.22;
+      src.connect(f); f.connect(gn); gn.connect(sfxGain); src.start();
+    },
     crack: () => { tone(1200, 0.05, 'square', 0.08, 0, null, 0.3); tone(400, 0.2, 'sawtooth', 0.06, 0.05, null, 0.5); },
   };
 

@@ -51,7 +51,8 @@ The whole game is styled as a hand-painted storybook (`css/akvarel.css`, loaded 
 
 - **Paper and ink:** warm watercolour paper with a fine grain (made once at start-up on a canvas, no image file), panels and cards like sheets of paper with an ink outline and slightly uneven corners, pastel washes for chips, tabs and banners.
 - **Lettering:** Caveat (handwritten) for headings, names, money, speech and buttons; Quicksand for running text. Both are bundled in `fonts/`.
-- **Painted art:** an SVG watercolour filter (`#akvarel` in `index.html`) gives the shop, home, dresses, pots and thumbnails soft, slightly wobbly painted edges with paper grain; portraits get a lighter version. Things that move while you play (the potter's wheel, cutting, ironing, painting) are left unfiltered so they stay at 60 frames per second, and the scenes themselves hold still under the filter.
+- **Painted art:** an SVG watercolour filter (`#akvarel` in `index.html`) gives the shop, home, dresses, pots and thumbnails soft, slightly wobbly painted edges with paper grain; portraits get a lighter version. Things that move while you play (the potter's wheel, cutting, ironing, painting) are left unfiltered so they stay at 60 frames per second.
+- **Two layers per scene:** the painted room (filtered, never redrawn) and above it the people, Dexter and the weather. Customers walk in through the door each morning and sway gently like paper puppets (a few steps a second, so the painted room behind them is rarely repainted); petals, leaves or snow drift past the windows in spring, autumn and winter. Switching screens rustles like a page.
 - **The dock:** the menu is a strip of paper at the bottom of the screen with hand-drawn ink icons over a watercolour wash; the top strip only holds the shop's name, the day, the purse and the stars.
 - **Night paper:** the dark theme is indigo paper with cream ink.
 
