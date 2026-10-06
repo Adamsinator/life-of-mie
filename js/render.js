@@ -826,6 +826,65 @@
     return sceneLayers('shop-scene home-scene', opts, "Mie's home", out, top);
   };
 
+  // ---------------- evening: the family at the dinner table ----------------
+  // Static picture (people and table on the upper layer so a tap can hop them without re-painting the room).
+  // opts.ev: today's event id (Christmas brings risalamande, New Year a kransekage); opts.bounce: who was tapped.
+  DG.renderDinner = function (G, opts = {}) {
+    const se = DG.season(G), has = id => G.home.items.includes(id);
+    const wall = { flat: '#f4ead9', frb: '#e6edf2', valby: '#f3e6d6', lyngby: '#e9efe2', hellerup: '#f6f1ea', strandvej: '#fbfaf7' }[DG.house(G).id] || '#f4ead9';
+    const out = [], top = [];
+    out.push(`<defs><linearGradient id="dnsky" x1="0" y1="0" x2="0" y2="1">${se.id === 'summer' ? '<stop offset="0" stop-color="#8fb3d9"/><stop offset=".7" stop-color="#f2c6a8"/><stop offset="1" stop-color="#f6a97a"/>' : '<stop offset="0" stop-color="#23264a"/><stop offset="1" stop-color="#5a4a78"/>'}</linearGradient>
+      <radialGradient id="dnlamp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd98a" stop-opacity=".8"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient></defs>`);
+    if (opts.tall) out.push(`<rect x="-300" y="-200" width="1000" height="350" fill="${wall}"/><rect x="-300" y="150" width="1000" height="300" fill="#b48b62"/>`);
+    out.push(`<rect width="400" height="150" fill="${wall}"/><rect y="150" width="400" height="60" fill="#b48b62"/><path d="M0 150 H400" stroke="#8a6a48" stroke-width="3"/>`);
+    // a window onto the night: moon, stars and the season on the sill
+    out.push('<rect x="22" y="26" width="76" height="86" rx="3" fill="#fffaf5"/><rect x="28" y="32" width="64" height="74" fill="url(#dnsky)"/>' + (se.id === 'summer' ? '<circle cx="74" cy="90" r="8" fill="#ffd27a" opacity=".9"/>'   // a light Danish summer evening
+        : '<circle cx="76" cy="48" r="7" fill="#fff4cf"/><circle cx="79" cy="46" r="6" fill="#2b2c52"/>' + [[38, 44], [52, 58], [44, 76], [66, 70], [84, 88]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".9" fill="#fff"/>`).join(''))
+      + '<path d="M60 32 V106 M28 69 H92" stroke="#fffaf5" stroke-width="3"/>'
+      + (se.id === 'winter' ? '<rect x="28" y="100" width="64" height="6" fill="#fff"/>' : '')
+      + '<path d="M18 22 Q30 70 22 116 M102 22 Q90 70 98 116" stroke="#c44d6c" stroke-width="6" fill="none"/>');
+    // a picture on the wall, or Elizabeth's drawing if she has crayons
+    out.push(has('crayons')
+      ? '<rect x="318" y="44" width="34" height="26" fill="#fff" transform="rotate(4 335 57)"/><circle cx="328" cy="54" r="4" fill="#e9c35a"/><path d="M324 66 l8 -9 l8 9Z" fill="#d6577b"/><path d="M338 64 q4 -8 9 0" stroke="#34437f" stroke-width="2" fill="none"/>'
+      : '<rect x="316" y="40" width="40" height="30" fill="#fffaf5" stroke="#c99a2e" stroke-width="2.5"/><path d="M320 64 l9 -12 l7 8 l5 -5 l11 9Z" fill="#9db69a"/>');
+    // the pendant lamp over the table (three soft shades) and its warm pool of light
+    out.push('<path d="M200 -60 V30" stroke="#555" stroke-width="1.2"/><path d="M186 30 Q200 22 214 30 Z" fill="#f4f1ea"/><path d="M178 38 Q200 26 222 38 Q200 34 178 38Z" fill="#ece6d8"/><path d="M168 47 Q200 32 232 47 Q200 42 168 47Z" fill="#f4f1ea"/>'
+      + '<ellipse cx="200" cy="120" rx="150" ry="70" fill="url(#dnlamp)"/>');
+    // a sideboard with a plant
+    out.push('<rect x="300" y="104" width="80" height="46" fill="#8a6a48"/><path d="M300 127 H380 M340 104 V150" stroke="#6e5238" stroke-width="2"/><path d="M350 104 l3 -12 h10 l3 12Z" fill="#c26a45"/><g fill="#4d8a4e"><path d="M358 92 Q346 82 348 72 Q356 80 358 92Z"/><path d="M358 92 Q370 80 368 70 Q360 78 358 92Z"/></g>');
+    const hop = who => opts.bounce === who ? ' bounce' : '';
+    const heart = (x, y) => `<g class="hearts-pop" pointer-events="none"><text x="${x - 8}" y="${y}" font-size="10">💗</text><text x="${x + 6}" y="${y - 6}" font-size="8">💕</text></g>`;
+    // the family behind the table: Adam, Elizabeth on her Tripp Trapp chair, Mie
+    const grow = Math.min(1.5, 1 + 0.07 * ((DG.elizabethAge ? DG.elizabethAge(G) : 3) - 3));
+    const eMood = G.home.happy >= 60 ? 'ecstatic' : G.home.happy >= 30 ? 'happy' : 'sad';
+    top.push(`<g class="tap${hop('adam')}" data-act="tapfamily" data-arg="adam">${DG.renderFigure(DG.FAMILY.adam.look, opts.bounce === 'adam' ? 'ecstatic' : 'happy', 120, 200, 138, { seated: true })}${opts.bounce === 'adam' ? heart(120, 70) : ''}</g>`);
+    top.push(`<g class="tap${hop('mie')}" data-act="tapfamily" data-arg="mie">${DG.renderFigure(Object.assign({}, DG.mieLook(G), { measure: false }), opts.bounce === 'mie' ? 'ecstatic' : 'happy', 280, 200, 138, { seated: true, legs: '#3b3040' })}${opts.bounce === 'mie' ? heart(280, 70) : ''}</g>`);
+    top.push('<g class="soft"><path d="M184 196 V96 M216 196 V96 M184 112 H216 M184 100 H216" stroke="#c9a46e" stroke-width="4" stroke-linecap="round"/></g>');
+    const eh = 84 * grow;
+    top.push(`<g class="tap${hop('elizabeth')}" data-act="tapfamily" data-arg="elizabeth">${DG.renderFigure(DG.FAMILY.elizabeth.look, opts.bounce === 'elizabeth' ? 'ecstatic' : eMood, 200, 156, eh, { child: true })}${opts.bounce === 'elizabeth' ? heart(200, 156 - eh) : ''}</g>`);
+    // the table, laid for three
+    let table = '<g class="soft"><rect x="60" y="124" width="280" height="10" rx="3" fill="#fffaf5"/><path d="M60 134 H340 L334 150 H66Z" fill="#f3ece0"/><path d="M80 150 V196 M320 150 V196" stroke="#8a6a48" stroke-width="5"/>';
+    [[120, 127], [200, 127], [280, 127]].forEach(([x, y]) => { table += `<ellipse cx="${x}" cy="${y}" rx="14" ry="3.6" fill="#fff" stroke="#d9cfc0" stroke-width=".8"/><path d="M${x - 19} ${y - 1} v3 M${x + 19} ${y - 3} v5" stroke="#b9bcc2" stroke-width="1.3"/>`; });
+    // what's for dinner follows the season (and the holidays)
+    const dish = opts.ev === 'christmas' ? '<ellipse cx="200" cy="124" rx="16" ry="5" fill="#fff"/><path d="M186 122 Q200 112 214 122Z" fill="#fbf4e4"/><path d="M194 116 q6 4 12 0" stroke="#b5223a" stroke-width="3" fill="none"/>'
+      : opts.ev === 'newyear' ? [0, 1, 2, 3, 4, 5].map(i => `<ellipse cx="200" cy="${124 - i * 4}" rx="${14 - i * 2.2}" ry="2.2" fill="#e8c78f" stroke="#fff" stroke-width=".8"/>`).join('') + '<path d="M200 98 v-6" stroke="#c44d6c" stroke-width="1.4"/>'
+      : se.id === 'spring' ? '<ellipse cx="160" cy="125" rx="14" ry="4" fill="#fff"/>' + [0, 1, 2, 3].map(i => `<path d="M${151 + i * 5} 124 l7 -3" stroke="#7fb069" stroke-width="2.2" stroke-linecap="round"/>`).join('') + '<ellipse cx="240" cy="125" rx="13" ry="4" fill="#fff"/><circle cx="236" cy="122" r="3" fill="#ead8a4"/><circle cx="243" cy="122" r="3" fill="#ead8a4"/>'
+      : se.id === 'summer' ? '<ellipse cx="200" cy="124" rx="15" ry="5" fill="#fff"/>' + [[-7, -2], [0, -4], [7, -2], [-3, 1], [4, 1]].map(([dx, dy]) => `<path d="M${200 + dx} ${121 + dy} q-3 -3 0 -5 q3 2 0 5Z" fill="#d6273b"/>`).join('')
+      : se.id === 'autumn' ? '<path d="M186 126 Q186 110 200 110 Q214 110 214 126Z" fill="#d9822b"/><path d="M200 110 v-4" stroke="#4d7a3e" stroke-width="2"/>'
+      : '<ellipse cx="200" cy="124" rx="16" ry="5" fill="#fff"/>' + [-8, 0, 8].map(dx => `<circle cx="${200 + dx}" cy="121" r="3.6" fill="#8a5434"/>`).join('') + '<path d="M190 124 q10 3 20 0" stroke="#6a3a22" stroke-width="2" fill="none"/>';
+    table += dish;
+    // candles when it is dark early, tulips in spring
+    if (se.id === 'autumn' || se.id === 'winter') [168, 232].forEach(x => { table += `<rect x="${x - 2}" y="108" width="4" height="16" fill="#fffaf5"/><path d="M${x} 108 q-2 -4 0 -7 q2 3 0 7Z" fill="#ffb23e"/><ellipse cx="${x}" cy="104" rx="7" ry="7" fill="url(#dnlamp)"/>`; });
+    else if (se.id === 'spring') table += '<path d="M168 124 l2 -10 h6 l2 10Z" fill="#9fc7de"/>' + [[170, 104, '#d6577b'], [175, 102, '#f0c443'], [178, 106, '#d6577b']].map(([x, y, c]) => `<path d="M${x} 116 V${y + 4}" stroke="#4d7a3e" stroke-width="1.2"/><ellipse cx="${x}" cy="${y}" rx="2.6" ry="3.6" fill="${c}"/>`).join('');
+    table += '<path d="M140 121 h5 v5 h-5Z M255 121 h5 v5 h-5Z" fill="#c9e3ef" opacity=".8"/></g>';
+    top.push(table);
+    if (has('pooh')) top.push(`<g class="tap${hop('pooh')}" data-act="tapfamily" data-arg="pooh">${DG.poohSVG(222, 116, 0.42)}</g>`);
+    // Dexter has found the best seat: right by the table, hoping for frikadeller
+    const dmood = opts.bounce === 'dexter' ? 'purr' : G.home.catFood <= 0 ? 'hungry' : 'sit';
+    top.push(`<g transform="translate(352 186)"><g class="dexter-hit tap${hop('dexter')}" data-act="tapfamily" data-arg="dexter" role="button" aria-label="Pet Dexter">${DG.renderDexter(dmood)}</g></g>`);
+    return sceneLayers('shop-scene dinner-scene', opts, 'Dinner at home', out, top);
+  };
+
   // Mie: loose dark-brown hair and round glasses
   // ---------------- logo: a tulip with a sewing needle and a golden thread ----------------
   // opts.bg = false draws it without the rounded tile (for inline use next to text).

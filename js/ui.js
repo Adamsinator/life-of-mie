@@ -586,8 +586,11 @@
     if (!lines.length) lines.push(['🌙', 'A quiet day. The shop smells of fresh linen and tea.']);
     return `<div class="overlay"><div class="sheet dayend">
       <h2>Evening, ${DG.season(G).name.toLowerCase()} ${dayOfSeason()} 🌙</h2>
+      <div class="dayend-grid">
+      ${r.home ? `<div class="dinner"><div class="scene-wrap dinner-wrap">${DG.renderDinner(G, { ev: r.evHome ? r.evHome.id : null, bounce: UI.bounce })}</div>
+        <p class="dinner-cap">${esc(r.home.event)}${r.home.hungry ? '<br><b>Dexter is hungry. Buy cat food on the Home screen!</b>' : ''}</p></div>` : ''}
+      <div class="dayend-side">
       <ul class="diary">${lines.map(([ic, txt]) => `<li><span class="ic">${ic}</span><span>${esc(txt)}</span></li>`).join('')}</ul>
-      ${r.home ? `<div class="home-night">${DG.renderAvatar(DG.FAMILY.elizabeth.look, r.home.happy >= 30 ? 'happy' : 'sad', 44)}<p><b>At home:</b> ${esc(r.home.event)}${r.home.hungry ? '<br><b>Dexter is hungry. Buy cat food on the Home screen!</b>' : ''}</p></div>` : ''}
       <p class="purse-line">👛 ${kr(G.money)} in the purse <span class="${net >= 0 ? 'good' : 'muted'}">(${net >= 0 ? '+' : '−'}${kr(Math.abs(net))} today)</span></p>
       <button class="link-btn" data-act="toggle-ui" data-arg="showBooks">${UI.showBooks ? 'Close the accounts' : '📒 Today\'s accounts'}</button>
       ${UI.showBooks ? `
@@ -609,6 +612,7 @@
         <tr class="tot"><td>Bank balance</td><td class="num">${kr(G.money)}</td></tr>
       </tbody></table>` : ''}
       <button class="btn primary big wide" data-act="nextday">Good night</button>
+      </div></div>
     </div></div>`;
   }
 
@@ -1403,7 +1407,7 @@
         UI.bounce = arg; clearTimeout(UI.bounceT); UI.bounceT = setTimeout(() => { UI.bounce = null; render(); }, 1300);
         const key = 'tap-' + arg;
         if (G.home.did[key] !== G.day) { G.home.did[key] = G.day; G.home.happy = clamp(G.home.happy + 2, 0, 100); }
-        sfx(arg === 'pooh' ? 'squish' : 'good');
+        sfx(arg === 'pooh' ? 'squish' : arg === 'dexter' ? 'purr' : 'good');
         break;
       }
       case 'readmail': { const m = DG.mailToday(G)[0]; if (m) { UI.overlay = { type: 'letter', m }; sfx('good'); } break; }
