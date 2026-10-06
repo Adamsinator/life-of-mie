@@ -211,10 +211,13 @@ body.modal-open .nav { opacity: .35; pointer-events: none; }
 .scene-people .tap, .scene-people .dexter-hit { pointer-events: auto; cursor: pointer; }
 .scene-people .figure, .scene-people .pooh, .scene-people .dexter { filter: url(#akvarel-soft); }
 /* customers stand still: a steady frame rate matters more than a sway (the painted room behind them would have to be repainted) */
+/* ...but they still walk in through the door once each morning (a single short slide on the people layer) */
+.scene-people .walk-in { animation: walkin 1.3s ease-out backwards; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes walkin { from { transform: translateX(var(--dx)) scale(.8); opacity: 0; } 25% { opacity: 1; } 60% { transform: translateX(calc(var(--dx) * .25)) translateY(-2px) scale(.95); } }
 .scene-people .tap.bounce { animation: hop .5s ease-out 2; transform-box: fill-box; transform-origin: 50% 100%; }
 .weather .fall { animation: fall 6s linear infinite; }
 @keyframes fall { from { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(var(--sway), calc(var(--h) * .5)) rotate(100deg); } to { transform: translate(0, var(--h)) rotate(220deg); } }
-@media (prefers-reduced-motion: reduce) { .weather .fall { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .scene-people .walk-in, .weather .fall { animation: none; } }
 .paid { font-size: 1.6rem; }
 .purse-line { font-size: 1.55rem; }
 .mood-word { font-size: 2.2rem; }
